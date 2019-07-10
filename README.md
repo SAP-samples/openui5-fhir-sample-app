@@ -22,4 +22,4 @@ To host the built application, execute `npm run serve:dist` after building the a
 
 ## License
 Copyright (c) 2019 SAP SE or an SAP affiliate company. All rights reserved.
-This file is licensed under the SAP Sample Code License except as noted otherwise in the [LICENSE](LICENSE.txt) file.
+This file is licensed under the SAP Sample Code License except as noted otherwise in the [LICENSE](LICENSE) file.
