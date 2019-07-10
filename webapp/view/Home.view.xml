@@ -1,0 +1,22 @@
+<core:View xmlns:core="sap.ui.core" xmlns:mvc="sap.ui.core.mvc" xmlns="sap.m" controllerName="myhealthapp.controller.Home"
+	xmlns:html="http://www.w3.org/1999/xhtml">
+	<Page title="{i18n>title}">
+		<content>
+			<GenericTile id="myPatientsTile" binding="{/Patient}" class="sapUiTinyMarginBegin sapUiTinyMarginTop" header="My Patients" press="onMyPatientsTilePress">
+				<TileContent unit="Patients">
+					<NumericContent value="{%total%}" icon="sap-icon://stethoscope"/>
+				</TileContent>
+			</GenericTile>
+			<GenericTile id="myOrganizationsTile" binding="{/Organization}" class="sapUiTinyMarginBegin sapUiTinyMarginTop" header="My Organizations" press="onMyOrganzationsTilePress">
+				<TileContent unit="Organizations">
+					<NumericContent value="{%total%}" icon="sap-icon://org-chart"/>
+				</TileContent>
+			</GenericTile>
+		</content>
+		<footer>
+			<Toolbar>
+				<Label text="{i18n>homeFooterText}"/>
+			</Toolbar>
+		</footer>
+	</Page>
+</core:View>

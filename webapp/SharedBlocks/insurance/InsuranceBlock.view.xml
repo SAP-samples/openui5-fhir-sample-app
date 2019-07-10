@@ -1,0 +1,32 @@
+<mvc:View xmlns:mvc="sap.ui.core.mvc" xmlns="sap.m" controllerName="myhealthapp.SharedBlocks.insurance.InsuranceBlockController">
+    <Table id="insuranceTable" items="{path: '/Coverage', parameters : { groupId : 'patientDetails'}, request: { _include: 'Coverage:payor'}}">
+        <columns>
+            <Column hAlign="Left">
+                <Text text="{i18n>columnLabelPatientInsuranceNumber}"/>
+            </Column>
+            <Column hAlign="Left">
+                <Text text="{i18n>columnLabelInsuranceName}"/>
+            </Column>
+            <Column hAlign="Left">
+                <Text text="{i18n>columnLabelInsuranceType}"/>
+            </Column>
+            <Column hAlign="Left">
+                <Text text="{i18n>columnLabelPatientInsuranceStartDate}"/>
+            </Column>
+            <Column hAlign="Left">
+                <Text text="{i18n>columnLabelPatientInsuranceEndDate}"/>
+            </Column>
+        </columns>
+        <items>
+            <ColumnListItem>
+                <cells> 
+                    <Text text="{subscriberId}" />
+                    <Text text="{payor/0/reference/name}" />
+                    <Text text="{type}" />
+                    <Text text="{path:'period/start' , formatter: '.formatter.formatFullTime'}" />
+                    <Text text="{path:'period/end', formatter: '.formatter.formatFullTime'}" />
+                </cells>
+            </ColumnListItem>
+        </items>
+    </Table>
+</mvc:View>

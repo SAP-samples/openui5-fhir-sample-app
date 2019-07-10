@@ -1,0 +1,20 @@
+# Package Files
+package-lock.json
+
+# generated Folders
+/test-results/
+/bin/
+.settings/
+node_modules/
+gen/
+/.vscode
+/dist/
+
+# Node
+.npm/
+.config/
+.node-gyp/
+npm-debug.log
+
+# Bash
+.bash_history

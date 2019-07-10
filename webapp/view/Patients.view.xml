@@ -1,0 +1,15 @@
+<core:View xmlns:core="sap.ui.core" xmlns:mvc="sap.ui.core.mvc" xmlns="sap.m" controllerName="myhealthapp.controller.Patients"
+	xmlns:html="http://www.w3.org/1999/xhtml">
+	<Page title="{i18n>title}" showNavButton="true" navButtonPress="onNavBack">
+		<content>
+			<List id="patientsList" headerText="{i18n>patientsTitle}" items="{/Patient}" growing="true" growingScrollToLoad="true" growingThreshold="10" itemPress="onPressPatient">
+                <StandardListItem title="{name/[use=official]/family}" type="Navigation"/>
+            </List>
+		</content>
+		<footer>
+			<Toolbar>
+				<Label text="{i18n>homeFooterText}"/>
+			</Toolbar>
+		</footer>
+	</Page>
+</core:View>
