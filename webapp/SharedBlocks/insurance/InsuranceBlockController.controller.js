@@ -1,10 +1,10 @@
 sap.ui.define([
     "sap/ui/core/mvc/Controller",
     "../../utils/Formatter",
-    "../../utils/Utils",
-    "sap/ui/model/Filter",
+    "sap/fhir/model/r4/FHIRFilter",
+    "sap/fhir/model/r4/FHIRFilterType",
     "sap/fhir/model/r4/FHIRFilterOperator"
-], function(Controller, Formatter, Utils, Filter, FHIRFilterOperator) {
+], function(Controller, Formatter, FHIRFilter, FHIRFilterType, FHIRFilterOperator) {
 	"use strict";
 
 	return Controller.extend("myhealthapp.SharedBlocks.insurance.InsuranceBlockController", {
@@ -40,8 +40,31 @@ sap.ui.define([
 
         filterInsuranceTableToPatient: function(sPatientId){
             var aFilters = [];
-            aFilters.push(new Filter("patient", FHIRFilterOperator.EQ, sPatientId));
+            aFilters.push(new FHIRFilter({ path: "patient", operator : FHIRFilterOperator.EQ, value1: "Patient/" + sPatientId, valueType: FHIRFilterType.string}));
             this.getView().byId("insuranceTable").getBinding("items").filter(aFilters);
+        },
+
+        addInsurance: function(){
+            var sPatientId = this.byId("insuranceTable").getBindingContext().getPath().split("/")[2];
+            var sCoverageId = this.getView().getModel().create("Coverage", {beneficiary: {reference: "Patient/" + sPatientId}}, "patientDetails");
+        },
+
+        onInsuranceChange: function(oEvent){
+            var oSelect = oEvent.getSource();
+            var sOrganizationId = oSelect.getSelectedKey();
+            var sCoverageId = this.getView().getModel().getProperty(oSelect.getBindingContext().getPath() + "/id");
+            if(sOrganizationId && sCoverageId){
+                this.getView().getModel().setProperty("/Coverage/" + sCoverageId + "/payor/0/reference", "Organization/" + sOrganizationId);
+            }
+        },
+
+        onInsuranceCompanyModelChange: function(oEvent){
+            var oSelect = oEvent.getSource();
+            var oBindingContext = oSelect.getBindingContext();
+            if (oBindingContext) {
+                var sCoverageId = this.getView().getModel().getProperty(oBindingContext.getPath() + "/id");
+                oSelect.setSelectedKey(this.getView().getModel().getProperty("/Coverage/" + sCoverageId + "/payor/0/reference/id"));
+            }
         }
 
     });

@@ -1,4 +1,4 @@
-<core:View xmlns:core="sap.ui.core" xmlns:mvc="sap.ui.core.mvc" xmlns="sap.m" xmlns:uxap="sap.uxap" xmlns:name="myhealthapp.SharedBlocks.name" xmlns:address="myhealthapp.SharedBlocks.address" xmlns:insurance="myhealthapp.SharedBlocks.insurance" controllerName="myhealthapp.controller.Patient" xmlns:html="http://www.w3.org/1999/xhtml">
+<core:View xmlns:core="sap.ui.core" xmlns:mvc="sap.ui.core.mvc" xmlns="sap.m" xmlns:uxap="sap.uxap" xmlns:name="myhealthapp.SharedBlocks.name" xmlns:address="myhealthapp.SharedBlocks.address" xmlns:biological="myhealthapp.SharedBlocks.biological" xmlns:insurance="myhealthapp.SharedBlocks.insurance" controllerName="myhealthapp.controller.Patient" xmlns:html="http://www.w3.org/1999/xhtml">
     <Page title="{i18n>title}" showNavButton="true" navButtonPress="onNavBack">
         <content>
             <uxap:ObjectPageLayout id="objectPageLayout" showTitleInHeaderContent="true">
@@ -25,23 +25,28 @@
 			        </VBox>
                 </uxap:headerContent>
                 <uxap:sections>
-                    <uxap:ObjectPageSection id="personalSection" title="Personal" importance="Medium">
+                    <uxap:ObjectPageSection id="personalSection" title="{i18n>titleSectionPersonal}">
                         <uxap:subSections>
-                            <uxap:ObjectPageSubSection id="nameSubSection" title="Name">
+                            <uxap:ObjectPageSubSection id="nameSubSection" title="{i18n>titleSubSectionName}">
                                 <uxap:blocks>
                                     <name:NameBlock id="nameBlock" showSubSectionMore="true" columnLayout="1"/>
                                 </uxap:blocks>
                             </uxap:ObjectPageSubSection>
-                             <uxap:ObjectPageSubSection id="addressSubSection" title="Address">
+                             <uxap:ObjectPageSubSection id="addressSubSection" title="{i18n>titleSubSectionAddress}">
                                 <uxap:blocks>
                                     <address:AddressBlock id="addressBlock" columnLayout="1"/>
                                 </uxap:blocks>
                             </uxap:ObjectPageSubSection>
+                            <uxap:ObjectPageSubSection id="biologicalSubSection" title="{i18n>titleSubSectionBiologicalInformation}">
+                                <uxap:blocks>
+                                    <biological:BiologicalBlock id="biologicalBlock" columnLayout="1"/>
+                                </uxap:blocks>
+                            </uxap:ObjectPageSubSection>
 				        </uxap:subSections>
                     </uxap:ObjectPageSection>
-                    <uxap:ObjectPageSection id="insuranceSection" title="Insurance" importance="High">
+                    <uxap:ObjectPageSection id="insuranceSection" title="{i18n>titleSectionInsurance}">
                         <uxap:subSections>
-                          <uxap:ObjectPageSubSection id="insuranceSubSection" title="Insurance">
+                          <uxap:ObjectPageSubSection id="insuranceSubSection" title="{i18n>titleSectionInsurance}">
                                 <uxap:blocks>
                                     <insurance:InsuranceBlock id="insuranceBlock"/>
                                 </uxap:blocks>

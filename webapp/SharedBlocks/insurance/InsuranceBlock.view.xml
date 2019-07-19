@@ -1,4 +1,7 @@
-<mvc:View xmlns:mvc="sap.ui.core.mvc" xmlns="sap.m" controllerName="myhealthapp.SharedBlocks.insurance.InsuranceBlockController">
+<mvc:View xmlns:mvc="sap.ui.core.mvc" xmlns:core="sap.ui.core" xmlns="sap.m" controllerName="myhealthapp.SharedBlocks.insurance.InsuranceBlockController">
+    <HBox justifyContent="End" class="sapUiSmallMarginBottom" visible="{appState>/editMode}">
+        <Link text="Add Insurance" press="addInsurance"/>
+    </HBox>
     <Table id="insuranceTable" items="{path: '/Coverage', parameters : { groupId : 'patientDetails'}, request: { _include: 'Coverage:payor'}}">
         <columns>
             <Column hAlign="Left">
@@ -18,13 +21,17 @@
             </Column>
         </columns>
         <items>
-            <ColumnListItem>
-                <cells> 
-                    <Text text="{subscriberId}" />
-                    <Text text="{payor/0/reference/name}" />
-                    <Text text="{type}" />
-                    <Text text="{path:'period/start' , formatter: '.formatter.formatFullTime'}" />
-                    <Text text="{path:'period/end', formatter: '.formatter.formatFullTime'}" />
+             <ColumnListItem>
+                <cells>
+                    <Input value="{subscriberId}" enabled="{appState>/editMode}"/>
+                    <Select forceSelection="false" items="{path: '/Organization', templateShareable: false}" enabled="{appState>/editMode}" change="onInsuranceChange" modelContextChange="onInsuranceCompanyModelChange">
+                        <core:Item key="{id}" text="{name}"/>
+                    </Select>
+                    <Select forceSelection="false" selectedKey="{type}" items="{path: 'type', templateShareable: false}" enabled="{appState>/editMode}">
+                        <core:Item key="{code}" text="{display}"/>
+                    </Select>
+                    <DatePicker id="datePickerStart" value="{period/start}" valueFormat="yyyy-MM-dd" displayFormat="long" change="handleStartDateChange" enabled="{appState>/editMode}"/>
+                    <DatePicker id="datePickerEnd" value="{period/end}" valueFormat="yyyy-MM-dd" displayFormat="long" change="handleEndDateChange" enabled="{appState>/editMode}"/>
                 </cells>
             </ColumnListItem>
         </items>

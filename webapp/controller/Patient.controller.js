@@ -46,7 +46,7 @@ sap.ui.define([
 
             var fnError = function(oError){
                 this.enableEditMode(false);
-                MessageBox.show(Utils.getI18NText(this, "msgPatientSaved", [oError.statusCode, oError.statusText]));
+                MessageBox.show(Utils.getI18NText(this, "msgPatientSavedFailed", [oError.statusCode, oError.statusText]));
             }.bind(this);
 
             var oRequest = this.getView().getModel().submitChanges("patientDetails", fnSuccess, fnError);
