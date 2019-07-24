@@ -2,7 +2,7 @@
     <HBox justifyContent="End" class="sapUiSmallMarginBottom" visible="{appState>/editMode}">
         <Link text="Add Insurance" press="addInsurance"/>
     </HBox>
-    <Table id="insuranceTable" items="{path: '/Coverage', parameters : { groupId : 'patientDetails', request: { _include: 'Coverage:payor'}}}">
+    <Table id="insuranceTable" items="{path: '/Coverage', parameters : {request: { _include: 'Coverage:payor'}}}">
         <columns>
             <Column hAlign="Left">
                 <Text text="{i18n>columnLabelPatientInsuranceNumber}"/>
@@ -24,9 +24,11 @@
              <ColumnListItem>
                 <cells>
                     <Input value="{subscriberId}" enabled="{appState>/editMode}"/>
-                    <Select forceSelection="false" items="{path: '/Organization', templateShareable: false}" enabled="{appState>/editMode}" change="onInsuranceChange" modelContextChange="onInsuranceCompanyModelChange">
-                        <core:Item key="{id}" text="{name}"/>
-                    </Select>
+                    <Input suggestionItems="{path: '/Organization', templateShareable: false}" showSuggestion="true" enabled="{appState>/editMode}" suggestionItemSelected="onInsuranceChange" modelContextChange="onInsuranceCompanyModelChange">
+                        <suggestionItems>
+                            <core:Item key="{id}" text="{name}"/>
+                        </suggestionItems>
+                    </Input>
                     <Select forceSelection="false" selectedKey="{type/coding/0/code}" items="{path: 'type', templateShareable: false}" enabled="{appState>/editMode}">
                         <core:Item key="{code}" text="{display}"/>
                     </Select>
