@@ -5,7 +5,7 @@
 	"license": "SAP SAMPLE CODE LICENSE AGREEMENT",
 	"repository": {
 		"type": "git",
-		"url": "https://github.com/SAP-samples/openui5-fhir-sample-app/"
+		"url": "https://github.com/SAP-samples/openui5-fhir-sample-app.git"
 	},
 	"contributors": [
 		{
