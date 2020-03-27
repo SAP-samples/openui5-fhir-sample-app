@@ -22,7 +22,7 @@ To host the built application, execute `npm run serve:dist` after building the a
 
 ## Support
 
-Do you've any questions? Don't hesitate to raise a [new issue](https://github.com/SAP-samples/openui5-fhir-sample-app/issues/new/choose).
+Do you have any questions? Don't hesitate to raise a [new issue](https://github.com/SAP-samples/openui5-fhir-sample-app/issues/new/choose).
 
 This project is provided "as-is": there is no guarantee that raised issues will be answered or addressed in future releases.
 
@@ -31,5 +31,4 @@ This project is provided "as-is": there is no guarantee that raised issues will 
 The list of current issues is available [here](https://github.com/SAP-samples/openui5-fhir-sample-app/issues).
 
 ## License
-Copyright (c) 2019 SAP SE or an SAP affiliate company. All rights reserved.
-This file is licensed under the SAP Sample Code License except as noted otherwise in the [LICENSE](LICENSE) file.
+Copyright (c) 2019 SAP SE or an SAP affiliate company. All rights reserved. This file is licensed under the Apache Software License, version 2.0 except as noted otherwise in the [LICENSE](LICENSE) file.
