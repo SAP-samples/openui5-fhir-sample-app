@@ -28,7 +28,6 @@
 	"sap.ui": {
 		"supportedThemes": [
 			"sap_hcb",
-			"sap_belize",
 			"sap_fiori_3"
 
 		],
