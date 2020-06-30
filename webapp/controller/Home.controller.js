@@ -3,7 +3,7 @@ sap.ui.define([
 ], function(Controller) {
 	"use strict";
 
-	return Controller.extend("myhealth.controller.Home", {
+	return Controller.extend("myhealthapp.controller.Home", {
 
 		onInit: function(){
 			this.initializeRouter();
@@ -23,6 +23,19 @@ sap.ui.define([
 			var iNumberOfOrganizations = oEvent.getSource().getTileContent()[0].getContent().getValue() || 0;
 			sap.m.MessageToast.show(this.getView().getModel("i18n").getResourceBundle().getText("organzationsTileInfo", [iNumberOfOrganizations]));
 			this.oRouter.navTo("organizationsRoute");
+		},
+
+		onMessagePopoverPress : function (oEvent) {
+			this._getMessagePopover().openBy(oEvent.getSource());
+		},
+
+		_getMessagePopover : function () {
+			if (!this._oMessagePopover) {
+				this._oMessagePopover = sap.ui.xmlfragment(this.getView().getId(), "myhealthapp.view.fragments.MessagePopover", this);
+				jQuery.sap.syncStyleClass(this.getOwnerComponent().getContentDensityClass(), this.getView(), this._oMessagePopover);
+				this.getView().addDependent(this._oMessagePopover);
+			}
+			return this._oMessagePopover;
 		}
 	});
 });
