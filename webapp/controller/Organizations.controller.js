@@ -3,7 +3,7 @@ sap.ui.define([
 ], function(Controller) {
 	"use strict";
 
-	return Controller.extend("myhealth.controller.Organizations", {
+	return Controller.extend("myhealthapp.controller.Organizations", {
 
         onInit: function(){
 			this.initializeRouter();

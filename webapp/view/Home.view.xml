@@ -14,9 +14,13 @@
 			</GenericTile>
 		</content>
 		<footer>
-			<Toolbar>
-				<Label text="{i18n>homeFooterText}"/>
-			</Toolbar>
+			<OverflowToolbar id="overflowToolbar">
+			 	<Button id="btn_messagePopover"
+                        icon="sap-icon://alert"
+                        text="{=${messageModel>/}.length}"
+                        press="onMessagePopoverPress" />
+            	<Label text="{i18n>homeFooterText}"/>
+			</OverflowToolbar>
 		</footer>
 	</Page>
 </core:View>

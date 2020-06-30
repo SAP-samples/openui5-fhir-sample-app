@@ -73,6 +73,9 @@
 						"patientDetails": {
 							"submit": "Batch"
 						}
+					},
+					"defaultQueryParameters": {
+						"_total": "accurate"
 					}
 				}
 			},
