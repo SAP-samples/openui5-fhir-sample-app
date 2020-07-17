@@ -18,7 +18,6 @@
 	},
 	"devDependencies": {
 		"@ui5/cli": "^2.2.6",
-		"rimraf": "^3.0.2",
 		"local-web-server": "^4.0.0"
 	},
 	"dependencies": {
@@ -27,7 +26,7 @@
 	"scripts": {
 		"serve": "ui5 serve",
 		"serve:dist": "ws --compress -d dist",
-		"build": "rimraf dist && ui5 build -a",
-		"build:self-contained": "rimraf dist && ui5 build self-contained -a"
+		"build": "ui5 build -a --clean-dest",
+		"build:self-contained": "ui5 build self-contained -a --clean-dest"
 	}
 }

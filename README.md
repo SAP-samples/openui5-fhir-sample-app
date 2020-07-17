@@ -1,6 +1,9 @@
 # OpenUI5-FHIR Sample App
 This project describes how to use the famous *OpenUI5-FHIR* project to build beautiful Fiori look and feel UI5 applications based on services using the [FHIR®](https://www.hl7.org/fhir/index.html) protocol.
 
+## Live Demo
+Just visit the [live demo](http://sap-samples.github.io/openui5-fhir-sample-app) to try out the application.
+
 ## Prerequisites
 - Download and install [node.js](https://nodejs.org/en/download/)
 
