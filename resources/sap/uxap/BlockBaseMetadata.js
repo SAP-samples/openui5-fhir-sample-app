@@ -1,0 +1,6 @@
+/*!
+ * OpenUI5
+ * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
+ */
+sap.ui.define(["sap/ui/thirdparty/jquery","sap/ui/core/ElementMetadata","sap/base/Log"],function(e,t,r){"use strict";var n=function(e,r){t.apply(this,arguments);this._mViews=r.metadata.views||{}};n.prototype=Object.create(t.prototype);n.prototype.constructor=n;n.prototype.applySettings=function(e){var r=e.hasOwnProperty("renderer")?e.renderer||"":undefined;t.prototype.applySettings.call(this,e);if(r==null){this._sRendererName=null}};n.prototype.getRendererName=function(){if(!this._sBlockRenderer){this._sBlockRenderer=this._resolveRendererName();r.debug("BlockBaseMetadata :: "+this.getName()+" is renderer with "+this._sBlockRenderer)}return this._sBlockRenderer};n.prototype._resolveRendererName=function(){var e=t.prototype.getRendererName.call(this);if(e==null){var r=this.getParent();if(r){e=n.prototype._resolveRendererName.apply(r)}else{throw new Error("BlockBaseMetadata :: no renderer found for "+this.getName())}}return e};n.prototype.getView=function(e){return this._mViews[e]};n.prototype.getViews=function(){return this._mViews};n.prototype.setView=function(e,t){this._mViews[e]=t;return this};n.prototype.hasViews=function(){return!e.isEmptyObject(this._mViews)};return n},true);

@@ -1,0 +1,1 @@
+sap.ui.define(["sap/ui/core/mvc/Controller"],function(t){"use strict";return t.extend("myhealthapp.controller.App",{onInit:function(){this.getView().addStyleClass(this.getOwnerComponent().getContentDensityClass())}})});

@@ -1,0 +1,6 @@
+/*!
+ * SAP SE
+ * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
+ */
+sap.ui.define(["sap/fhir/model/r4/FHIRFilterOperator","sap/fhir/model/r4/FHIRFilterType"],function(e,a){"use strict";var r={};r.getFHIRSearchParameterModifier=function(a){var r="";if(this.isSearchParameterModifiable(a)||e.Missing===a.sOperator){switch(a.sOperator){case e.Contains:r=":contains";break;case e.StartsWith:r="";break;case e.EQ:r=":exact";break;case e.Missing:r=":missing";break;default:break}}return r};r.isSearchParameterModifiable=function(e){return e.sValueType!==a.date&&e.sValueType!==a.number&&(typeof e.oValue1==="string"||Array.isArray(e.oValue1))};r.isSearchParameterPrefixable=function(e){return!(typeof e.oValue1==="string"||Array.isArray(e.oValue1))||e.sValueType===a.date||!isNaN(e.oValue1)};r.getFilterValue=function(e){var a=e;if(e instanceof Date){a=e.toISOString()}return a};r.getFHIRSearchPrefix=function(a){var r;if(this.isSearchParameterPrefixable(a)){switch(a.sOperator){case e.EQ:r="eq";break;case e.NE:r="ne";break;case e.GT:r="gt";break;case e.GE:r="ge";break;case e.LT:r="lt";break;case e.LE:r="le";break;case e.SA:r="sa";break;case e.EB:r="eb";break;case e.AP:r="ap";break;default:break}}return r};return r});

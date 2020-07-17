@@ -1,0 +1,44 @@
+<mvc:View xmlns:mvc="sap.ui.core.mvc" xmlns="sap.m" xmlns:core="sap.ui.core" xmlns:form="sap.ui.layout.form">
+    <form:SimpleForm id="biologicalFormRead"
+        editable="false"
+        layout="ResponsiveGridLayout"
+        labelSpanXL="3"
+        labelSpanL="3"
+        labelSpanM="3"
+        labelSpanS="12"
+        emptySpanXL="4"
+        emptySpanL="4"
+        emptySpanM="4"
+        emptySpanS="0"
+        columnsXL="2"
+        columnsL="2"
+        columnsM="2"
+        visible="{= !${appState>/editMode}}">
+        <form:content>
+            <Label text="{i18n>labelPatientGender}" labelFor="patientGenderText"/>
+            <Text id="patientGenderText" text="{gender}" />
+        </form:content>
+    </form:SimpleForm>
+    <form:SimpleForm id="biologicalFormEdit"
+        editable="true"
+        layout="ResponsiveGridLayout"
+        labelSpanXL="3"
+        labelSpanL="3"
+        labelSpanM="3"
+        labelSpanS="12"
+        emptySpanXL="4"
+        emptySpanL="4"
+        emptySpanM="4"
+        emptySpanS="0"
+        columnsXL="2"
+        columnsL="2"
+        columnsM="2"
+        visible="{appState>/editMode}">
+        <form:content>
+            <Label text="{i18n>labelPatientGender}" labelFor="patientGenderSelect"/>
+            <Select id="patientGenderSelect" items="{gender}" forceSelection="false" selectedKey="{gender}">
+                <core:Item key="{code}" text="{display}"/>
+            </Select>
+        </form:content>
+    </form:SimpleForm>
+</mvc:View>

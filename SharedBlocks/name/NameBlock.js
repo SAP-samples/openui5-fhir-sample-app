@@ -1,0 +1,1 @@
+sap.ui.define(["sap/uxap/BlockBase"],function(e){"use strict";var a=e.extend("myhealthapp.SharedBlocks.name.NameBlock",{metadata:{views:{Collapsed:{viewName:"myhealthapp.SharedBlocks.name.NameBlockCollapsed",type:"XML"},Expanded:{viewName:"myhealthapp.SharedBlocks.name.NameBlockExpanded",type:"XML"}}}});return a},true);

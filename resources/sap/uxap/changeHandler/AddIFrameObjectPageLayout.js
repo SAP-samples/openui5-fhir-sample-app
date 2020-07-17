@@ -1,0 +1,6 @@
+/*!
+ * OpenUI5
+ * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
+ */
+sap.ui.define(["sap/ui/fl/Utils","sap/base/Log","sap/ui/fl/changeHandler/AddIFrame","sap/ui/fl/changeHandler/common/getTargetAggregationIndex","sap/ui/fl/changeHandler/common/createIFrame"],function(e,a,t,r,n){"use strict";var i=Object.assign({},t);i.applyChange=function(e,a,i){var g=i.modifier;var o=e.getDefinition();var s=o.content.targetAggregation;if(s!=="sections"){return t.applyChange(e,a,i)}var c=i.view;var p=i.appComponent;var u=o.content.selector;var l=sap.ui.getCore().getLibraryResourceBundle("sap.uxap").getText("SECTION_TITLE_FOR_IFRAME");var v=g.createControl("sap.uxap.ObjectPageSection",p,c,u,{title:l},false);var f=Object.create(u);f.id+="-subSection";var d=g.createControl("sap.uxap.ObjectPageSubSection",p,c,f,{title:l},false);g.insertAggregation(v,"subSections",d,0,c);var b=Object.create(u);b.id+="-iframe";var m=n(e,i,b);g.insertAggregation(d,"blocks",m,0,c);var A=r(e,a,i);g.insertAggregation(a,"sections",v,A,c);e.setRevertData([g.getId(v)])};return i},true);

@@ -1,0 +1,6 @@
+/*!
+ * OpenUI5
+ * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
+ */
+sap.ui.define(["./library","./ObjectPageDynamicHeaderContentRenderer","sap/base/Log"],function(e,t,n){"use strict";try{sap.ui.getCore().loadLibrary("sap.f")}catch(e){n.error("The control 'sap.uxap.ObjectPageDynamicHeaderContent' needs library 'sap.f'.");throw e}var a=sap.ui.requireSync("sap/f/DynamicPageHeader");var r=a.extend("sap.uxap.ObjectPageDynamicHeaderContent",{metadata:{interfaces:["sap.uxap.IHeaderContent"],library:"sap.uxap"}});r.createInstance=function(e,t,n,a,s){return new r({content:e,visible:t,pinnable:a,id:s})};r.prototype.supportsPinUnpin=function(){return true};r.prototype.supportsChildPageDesign=function(){return false};r.prototype.supportsAlwaysExpanded=function(){return false};r.prototype.setContentDesign=function(e){};r.prototype.setVisible=function(e){this.getParent()&&this.getParent().toggleStyleClass("sapUxAPObjectPageLayoutNoHeaderContent",!e);return this.setProperty("visible",e)};return r});

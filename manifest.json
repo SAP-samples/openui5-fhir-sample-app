@@ -1,0 +1,152 @@
+{
+	"_version": "1.7.0",
+	"sap.app": {
+		"id": "myhealthapp",
+		"type": "application",
+		"i18n": "i18n/i18n.properties",
+		"applicationVersion": {
+			"version": "1.0.0"
+		},
+		"title": "MyHealthApp",
+		"description": "This app provides an overview to work with the UI5 FHIRModel",
+		"dataSources": {
+			"fhir": {
+				"uri": "http://hapi.fhir.org/baseR4/",
+				"type": "FHIR"
+			},
+			"fhir-local": {
+				"uri": "http://localhost:8080/fhir/R4/",
+				"type": "FHIR"
+			},
+			"app-state": {
+				"uri": "resources/local/state.json",
+				"type": "JSON"
+			}
+		}
+	},
+	
+	"sap.ui": {
+		"supportedThemes": [
+			"sap_hcb",
+			"sap_fiori_3"
+
+		],
+		"technology": "UI5",
+		"deviceTypes": {
+			"desktop": true,
+			"tablet": true,
+			"phone": true
+		}
+	},
+
+	"sap.ui5": {
+		"rootView": {
+			"viewName": "myhealthapp.view.App",
+			"type": "XML",
+			"id": "appView",
+			"async": true
+		},
+		"dependencies": {
+			"minUI5Version": "1.54.0",
+			"libs": {
+				"sap.ui.core": {},
+				"sap.m": {},
+				"sap.uxap": {},
+				"sap.fhir": {}
+			}
+		},
+		"resourceRoots": {},
+		"contentDensities": {
+			"compact": true,
+			"cozy": true
+		},
+		"models": {
+			"i18n": {
+				"type": "sap.ui.model.resource.ResourceModel",
+				"settings": {
+					"bundleName": "myhealthapp.i18n.i18n",
+					"supportedLocales": ["en"],
+                    "fallbackLocale": "en"
+				}
+			},
+			"": {
+				"type": "sap.fhir.model.r4.FHIRModel",
+				"dataSource": "fhir",
+				"settings" : {
+					"groupProperties": {
+						"patientDetails": {
+							"submit": "Batch"
+						}
+					},
+					"defaultQueryParameters": {
+						"_total": "accurate"
+					}
+				}
+			},
+			"appState": {
+				"dataSource": "app-state",
+				"type": "sap.ui.model.json.JSONModel"
+			}
+		},
+		"resources": {
+			"css": [{
+				"uri": "css/style.css"
+			}]
+		},
+		"routing": {
+			"config": {
+				"routerClass": "sap.m.routing.Router",
+				"viewType": "XML",
+				"viewPath": "myhealthapp.view",
+				"controlId": "app",
+				"controlAggregation": "pages",
+				"transition": "slide",
+				"async": true
+			},
+			"routes": [
+				{
+					"pattern": "",
+					"name": "homeRoute",
+					"target": "homeTarget"
+				},
+				{
+					"pattern": "patients",
+					"name": "patientsRoute",
+					"target": "patientsTarget"
+				},
+				{
+					"pattern": "patients/{patientId}",
+					"name": "patientRoute",
+					"target": "patientTarget"
+				},
+				{
+					"pattern": "organizations",
+					"name": "organizationsRoute",
+					"target": "organizationsTarget"
+				}
+			],
+			"targets": {
+				"homeTarget": {
+					"viewName": "Home",
+					"viewId": "home",
+					"viewLevel": 1
+				},
+				"patientsTarget" :{
+					"viewName": "Patients",
+					"viewId": "patients",
+					"viewLevel": 2
+				},
+				"patientTarget" :{
+					"viewName": "Patient",
+					"viewId": "patient",
+					"viewLevel": 3
+				},
+				"organizationsTarget" :{
+					"viewName": "Organizations",
+					"viewId": "organizations",
+					"viewLevel": 2
+				}
+			}
+		}
+	}
+}
