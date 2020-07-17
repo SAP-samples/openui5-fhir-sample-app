@@ -2,7 +2,7 @@
                          xmlns:core="sap.ui.core">
     <MessagePopover items="{messageModel>/}"
                     initiallyExpanded="true">
-        <MessagePopoverItem type="{messageModel>type}"
+        <MessageItem type="{messageModel>type}"
                             title="{messageModel>message}"
                             subtitle="{messageModel>additionalText}"
                             description="{messageModel>description}" />

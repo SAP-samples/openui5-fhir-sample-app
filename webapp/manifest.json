@@ -50,7 +50,9 @@
 			"minUI5Version": "1.54.0",
 			"libs": {
 				"sap.ui.core": {},
-				"sap.m": {}
+				"sap.m": {},
+				"sap.uxap": {},
+				"sap.fhir": {}
 			}
 		},
 		"resourceRoots": {},
@@ -62,7 +64,9 @@
 			"i18n": {
 				"type": "sap.ui.model.resource.ResourceModel",
 				"settings": {
-					"bundleName": "myhealthapp.i18n.i18n"
+					"bundleName": "myhealthapp.i18n.i18n",
+					"supportedLocales": ["en"],
+                    "fallbackLocale": "en"
 				}
 			},
 			"": {
