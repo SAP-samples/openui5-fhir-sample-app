@@ -11,7 +11,7 @@
 		"description": "This app provides an overview to work with the UI5 FHIRModel",
 		"dataSources": {
 			"fhir": {
-				"uri": "http://hapi.fhir.org/baseR4/",
+				"uri": "https://hapi.fhir.org/baseR4/",
 				"type": "FHIR"
 			},
 			"fhir-local": {
