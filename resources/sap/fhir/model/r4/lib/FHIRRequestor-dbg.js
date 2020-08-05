@@ -35,7 +35,7 @@ sap.ui.define([
 	 * @constructs {FHIRRequestor} Provides the implementation of the FHIR Requestor to send and retrieve content from a FHIR server
 	 * @protected
 	 * @since 1.0.0
-	 * @version 1.1.3
+	 * @version 1.1.6
 	 */
 	var FHIRRequestor = function(sServiceUrl, oModel, bCSRF, sPrefer, oDefaultQueryParams) {
 		this._mBundleQueue = {};
@@ -144,12 +144,12 @@ sap.ui.define([
 		var oBindingInfo = sMethod === HTTPMethod.POST ? this.oModel.getBindingInfo("/" + sResourcePath, undefined, false, oResource) : this.oModel.getBindingInfo("/" + sResourcePath);
 		var sRequestUrl = sResourcePath + (HTTPMethod.GET === sMethod ? this._buildQueryParameters(mParameters, oBindingInfo, sMethod) : "");
 		var sFullUrl;
-		var sEtag;
+		var sETag;
 		if (HTTPMethod.GET !== sMethod) {
 			sFullUrl = FHIRUtils.generateFullUrl(oUri, oBindingInfo.getResourceServerPath(), oBindingInfo.getResourceId(), this._sServiceUrl);
-			sEtag = oBindingInfo.getEtag();
+			sETag = oBindingInfo.getETag();
 		}
-		var oFHIRBundleRequest = new FHIRBundleRequest(oBinding, sMethod, sRequestUrl, fnSuccess, fnError, sEtag);
+		var oFHIRBundleRequest = new FHIRBundleRequest(oBinding, sMethod, sRequestUrl, fnSuccess, fnError, sETag);
 		var oFHIRBundleEntry = new FHIRBundleEntry(sFullUrl, oResource, oFHIRBundleRequest);
 		return oFHIRBundleEntry;
 	};

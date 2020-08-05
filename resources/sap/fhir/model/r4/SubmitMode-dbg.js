@@ -16,7 +16,7 @@ sap.ui.define(function() {
 	 * @enum {string}
 	 * @public
 	 * @since 1.0.0
-	 * @version 1.1.3
+	 * @version 1.1.6
 	 */
 	var SubmitMode = {
 		/**

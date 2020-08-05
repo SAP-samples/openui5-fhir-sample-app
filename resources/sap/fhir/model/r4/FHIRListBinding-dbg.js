@@ -45,7 +45,7 @@ sap.ui.define([
 	 * @extends sap.ui.model.ListBinding
 	 * @public
 	 * @since 1.0.0
-	 * @version 1.1.3
+	 * @version 1.1.6
 	 */
 	var FHIRListBinding = ListBinding.extend("sap.fhir.model.r4.FHIRListBinding", {
 
@@ -163,7 +163,9 @@ sap.ui.define([
 				this.bPendingRequest = false;
 				this.bInitial = false;
 				var oBindingInfo = this.oModel.getBindingInfo(this.sPath, this.oContext, this.bUnique);
-				var sStrucDefUrl = this.oModel.getProperty(oBindingInfo.getResourcePath()).meta.profile[0];
+				var oResource = this.oModel.getProperty(oBindingInfo.getResourcePath()) || {};
+				oResource.resourceType = oResource.resourceType || oBindingInfo.getResourceType();
+				var sStrucDefUrl = this.oModel.getStructureDefinitionUrl(oResource);
 				throw new Error("The structuredefinition " + sStrucDefUrl + " could not be loaded from the server for binding with path " + oBindingInfo.getRelativePath());
 			}
 		}.bind(this);
@@ -346,13 +348,9 @@ sap.ui.define([
 			this._submitRequest(this.sPath, mParameters, fnSuccessCallback);
 		} else if (this.oContext && this.bValueSetLookupInStructureDefinition) {
 			var oBindingInfo = this.oModel.getBindingInfo(this.sPath, this.oContext, this.bUnique);
-			var sStrucDefUrl;
-			var oResource = this.oModel.getProperty(oBindingInfo.getResourcePath());
-			if (oResource && oResource.meta && oResource.meta.profile && oResource.meta.profile.length > 0) {
-				sStrucDefUrl = oResource.meta.profile[0];
-			} else {
-				sStrucDefUrl = this.oModel.getBaseProfileUrl() + oBindingInfo.getResourceType();
-			}
+			var oResource = this.oModel.getProperty(oBindingInfo.getResourcePath()) || {};
+			oResource.resourceType = oResource.resourceType || oBindingInfo.getResourceType();
+			var sStrucDefUrl = this.oModel.getStructureDefinitionUrl(oResource);
 			var aStructDefs = [];
 			FHIRUtils.filterObject(this.oModel.oData.StructureDefinition, "url", sStrucDefUrl, 1, aStructDefs);
 			if (aStructDefs.length > 0) {

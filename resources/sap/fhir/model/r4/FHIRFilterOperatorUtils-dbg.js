@@ -18,7 +18,7 @@ sap.ui.define(["sap/fhir/model/r4/FHIRFilterOperator", "sap/fhir/model/r4/FHIRFi
 	 * @author SAP SE
 	 * @protected
 	 * @since 1.0.0
-	 * @version 1.1.3
+	 * @version 1.1.6
 	 */
 	var FHIRFilterOperatorUtils = {};
 

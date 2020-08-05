@@ -19,7 +19,7 @@ sap.ui.define([ "sap/fhir/model/r4/FHIRUtils" ], function(FHIRUtils) {
 	 * @author SAP SE
 	 * @public
 	 * @since 1.0.0
-	 * @version 1.1.3
+	 * @version 1.1.6
 	 */
 	var RequestHandle = function(oBinding) {
 		this._sId = FHIRUtils.uuidv4();

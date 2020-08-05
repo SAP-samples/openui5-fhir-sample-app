@@ -68,7 +68,7 @@ sap.ui.define([
 	 * @author SAP SE
 	 * @public
 	 * @since 1.0.0
-	 * @version 1.1.3
+	 * @version 1.1.6
 	 */
 	var FHIRModel = Model.extend("sap.fhir.model.r4.FHIRModel", {
 
@@ -703,10 +703,10 @@ sap.ui.define([
 							}.bind(this);
 
 
-							var fnVersionReadSuccess = function(sEtag){
+							var fnVersionReadSuccess = function(sETag){
 								iTriggeredVersionRequestsCompleted++;
 								mHeaders = {
-									"If-Match" : sEtag
+									"If-Match" : sETag
 								};
 								fnSubmitChange();
 								if (iTriggeredVersionRequests === iTriggeredVersionRequestsCompleted){
@@ -715,13 +715,13 @@ sap.ui.define([
 							};
 
 							if (oRequestInfo.method === HTTPMethod.PUT) {
-								var sEtag = oBindingInfo.getEtag();
-								if (!sEtag){
+								var sETag = oBindingInfo.getETag();
+								if (!sETag){
 									this.readLatestVersionOfResource(oBindingInfo.getResourceServerPath(), fnVersionReadSuccess);
 									iTriggeredVersionRequests++;
 								} else {
 									mHeaders = {
-										"If-Match" : sEtag
+										"If-Match" : sETag
 									};
 									fnSubmitChange();
 								}
@@ -907,10 +907,10 @@ sap.ui.define([
 			oRequestInfo = this._createRequestInfo(HTTPMethod.POST, oBindingInfo.getResourceType());
 			this._setProperty(this.mChangedResources, FHIRUtils.deepClone(aResPath), oRequestInfo, true);
 		}
-		if (sGroupId){
+		if (sGroupId) {
 			this._setProperty(this.mResourceGroupId, FHIRUtils.deepClone(aResPath), sGroupId, true);
 		}
-		if (!vServerValue && oRequestInfo.method === HTTPMethod.PUT){
+		if (!vServerValue && oRequestInfo.method === HTTPMethod.PUT) {
 			this._setProperty(this.oDataServerState, aResPath, FHIRUtils.deepClone(oResource), true);
 		}
 	};
@@ -929,7 +929,16 @@ sap.ui.define([
 		var oBindingInfo = this.getBindingInfo(sPath, oContext);
 		this._handleClientChanges(oBindingInfo);
 		this._setProperty(this.oData, oBindingInfo.getBinding(), vValue, undefined, oBindingInfo.getGroupId());
-		this.mChangedResources.path = {lastUpdated : oBindingInfo.getAbsolutePath()};
+		var aResPath = oBindingInfo.getResourcePathArray();
+		var vServerValue = this._getProperty(this.oDataServerState, aResPath);
+		var oRequestInfo = this._getProperty(this.mChangedResources, aResPath);
+		var oResource = this._getProperty(this.oData, aResPath);
+		// special handling when the server data and the client changed data is the same
+		if (oRequestInfo && oRequestInfo.method === HTTPMethod.PUT && deepEqual(vServerValue, oResource)) {
+			delete this.mChangedResources[aResPath[0]][aResPath[1]];
+		} else {
+			this.mChangedResources.path = { lastUpdated: oBindingInfo.getAbsolutePath() };
+		}
 		this.checkUpdate(false, this.mChangedResources, oBinding);
 	};
 
@@ -1061,7 +1070,7 @@ sap.ui.define([
 			var sCompletePathChange;
 			var sRequestablePath;
 			var sResourceServerPath;
-			var sEtag;
+			var sETag;
 			var sGroupId = oContext && oContext.sGroupId;
 			var sOperation = "";
 			if (sCompletePath.indexOf("_history") > -1 || bUnique){
@@ -1121,14 +1130,17 @@ sap.ui.define([
 			}
 			if (sResType && sId){
 				sResourceServerPath = "/" + sResType + "/" + sId;
-				sEtag = this._getProperty(this.oData, [
+				sETag = this._getProperty(this.oData, [
 					sResType,
 					sId,
 					"meta",
 					"versionId"
 				]);
+				if (sETag) {
+					sETag = "W/\"" + sETag + "\"";
+				}
 			}
-			return new BindingInfo(sId, sResType, sResPath, sRelPath, sCompletePath, aSplittedPath.slice(1), sGroupId, sRequestablePath, aResPath, sResourceServerPath, sEtag);
+			return new BindingInfo(sId, sResType, sResPath, sRelPath, sCompletePath, aSplittedPath.slice(1), sGroupId, sRequestablePath, aResPath, sResourceServerPath, sETag);
 		}
 		return undefined;
 	};
@@ -1210,7 +1222,7 @@ sap.ui.define([
 	 * @since 1.0.0
 	 */
 	FHIRModel.prototype.hasResourceTypePendingChanges = function(sResourceType) {
-		return this.mChangedResources[sResourceType] !== undefined;
+		return this.mChangedResources[sResourceType] !== undefined && Object.keys(this.mChangedResources[sResourceType]).length > 0;
 	};
 
 	/**
@@ -1360,17 +1372,27 @@ sap.ui.define([
 	 */
 	FHIRModel.prototype.readLatestVersionOfResource = function(sPath, fnSuccess) {
 		var oRequestHandle;
-		var fnExtractVersion = function(oData){
+		var fnExtractVersion = function (oData) {
 			var mHeaders = this.oRequestor.getResponseHeaders(oRequestHandle.getRequest());
-			var oFHIRUrl = new FHIRUrl(mHeaders["content-location"], this.sServiceUrl);
-			fnSuccess(oFHIRUrl.getHistoryVersion() || oData && oData.meta && oData.meta.versionId);
+			var sETagHeader = mHeaders ? mHeaders["etag"] : undefined;
+			var sLocationHeader = mHeaders ? mHeaders["location"] || mHeaders["content-location"] : undefined;
+			var oFHIRUrl = sLocationHeader ? new FHIRUrl(sLocationHeader, this.sServiceUrl) : undefined;
+			var sETag;
+			if (sETagHeader) {
+				sETag = sETagHeader;
+			} else if (oFHIRUrl && oFHIRUrl.getHistoryVersion()) {
+				sETag = "W/\"" + oFHIRUrl.getHistoryVersion() + "\"";
+			} else if (oData && oData.meta && oData.meta.versionId) {
+				sETag = "W/\"" + oData.meta.versionId + "\"";
+			}
+			fnSuccess(sETag);
 		}.bind(this);
 		var mParameters = {
-			success : fnExtractVersion,
-			error : function(){
-				oRequestHandle.getRequest().complete(function(){
+			success: fnExtractVersion,
+			error: function () {
+				oRequestHandle.getRequest().complete(function () {
 					mParameters = {
-						success : fnExtractVersion
+						success: fnExtractVersion
 					};
 					oRequestHandle = this.loadData(sPath, mParameters, HTTPMethod.GET);
 				}.bind(this));
@@ -1518,6 +1540,25 @@ sap.ui.define([
 	 */
 	FHIRModel.prototype.getContext = function(){
 		throw new Error("Unsupported operation: sap.fhir.model.r4.FHIRModel#getContext");
+	};
+
+	/**
+	 * Determines the URL of the StructureDefinition of a given resource instance
+	 * Default URL would be base profile URL + resource type
+	 *
+	 * @param {object} oResource The FHIR resource
+	 * @returns {string} The structure definition for the given binding info
+	 * @protected
+	 * @since 1.1.6
+	 */
+	FHIRModel.prototype.getStructureDefinitionUrl = function (oResource){
+		var sStrucDefUrl;
+		if (oResource && oResource.meta && oResource.meta.profile && oResource.meta.profile.length > 0) {
+			sStrucDefUrl = oResource.meta.profile[0];
+		} else if (oResource && oResource.resourceType) {
+			sStrucDefUrl = this.getBaseProfileUrl() + oResource.resourceType;
+		}
+		return sStrucDefUrl;
 	};
 
 	return FHIRModel;

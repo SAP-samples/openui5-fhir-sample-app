@@ -30,7 +30,7 @@ sap.ui.define([
 	 * @extends sap.ui.model.PropertyBinding
 	 * @public
 	 * @since 1.0.0
-	 * @version 1.1.3
+	 * @version 1.1.6
 	 */
 	var FHIRPropertyBinding = PropertyBinding.extend("sap.fhir.model.r4.FHIRPropertyBinding", {
 
