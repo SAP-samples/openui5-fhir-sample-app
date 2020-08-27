@@ -28,5 +28,11 @@
 		"serve:dist": "ws --compress -d dist",
 		"build": "ui5 build -a --clean-dest",
 		"build:self-contained": "ui5 build self-contained -a --clean-dest"
-	}
+	},
+    "files": [
+    "webapp/*",
+    "ui5.yaml",
+	"LICENSES/**",
+	".reuse/**"
+    ]
 }
