@@ -1,4 +1,6 @@
 # OpenUI5-FHIR Sample App
+[![REUSE status](https://api.reuse.software/badge/github.com/SAP-samples/openui5-fhir-sample-app)](https://api.reuse.software/info/github.com/SAP-samples/openui5-fhir-sample-app)
+
 This project describes how to use the famous *OpenUI5-FHIR* project to build beautiful Fiori look and feel UI5 applications based on services using the [FHIR®](https://www.hl7.org/fhir/index.html) protocol.
 
 ## Live Demo
