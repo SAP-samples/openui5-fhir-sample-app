@@ -30,9 +30,9 @@
 		"build:self-contained": "ui5 build self-contained -a --clean-dest"
 	},
     "files": [
-    "webapp/*",
-    "ui5.yaml",
-	"LICENSES/**",
-	".reuse/**"
+        "webapp/*",
+        "ui5.yaml",
+        "LICENSES/**",
+        ".reuse/**"
     ]
 }
