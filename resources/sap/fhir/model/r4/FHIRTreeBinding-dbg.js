@@ -40,7 +40,7 @@ sap.ui.define([
 	 * @extends sap.ui.model.TreeBinding
 	 * @public
 	 * @since 1.0.0
-	 * @version 1.1.6
+	 * @version 1.1.7
 	*/
 	var FHIRTreeBinding = TreeBinding.extend("sap.fhir.model.r4.FHIRTreeBinding", {
 
