@@ -1,6 +1,6 @@
 /*!
  * SAP SE
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2021 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -17,7 +17,7 @@ sap.ui.define(function() {
 	 * @enum {string}
 	 * @public
 	 * @since 1.0.0
-	 * @version 1.1.7
+	 * @version 2.1.1
 	 */
 	var HTTPMethod = {
 

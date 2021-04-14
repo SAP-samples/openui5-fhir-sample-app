@@ -1,1 +1,1 @@
-sap.ui.define(function(){"use strict";sap.ui.getCore().initLibrary({name:"sap.fhir",version:"1.1.7",noLibraryCSS:true,dependencies:["sap.ui.core"],controls:[],types:[]});return sap.fhir});
+sap.ui.define(function(){"use strict";sap.ui.getCore().initLibrary({name:"sap.fhir",version:"2.1.1",noLibraryCSS:true,dependencies:["sap.ui.core"],controls:[],types:[]});return sap.fhir});

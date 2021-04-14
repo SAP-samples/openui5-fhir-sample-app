@@ -1,6 +1,6 @@
 /*!
  * SAP SE
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2021 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -17,9 +17,10 @@ sap.ui.define([
 	"sap/fhir/model/r4/lib/HTTPMethod",
 	"sap/fhir/model/r4/lib/FHIRUrl",
 	"sap/base/util/each",
-	"sap/base/util/merge"
+	"sap/base/util/merge",
+	"sap/fhir/model/r4/lib/FHIROperationOutcome"
 ], function(jQuery, FHIRUtils, SubmitMode, FHIRBundle,
-	FHIRBundleEntry, FHIRBundleRequest, FHIRBundleType, RequestHandle, HTTPMethod, FHIRUrl, each, merge) {
+	FHIRBundleEntry, FHIRBundleRequest, FHIRBundleType, RequestHandle, HTTPMethod, FHIRUrl, each, merge, FHIROperationOutcome) {
 	"use strict";
 
 	/**
@@ -27,7 +28,7 @@ sap.ui.define([
 	 *
 	 * @param {string} sServiceUrl The root URL of the FHIR server to request data from, e.g. http://example.com/fhir
 	 * @param {sap.fhir.model.r4.FHIRModel} oModel The FHIRModel
-	 * @param {boolean} bCSRF If the FHIR service supports the csrf token
+	 * @param {boolean} [bCSRF=false] If the FHIR service supports the csrf token
 	 * @param {string} sPrefer In which kind the FHIR service shall return the responses described here https://www.hl7.org/fhir/http.html#2.21.0.5.2
 	 * @param {object} oDefaultQueryParams The default query parameters to be passed on resource type specific requests and not resource instance specific requests (e.g /Patient?_total:accurate&_format:json). It should be of type key:value pairs. e.g. {'_total':'accurate'} -> http://hl7.org/fhir/http.html#parameters
 	 * @alias sap.fhir.model.r4.lib.FHIRRequestor
@@ -35,14 +36,14 @@ sap.ui.define([
 	 * @constructs {FHIRRequestor} Provides the implementation of the FHIR Requestor to send and retrieve content from a FHIR server
 	 * @protected
 	 * @since 1.0.0
-	 * @version 1.1.7
+	 * @version 2.1.1
 	 */
 	var FHIRRequestor = function(sServiceUrl, oModel, bCSRF, sPrefer, oDefaultQueryParams) {
 		this._mBundleQueue = {};
 		this.oModel = oModel;
 		this._sServiceUrl = sServiceUrl;
 		this._aPendingRequestHandles = [];
-		this.bCSRF = bCSRF === true ? true : false;
+		this.bCSRF = !!bCSRF;
 		this.sPrefer = sPrefer ?  "return=minimal" : sPrefer;
 		this.oDefaultQueryParams = oDefaultQueryParams;
 		this._oRegex = {
@@ -64,13 +65,15 @@ sap.ui.define([
 	 * Submits a FHIR bundle request call with all entries associated with the given <code>sGroupId</code>
 	 *
 	 * @param {string} sGroupId The group id
+	 * @param {function} fnSuccessPromise The callback function which gets invoked once the submit is successful
+	 * @param {function} fnErrorPromise The callback function which gets invoked when the submit fails
 	 * @returns {sap.fhir.model.r4.lib.RequestHandle} oRequesthandle
 	 * @protected
 	 * @since 1.0.0
 	 */
-	FHIRRequestor.prototype.submitBundle = function(sGroupId) {
+	FHIRRequestor.prototype.submitBundle = function (sGroupId, fnSuccessPromise, fnErrorPromise) {
 		var oFHIRBundle = this._mBundleQueue[sGroupId];
-		return this._sendBundle(oFHIRBundle);
+		return this._sendBundle(oFHIRBundle, fnSuccessPromise, fnErrorPromise);
 	};
 
 	/**
@@ -158,33 +161,53 @@ sap.ui.define([
 	 * Sends the given <code>oFHIRBundle</code>
 	 *
 	 * @param {sap.fhir.model.r4.lib.FHIRBundle} oFHIRBundle The bundle to send
+	 * @param {function} fnSubmitSuccessBundle The callback function which gets invoked once the submit is successful
+	 * @param {function} fnSubmitErrorBundle The callback function which gets invoked when the submit fails
 	 * @returns {sap.fhir.model.r4.lib.RequestHandle} A request handle.
 	 * @private
 	 * @since 1.0.0
 	 */
-	FHIRRequestor.prototype._sendBundle = function(oFHIRBundle) {
-		var fnSuccess = function(oGivenFHIRBundle, oRequestHandle) {
+	FHIRRequestor.prototype._sendBundle = function(oFHIRBundle, fnSubmitSuccessBundle, fnSubmitErrorBundle) {
+		var fnSuccess = function (oGivenFHIRBundle, oRequestHandle) {
+			var aSuccessResource = [];
+			var aOperationOutcome = [];
 			this._deleteBundleFromQueue(oFHIRBundle.getGroupId());
 			for (var i = 0; i < oGivenFHIRBundle.getNumberOfBundleEntries(); i++) {
 				var oFHIRBundleEntry = oGivenFHIRBundle.getBundlyEntry(i);
 				var oResponse = oRequestHandle.getRequest().responseJSON.entry[i];
 				if (oResponse && oResponse.response.status.startsWith("2")) {
+					if (oResponse.resource) {
+						aSuccessResource.push(oResponse.resource);
+					} else if (oFHIRBundleEntry.getResource()) {
+						aSuccessResource.push(oFHIRBundleEntry.getResource());
+					}
 					oFHIRBundleEntry.getRequest().executeSuccessCallback(oRequestHandle, oResponse, oFHIRBundleEntry);
 				} else {
+					if (oResponse && oResponse.response.outcome) {
+						aOperationOutcome.push(new FHIROperationOutcome(oResponse.response.outcome));
+					}
 					oFHIRBundleEntry.getRequest().executeErrorCallback(oRequestHandle, oResponse, oFHIRBundleEntry);
 				}
 			}
+			if (fnSubmitErrorBundle && aOperationOutcome.length > 0) {
+				fnSubmitErrorBundle(oRequestHandle, aSuccessResource, aOperationOutcome);
+			} else if (fnSubmitSuccessBundle) {
+				fnSubmitSuccessBundle(aSuccessResource);
+			}
 		}.bind(this, oFHIRBundle);
 
-		var fnError = function(oGivenFHIRBundle, oRequestHandle) {
+		var fnError = function (oGivenFHIRBundle, oRequestHandle) {
 			this._deleteBundleFromQueue(oFHIRBundle.getGroupId());
 			for (var i = 0; i < oGivenFHIRBundle.getNumberOfBundleEntries(); i++) {
 				var oFHIRBundleEntry = oGivenFHIRBundle.getBundlyEntry(i);
 				oFHIRBundleEntry.getRequest().executeErrorCallback(oRequestHandle);
 			}
+			if (fnSubmitErrorBundle) {
+				fnSubmitErrorBundle(oRequestHandle);
+			}
 		}.bind(this, oFHIRBundle);
 
-		var oRequestHandle = this._sendRequest(HTTPMethod.POST, "", {} , {}, oFHIRBundle.getBundleData(), fnSuccess, fnError);
+		var oRequestHandle = this._sendRequest(HTTPMethod.POST, "", {}, {}, oFHIRBundle.getBundleData(), fnSuccess, fnError);
 		oRequestHandle.setBundle(oFHIRBundle);
 		return oRequestHandle;
 	};
@@ -263,15 +286,12 @@ sap.ui.define([
 	 *
 	 * @param {function} [fnOriginSuccess] The original success callback which will be executed when the request was successful
 	 * @param {sap.fhir.model.r4.lib.RequestHandle} oRequestHandle The request handle object to identify the executed request
-	 * @param {object} oData The server response
-	 * @param {string} sStatusText The status text of the response
-	 * @param {object} jqXHR The request object
 	 * @private
 	 * @since 1.0.0
 	 */
-	FHIRRequestor.prototype._callBackForXcsrfToken = function(fnOriginSuccess, oRequestHandle, oData, sStatusText, jqXHR){
-		this.sToken = this.getResponseHeaders(jqXHR)["x-csrf-token"];
-		fnOriginSuccess(oRequestHandle, oData);
+	FHIRRequestor.prototype._callBackForXcsrfToken = function(fnOriginSuccess, oRequestHandle){
+		this.sToken = this.getResponseHeaders(oRequestHandle.getRequest())["x-csrf-token"];
+		fnOriginSuccess(oRequestHandle);
 	};
 
 	/**
@@ -287,8 +307,8 @@ sap.ui.define([
 	 */
 	FHIRRequestor.prototype._ajax = function(oRequestHandle, mParameters, fnSuccess, fnError) {
 		var jqXHR = jQuery.ajax(mParameters);
-		if (jqXHR.statusText !== "canceled") {
-			jqXHR.complete(function(oGivenRequestHandle) {
+		if (!oRequestHandle.isAborted()) {
+			jqXHR.complete(function (oGivenRequestHandle) {
 				this.oModel.fireRequestCompleted(this._createEventParameters(oGivenRequestHandle));
 			}.bind(this, oRequestHandle));
 			this._add(oRequestHandle, fnSuccess, fnError);
@@ -315,7 +335,9 @@ sap.ui.define([
 		jqXHR.fail(function(oGivenRequestHandle) {
 			this._deleteRequestHandle(oGivenRequestHandle);
 			fnError(oGivenRequestHandle);
-			this.oModel.fireRequestFailed(this._createEventParameters(oGivenRequestHandle));
+			if (!oGivenRequestHandle.isAborted()) {
+				this.oModel.fireRequestFailed(this._createEventParameters(oGivenRequestHandle));
+			}
 		}.bind(this, oRequestHandle));
 	};
 

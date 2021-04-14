@@ -1,11 +1,11 @@
 /*!
  * SAP SE
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2021 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 // Provides class sap.fhir.model.r4.FHIRFilterOperator
-sap.ui.define(["sap/ui/model/FilterOperator"], function(FilterOperator) {
+sap.ui.define(["sap/ui/model/FilterOperator"], function (FilterOperator) {
 
 	"use strict";
 
@@ -23,7 +23,7 @@ sap.ui.define(["sap/ui/model/FilterOperator"], function(FilterOperator) {
 		 *
 		 * @public
 		 */
-		Missing : "Missing",
+		Missing: "Missing",
 		/**
 		 * starts-after
 		 * e.g.: sa2013-03-14

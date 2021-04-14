@@ -1,6 +1,6 @@
 /*!
  * SAP SE
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2021 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -29,8 +29,8 @@ sap.ui.define([
 	 * @param {sap.fhir.model.r4.FHIRModel} oModel The FHIRModel
 	 * @param {string} sPath The binding path in the model
 	 * @param {sap.fhir.model.r4.Context} [oContext] The parent context which is required as base for a relative path
-	 * @param {sap.ui.model.Sorter[]} [aSorters] The dynamic sorters to be used initially
-	 * @param {sap.ui.model.Filter[]} [aFilters] The dynamic application filters to be used initially
+	 * @param {sap.ui.model.Sorter | sap.ui.model.Sorter[]} [aSorters] The dynamic sorters to be used initially (can be either a sorter or an array of sorters)
+	 * @param {sap.ui.model.Filter | sap.ui.model.Filter[]} [aFilters] The dynamic application filters to be used initially (can be either a filter or an array of filters)
 	 * @param {object} [mParameters] The map which contains additional parameters for the binding
 	 * @param {string} [mParameters.groupId] The group id
 	 * @param {sap.fhir.model.r4.OperationMode} [mParameters.operationMode] The operation mode, how to handle operations like filtering and sorting
@@ -45,14 +45,14 @@ sap.ui.define([
 	 * @extends sap.ui.model.ListBinding
 	 * @public
 	 * @since 1.0.0
-	 * @version 1.1.7
+	 * @version 2.1.1
 	 */
 	var FHIRListBinding = ListBinding.extend("sap.fhir.model.r4.FHIRListBinding", {
 
 		constructor : function(oModel, sPath, oContext, aSorters, aFilters, mParameters) {
 			ListBinding.apply(this, arguments);
-			this.aFilters = aFilters;
-			this.aSorters = aSorters;
+			this.aFilters = aFilters instanceof Filter ? [aFilters] : aFilters;
+			this.aSorters = aSorters instanceof Sorter ? [aSorters] : aSorters;
 			this.mParameters = mParameters;
 			this.sOperationMode = (mParameters && mParameters.operationMode) || this.oModel.sDefaultOperationMode;
 			if (this.sOperationMode !== OperationMode.Server) {
