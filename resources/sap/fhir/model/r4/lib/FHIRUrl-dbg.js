@@ -19,7 +19,7 @@ sap.ui.define([], function() {
 	 * @private
 	 * @constructs {FHIRUrl}
 	 * @since 1.0.0
-	 * @version 2.1.1
+	 * @version 2.2.1
 	 */
 	var FHIRUrl = function(sUrl, sServiceUrl) {
 		this._sServiceUrl = sServiceUrl;
@@ -35,9 +35,10 @@ sap.ui.define([], function() {
 		}
 		var aRelativeUrlWithoutQueryParameter = this._sRelativeUrlWithoutQueryParameters ? this._sRelativeUrlWithoutQueryParameters.split("/") : undefined;
 		this._sResourceType = aRelativeUrlWithoutQueryParameter ? aRelativeUrlWithoutQueryParameter[1] : undefined;
-		this._sResourceId = aRelativeUrlWithoutQueryParameter && aRelativeUrlWithoutQueryParameter.length >= 3 ? aRelativeUrlWithoutQueryParameter[2] : undefined;
-		this._sHistoryVersion = aRelativeUrlWithoutQueryParameter && aRelativeUrlWithoutQueryParameter.length === 5 ? aRelativeUrlWithoutQueryParameter[4] : undefined;
+		this._sResourceId = aRelativeUrlWithoutQueryParameter && aRelativeUrlWithoutQueryParameter.length >= 3 && !aRelativeUrlWithoutQueryParameter[2].includes("$") ? aRelativeUrlWithoutQueryParameter[2] : undefined;
+		this._sHistoryVersion = aRelativeUrlWithoutQueryParameter && aRelativeUrlWithoutQueryParameter.indexOf("_history") > -1 ? aRelativeUrlWithoutQueryParameter[aRelativeUrlWithoutQueryParameter.indexOf("_history") + 1] : undefined;
 		this._mQueryParameter = FHIRUrl.getQueryParametersByUrl(this._sRelativeUrlWithQueryParameters);
+		this._sCustomOperation = this._sRelativeUrlWithoutQueryParameters && this._sRelativeUrlWithoutQueryParameters.indexOf("$") > -1 ? this._sRelativeUrlWithoutQueryParameters.substring(this._sRelativeUrlWithoutQueryParameters.indexOf("$"), this._sRelativeUrlWithoutQueryParameters.length) : undefined;
 	};
 
 	/**
@@ -150,6 +151,28 @@ sap.ui.define([], function() {
 			}
 		}
 		return undefined;
+	};
+
+	/**
+	 * Determines the FHIR custom operation value of the configured url, e.g. /Patient/$test
+	 *
+	 * @returns {string} The custom operation value e.g $test
+	 * @protected
+	 * @since 2.2.0
+	 */
+	FHIRUrl.prototype.getCustomOperation = function () {
+		return this._sCustomOperation;
+	};
+
+	/**
+	 * Determines if its search at base level, e.g /Patient
+	 *
+	 * @returns {boolean} True if its search
+	 * @protected
+	 * @since 2.2.0
+	 */
+	FHIRUrl.prototype.isSearchAtBaseLevel = function () {
+		return !this._sResourceId && !this._sHistoryVersion && !this._sCustomOperation;
 	};
 
 	return FHIRUrl;

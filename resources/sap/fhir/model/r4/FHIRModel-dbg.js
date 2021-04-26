@@ -66,11 +66,13 @@ sap.ui.define([
 	 * @param {boolean} [mParameters.x-csrf-token=false] The model handles the csrf token between the browser and the FHIR server
 	 * @param {object} [mParameters.filtering={}] The filtering options
 	 * @param {boolean} [mParameters.filtering.complex=false] The default filtering type. If <code>true</code>, all search parameters would be modelled via {@link https://www.hl7.org/fhir/search_filter.html _filter}
+	 * @param {boolean} [mParameters.search={}] The search options
+	 * @param {boolean} [mParameters.search.secure=false] To enable RESTful search via {@link https://www.hl7.org/fhir/http.html#search POST}
 	 * @throws {Error} If no service URL is given, if the given service URL does not end with a forward slash
 	 * @author SAP SE
 	 * @public
 	 * @since 1.0.0
-	 * @version 2.1.1
+	 * @version 2.2.1
 	 */
 	var FHIRModel = Model.extend("sap.fhir.model.r4.FHIRModel", {
 
@@ -88,6 +90,7 @@ sap.ui.define([
 			this.sBaseProfileUrl = mParameters && mParameters.baseProfileUrl ? mParameters.baseProfileUrl : "http://hl7.org/fhir/StructureDefinition/";
 			this._buildGroupProperties(mParameters);
 			this.oDefaultQueryParameters = mParameters && mParameters.defaultQueryParameters && mParameters.defaultQueryParameters instanceof Object ? mParameters.defaultQueryParameters : {};
+			this.bSecureSearch = mParameters && mParameters.search && mParameters.search.secure ? mParameters.search.secure : false;
 			this.oRequestor = new FHIRRequestor(sServiceUrl, this, mParameters && mParameters["x-csrf-token"], mParameters && mParameters.Prefer, this.oDefaultQueryParameters);
 			this.sDefaultSubmitMode = (mParameters && mParameters.defaultSubmitMode) ? mParameters.defaultSubmitMode : SubmitMode.Direct;
 			this.sDefaultFullUrlType = (mParameters && mParameters.defaultSubmitMode && mParameters.defaultSubmitMode !== SubmitMode.Direct && mParameters.defaultFullUrlType) ? mParameters.defaultFullUrlType : "uuid";
@@ -299,13 +302,15 @@ sap.ui.define([
 		if (oData.entry && oData.resourceType === "Bundle") {
 			for (var i = 0; i < oData.entry.length; i++) {
 				var oResource = oData.entry[i].resource;
-				if (!oResource && oData.entry[i].response){
+				if (oResource && oResource.resourceType === "Bundle") {
+					this._mapFHIRResponse(oResource, mResponseHeaders, oBundleEntry, sGroupId);
+				} else if (!oResource && oData.entry[i].response) {
 					this._updateResourceFromFHIRResponse(oData.entry[i].response, oData.entry[i].fullUrl, oBundleEntry);
 				} else {
 					this._storeResourceInModel(oResource, oBinding, sGroupId);
 				}
 			}
-		} else if (oData.resourceType !== "Bundle"){
+		} else if (oData.resourceType !== "Bundle") {
 			this._storeResourceInModel(oData, oBinding, sGroupId);
 		}
 	};
@@ -402,15 +407,17 @@ sap.ui.define([
 		var mResources = {};
 		for (var i = 0; i < aBundleEntries.length; i++) {
 			var oResource;
-			if (!aBundleEntries[i]){
+			if (!aBundleEntries[i]) {
 				throw new Error("No response from the FHIR Service available");
 			}
-			if (!aBundleEntries[i].resource && aBundleEntries[i].response){
+			if (!aBundleEntries[i].resource && aBundleEntries[i].response) {
 				oResource = this._getUpdatedResourceFromFHIRResponse(aBundleEntries[i].response);
 			} else {
 				oResource = aBundleEntries[i].resource;
 			}
-			if (oResource && oResource.resourceType && oResource.id) {
+			if (oResource && oResource.resourceType == "Bundle" && oResource.entry) {
+				mResources = this._mapBundleEntriesToResourceMap(oResource.entry);
+			} else if (oResource && oResource.resourceType && oResource.id) {
 				this._setProperty(mResources, [oResource.resourceType, oResource.id], oResource, true);
 			} else {
 				throw new Error("No resource could be found for bundle entry: " + aBundleEntries[i]);
@@ -599,7 +606,6 @@ sap.ui.define([
 				}
 				var oBinding = mParameters.binding;
 				var sGroupId = mParameters.groupId || (oBinding && oBinding.sGroupId);
-
 				var fnSuccess = function(oRequestHandle, oResponse, oBundleEntry) {
 					if (!oResponse){
 						oResponse = oRequestHandle.getRequest().responseJSON;
@@ -1404,6 +1410,10 @@ sap.ui.define([
 	 * @since 1.0.0
 	 */
 	FHIRModel.prototype.sendPostRequest = function(sPath, oPayload, mParameters) {
+		var bBundleType = oPayload && oPayload.type && (oPayload.type == "batch" || oPayload.type == "transaction") ? true : false;
+		if (bBundleType) {
+			mParameters.forceDirectCall = true;
+		}
 		return this.loadData(sPath, mParameters, HTTPMethod.POST, oPayload);
 	};
 
@@ -1625,6 +1635,17 @@ sap.ui.define([
 			return false;
 		}
 		return true;
+	};
+
+	/**
+	 * Determines the value of securesearch mode
+	 *
+	 * @returns {boolean} The value of secure search mode
+	 * @protected
+	 * @since 2.2.0
+	 */
+	FHIRModel.prototype.isSecureSearchModeEnabled = function () {
+		return this.bSecureSearch;
 	};
 
 	return FHIRModel;
