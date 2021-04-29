@@ -1,0 +1,16 @@
+version: 2
+updates:
+- package-ecosystem: npm
+  directory: "/"
+  schedule:
+    interval: daily
+    time: "06:00"
+  open-pull-requests-limit: 10
+  reviewers:
+  - AmirthavalliG
+  versioning-strategy: increase
+  ignore:
+  - dependency-name: openui5-fhir
+    versions:
+    - 2.1.0
+    - 2.2.0
