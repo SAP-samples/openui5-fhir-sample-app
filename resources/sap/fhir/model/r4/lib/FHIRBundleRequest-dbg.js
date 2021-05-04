@@ -28,7 +28,7 @@ sap.ui.define([], function() {
 	 * @author SAP SE
 	 * @protected
 	 * @since 1.0.0
-	 * @version 2.2.1
+	 * @version 2.2.2
 	 */
 	var FHIRBundleRequest = function(oBinding, sMethod, sUrl, fnSuccess, fnError, sIfMatch, sIfNoneMatch, sIfNoneExist, sIfModifiedSince) {
 		this._sMethod = sMethod;

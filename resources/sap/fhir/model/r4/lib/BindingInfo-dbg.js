@@ -28,7 +28,7 @@ sap.ui.define([], function() {
 	 * @constructs {BindingInfo} implementation for binding paths, resource types etc of a FHIR binding.
 	 * @protected
 	 * @since 1.0.0
-	 * @version 2.2.1
+	 * @version 2.2.2
 	 */
 	var BindingInfo = function(sResourceId, sResourceType, sResourcePath, sRelativePath, sAbsolutePath, aBinding, sGroupId, sRequestPath, aResourcePath, sResourceServerPath, sETag) {
 		this._sResourceId = sResourceId;

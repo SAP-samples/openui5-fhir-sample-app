@@ -18,7 +18,7 @@ sap.ui.define([ "sap/fhir/model/r4/FHIRUtils" ], function(FHIRUtils) {
 	 * @author SAP SE
 	 * @protected
 	 * @since 1.0.0
-	 * @version 2.2.1
+	 * @version 2.2.2
 	 */
 	var FHIRBundle = function(sBundleType, sGroupId) {
 		this._sId = FHIRUtils.uuidv4();

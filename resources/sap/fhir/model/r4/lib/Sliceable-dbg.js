@@ -21,7 +21,7 @@ sap.ui.define([
 	 * @private
 	 * @constructs {Sliceable}
 	 * @since 1.0.0
-	 * @version 2.2.1
+	 * @version 2.2.2
 	 */
 	var Sliceable = {};
 
