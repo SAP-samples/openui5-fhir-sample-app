@@ -45,7 +45,7 @@ sap.ui.define([
 	 * @extends sap.ui.model.ListBinding
 	 * @public
 	 * @since 1.0.0
-	 * @version 2.2.2
+	 * @version 2.2.3
 	 */
 	var FHIRListBinding = ListBinding.extend("sap.fhir.model.r4.FHIRListBinding", {
 
@@ -176,8 +176,10 @@ sap.ui.define([
 				this._submitRequest("/ValueSet/$expand", mParameters, fnSuccessValueSet);
 			} else if (!this.aSortersCache && !this.aFilterCache && this.sNextLink && iLength > this.iLastLength) {
 				this.iLastLength += this.iLength;
-				// if secure search is enabled convert the next link so that the subsequent calls are handled appropriately
-				if (this.oModel.isSecureSearchModeEnabled() && this.sNextLink && this.sNextLink.indexOf("?") > -1) {
+				// the direct next links will not be used by default to send the request
+				// instead its converted into the necessary parameters and path before sending
+				// this is to address the if the service url is relative
+				if (this.sNextLink && this.sNextLink.indexOf("?") > -1) {
 					var sQueryParams = this.sNextLink.substring(this.sNextLink.indexOf("?") + 1, this.sNextLink.length);
 					var aParameter = sQueryParams ? sQueryParams.split("&") : [];
 					var aKeyValue;
