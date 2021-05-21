@@ -22,7 +22,7 @@ sap.ui.define([
 	 * @author SAP SE
 	 * @protected
 	 * @since 1.0.0
-	 * @version 2.2.3
+	 * @version 2.2.5
 	 */
 	var FHIRFilterOperatorUtils = {};
 
