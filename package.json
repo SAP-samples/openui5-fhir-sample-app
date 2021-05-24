@@ -21,7 +21,7 @@
 		"local-web-server": "^4.2.1"
 	},
 	"dependencies": {
-		"openui5-fhir": "^2.2.5"
+		"openui5-fhir": "^2.2.6"
 	},
 	"scripts": {
 		"serve": "ui5 serve",
