@@ -22,7 +22,7 @@ sap.ui.define([
 	 * @alias sap.fhir.model.r4.FHIRFilterProcessor
 	 * @private
 	 * @since 1.0.0
-	 * @version 2.2.5
+	 * @version 2.2.6
 	 */
 	var FHIRFilterProcessor = {};
 
