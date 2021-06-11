@@ -31,7 +31,7 @@ sap.ui.define([
 	 * @extends sap.ui.model.Context
 	 * @public
 	 * @since 1.0.0
-	 * @version 2.2.6
+	 * @version 2.2.7
 	 *
 	 * @see sap.fhir.model.r4.Context.create
 	 */

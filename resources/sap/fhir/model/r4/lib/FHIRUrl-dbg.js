@@ -19,7 +19,7 @@ sap.ui.define([], function() {
 	 * @private
 	 * @constructs {FHIRUrl}
 	 * @since 1.0.0
-	 * @version 2.2.6
+	 * @version 2.2.7
 	 */
 	var FHIRUrl = function(sUrl, sServiceUrl) {
 		this._sServiceUrl = sServiceUrl;

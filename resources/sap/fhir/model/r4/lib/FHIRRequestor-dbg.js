@@ -36,7 +36,7 @@ sap.ui.define([
 	 * @constructs {FHIRRequestor} Provides the implementation of the FHIR Requestor to send and retrieve content from a FHIR server
 	 * @protected
 	 * @since 1.0.0
-	 * @version 2.2.6
+	 * @version 2.2.7
 	 */
 	var FHIRRequestor = function(sServiceUrl, oModel, bCSRF, sPrefer, oDefaultQueryParams) {
 		this._mBundleQueue = {};
