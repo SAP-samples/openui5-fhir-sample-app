@@ -1,5 +1,5 @@
 //@ui5-bundle sap/fhir/library-preload.js
-sap.ui.predefine("sap/fhir/library",function(){"use strict";sap.ui.getCore().initLibrary({name:"sap.fhir",version:"2.2.7",noLibraryCSS:true,dependencies:["sap.ui.core"],controls:[],types:[]});return sap.fhir});
+sap.ui.predefine("sap/fhir/library",function(){"use strict";sap.ui.getCore().initLibrary({name:"sap.fhir",version:"2.2.8",noLibraryCSS:true,dependencies:["sap.ui.core"],controls:[],types:[]});return sap.fhir});
 /*!
  * SAP SE
  * (c) Copyright 2009-2021 SAP SE or an SAP affiliate company.
@@ -169,3 +169,8 @@ sap.ui.predefine("sap/fhir/model/r4/type/Url",["sap/fhir/model/r4/type/Uri"],fun
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.predefine("sap/fhir/model/r4/type/Uuid",["sap/fhir/model/r4/type/Uri","sap/fhir/model/r4/FHIRUtils"],function(r,t){"use strict";var e=r.extend("sap.fhir.model.r4.type.Uri",{constructor:function(t,e){r.apply(this,arguments)}});e.prototype.getName=function(){return"sap.fhir.model.r4.type.Uuid"};e.prototype.toString=function(){return"uuid"};e.prototype.validateValue=function(r){return t.checkRegularExpression(r,/^[0-9A-F]{8}-[0-9A-F]{4}-4[0-9A-F]{3}-[89AB][0-9A-F]{3}-[0-9A-F]{12}$/i)};return e});
+jQuery.sap.registerPreloadedModules({
+"version":"2.0",
+"modules":{
+	"sap/fhir/manifest.json":'{"_version":"1.9.0","sap.app":{"id":"sap.fhir","type":"library","embeds":[],"applicationVersion":{"version":"2.2.8"},"title":"The sap.fhir library provides a model to build state of the art UI5 applications in context of health industries.","description":"The sap.fhir library provides a model to build state of the art UI5 applications in context of health industries.","offline":true},"sap.ui":{"technology":"UI5","supportedThemes":[]},"sap.ui5":{"dependencies":{"minUI5Version":"1.58.0","libs":{"sap.ui.core":{"minVersion":"1.58.0"}}},"library":{"i18n":false,"css":false,"content":{"controls":[],"elements":[],"types":[],"interfaces":[]}}}}'
+}});

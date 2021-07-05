@@ -15,7 +15,7 @@
  * @author SAP SE
  * @protected
  * @since 1.1.0
- * @version 2.2.7
+ * @version 2.2.8
  */
 
 sap.ui.define(["sap/ui/model/SimpleType"], function (SimpleType) {

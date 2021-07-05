@@ -72,7 +72,7 @@ sap.ui.define([
 	 * @author SAP SE
 	 * @public
 	 * @since 1.0.0
-	 * @version 2.2.7
+	 * @version 2.2.8
 	 */
 	var FHIRModel = Model.extend("sap.fhir.model.r4.FHIRModel", {
 
