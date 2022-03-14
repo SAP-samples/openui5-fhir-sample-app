@@ -18,7 +18,7 @@
 	},
 	"devDependencies": {
 		"@ui5/cli": "^2.12.1",
-		"local-web-server": "^5.1.1"
+		"local-web-server": "^5.2.0"
 	},
 	"dependencies": {
 		"openui5-fhir": "^2.2.8"
