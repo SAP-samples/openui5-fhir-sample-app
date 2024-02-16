@@ -2,18 +2,24 @@ name: Deploy
 
 on:
   push:
-    branches: [ master ]
+    branches: 
+      - master
+      - main
 
 jobs:
   build-and-deploy-application:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v2
-
-    - name: Setup Node.js environment
-      uses: actions/setup-node@v1.4.4
+    - name: Checkout
+      uses: actions/checkout@v3
       with:
-        node-version: "14.x"
+          token: ${{ secrets.FHIRBOT_GH_TOKEN }}
+          fetch-depth: 0
+          persist-credentials: false 
+    - name: Setup Node.js environment
+      uses: actions/setup-node@v3
+      with:
+        node-version: 20
 
     - name: Install the Dependencies
       run: npm install
