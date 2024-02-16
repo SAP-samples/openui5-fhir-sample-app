@@ -1,12 +1,12 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2024 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 // Provides control sap.f.PlanningCalendarInCardLegend.
-sap.ui.define(['sap/m/PlanningCalendarLegend', 'sap/ui/unified/CalendarAppointment', 'sap/m/Label', './PlanningCalendarInCardLegendRenderer'],
-	function(PlanningCalendarLegend, CalendarAppointment, Label, PlanningCalendarInCardLegendRenderer) {
+sap.ui.define(['sap/m/PlanningCalendarLegend', 'sap/ui/unified/CalendarLegendItem', './PlanningCalendarInCardLegendRenderer', 'sap/ui/core/Core'],
+	function(PlanningCalendarLegend, CalendarLegendItem, PlanningCalendarInCardLegendRenderer, Core) {
 		"use strict";
 
 
@@ -19,28 +19,31 @@ sap.ui.define(['sap/m/PlanningCalendarLegend', 'sap/ui/unified/CalendarAppointme
 		 * @class
 		 * A legend for the {@link sap.f.PlanningCalendarInCard} that displays the special dates and appointments in
 		 * colors with their corresponding description.
-		 * @extends sap.f.PlanningCalendarLegend
+		 * @extends sap.m.PlanningCalendarLegend
 		 *
 		 * @author SAP SE
-		 * @version 1.79.0
+		 * @version 1.120.6
 		 *
 		 * @constructor
 		 * @private
 		 * @since 1.74
 		 * @experimental Since 1.74.
 		 * @alias sap.f.PlanningCalendarInCardLegend
-		 * @ui5-metamodel This control/element also will be described in the UI5 (legacy) designtime metamodel
 		 */
-		var PlanningCalendarInCardLegend = PlanningCalendarLegend.extend("sap.f.PlanningCalendarInCardLegend", /** @lends sap.f.PlanningCalendarInCardLegend.prototype */ { metadata : {
+		var PlanningCalendarInCardLegend = PlanningCalendarLegend.extend("sap.f.PlanningCalendarInCardLegend", /** @lends sap.f.PlanningCalendarInCardLegend.prototype */ {
+			metadata : {
 
-			library : "sap.m",
-			properties: {
-				/**
-				 * Defines the number of visible calendar and appointment items.
-				 */
-				visibleLegendItemsCount: {type : "int", group : "Data", defaultValue: 2}
-			}
-		}});
+				library : "sap.f",
+				properties: {
+					/**
+					 * Defines the number of visible calendar and appointment items.
+					 */
+					visibleLegendItemsCount: {type : "int", group : "Data", defaultValue: 2}
+				}
+			},
+
+			renderer: PlanningCalendarInCardLegendRenderer
+		});
 
 		PlanningCalendarInCardLegend.prototype.exit = function () {
 			PlanningCalendarLegend.prototype.exit.call(this, arguments);
@@ -52,13 +55,14 @@ sap.ui.define(['sap/m/PlanningCalendarLegend', 'sap/ui/unified/CalendarAppointme
 
 		/**
 		 * Makes or returns the object, defining how many legend items are hidden.
-		 * @param {integer} iItemsLeft the number of hidden legend items
-		 * @returns {sap.m.Label} the object
+		 * @param {int} iItemsLeft the number of hidden legend items
+		 * @returns {sap.ui.unified.CalendarLegendItem} the object
 		 */
-		PlanningCalendarInCardLegend.prototype._getMoreLabel = function (iItemsLeft) {
+		PlanningCalendarInCardLegend.prototype._getMoreItemsText = function (iItemsLeft) {
 			if (!this._oItemsLink) {
-				this._oItemsLink = new Label({
-					text: iItemsLeft + " More"
+				var oRB = Core.getLibraryResourceBundle("sap.f");
+				this._oItemsLink = new CalendarLegendItem({
+					text: oRB.getText("CALENDAR_LEGEND_MORE") + " (" + iItemsLeft + ")"
 				});
 			}
 			return this._oItemsLink;

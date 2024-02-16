@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2024 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -25,13 +25,12 @@ sap.ui.define([
 	 * @abstract
 	 *
 	 * @author SAP SE
-	 * @version 1.79.0
+	 * @version 1.120.6
 	 *
 	 * @constructor
 	 * @public
 	 * @since 1.30.0
 	 * @alias sap.m.semantic.SemanticButton
-	 * @ui5-metamodel This control/element also will be described in the UI5 (legacy) designtime metamodel
 	 */
 
 	var SemanticButton = SemanticControl.extend("sap.m.semantic.SemanticButton", /** @lends sap.m.semantic.SemanticButton.prototype */ {
@@ -59,18 +58,24 @@ sap.ui.define([
 	});
 
 	SemanticButton.prototype._getControl = function() {
+		var oControl,
+			oClass,
+			oNewInstance,
+			oConfig = this._getConfiguration();
 
-		var oControl = this.getAggregation('_control');
+		if (!oConfig) {
+			return null;
+		}
+
+		oControl = this.getAggregation('_control');
+
 		if (!oControl) {
+			oClass = this._getClass(oConfig);
+			oNewInstance = this._createInstance(oClass);
+			oNewInstance.applySettings(oConfig.getSettings());
 
-			var oClass = this._getConfiguration()
-				&& this._getConfiguration().constraints === "IconOnly" ? SemanticOverflowToolbarButton : Button;
-
-			var oNewInstance = this._createInstance(oClass);
-
-			oNewInstance.applySettings(this._getConfiguration().getSettings());
-			if (typeof this._getConfiguration().getEventDelegates === "function") {
-				oNewInstance.addEventDelegate(this._getConfiguration().getEventDelegates(oNewInstance));
+			if (typeof oConfig.getEventDelegates === "function") {
+				oNewInstance.addEventDelegate(oConfig.getEventDelegates(oNewInstance));
 			}
 
 			this.setAggregation('_control', oNewInstance, true); // don't invalidate - this is only called before/during rendering, where invalidation would lead to double rendering,  or when invalidation anyway happens
@@ -79,6 +84,10 @@ sap.ui.define([
 		}
 
 		return oControl;
+	};
+
+	SemanticButton.prototype._getClass = function(oConfig) {
+		return oConfig && oConfig.constraints === "IconOnly" ? SemanticOverflowToolbarButton : Button;
 	};
 
 	SemanticButton.prototype._createInstance = function(oClass) {

@@ -1,33 +1,39 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2024 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
-sap.ui.define(["sap/ui/Device"],
-	function(Device) {
+sap.ui.define([],
+	function() {
 		"use strict";
 
 		/**
-		 * @class ObjectPageRenderer renderer.
-		 * @static
+		 * ObjectPageLayout renderer.
+		 * @namespace
 		 */
 		var ObjectPageLayoutRenderer = {
 			apiVersion: 2
 		};
 
+		/**
+		 * This method is called to render AnchorBar
+		 *
+		 * @param {sap.ui.core.RenderManager} oRm the RenderManager that can be used for writing to the render output buffer
+		 * @param {sap.uxap.ObjectPageLayout} oControl an object representation of the control that should be rendered
+		 */
 		ObjectPageLayoutRenderer.render = function (oRm, oControl) {
 			var aSections,
 				oHeader = oControl.getHeaderTitle(),
 				oAnchorBar = null,
-				oRb = sap.uxap.ObjectPageLayout._getLibraryResourceBundle(),
+				oRb = sap.ui.getCore().getLibraryResourceBundle("sap.uxap"),
 				bIsHeaderContentVisible = oControl.getHeaderContent() && oControl.getHeaderContent().length > 0 && oControl.getShowHeaderContent(),
 				bIsTitleInHeaderContent = oControl.getShowTitleInHeaderContent() && oControl.getShowHeaderContent(),
 				bRenderHeaderContent = bIsHeaderContentVisible || bIsTitleInHeaderContent,
 				bUseIconTabBar = oControl.getUseIconTabBar(),
 				bTitleClickable = oControl.getToggleHeaderOnTitleClick() && oControl.getHeaderTitle() && oControl.getHeaderTitle().supportsToggleHeaderOnTitleClick(),
-				sRootAriaLabelText = oControl._getAriaLabelText("ROOT"),
-				sHeaderAriaLabelText = oControl._getAriaLabelText("HEADER"),
+				sRootAriaLabelText = oControl._getAriaLabelText("ROOT", true),
+				sHeaderAriaLabelText = oControl._getAriaLabelText("HEADER", true),
 				sBackgroundDesign = oControl.getBackgroundDesignAnchorBar(),
 				oLandmarkInfo = oControl.getLandmarkInfo(),
 				sHeaderTag = oControl._getHeaderTag(oLandmarkInfo),
@@ -36,7 +42,8 @@ sap.ui.define(["sap/ui/Device"],
 				bHeaderLabelSet = oLandmarkInfo && oLandmarkInfo.getHeaderLabel(),
 				bRootRoleSet = oLandmarkInfo && oLandmarkInfo.getRootRole(),
 				bRootLabelSet = oLandmarkInfo && oLandmarkInfo.getRootLabel(),
-				bNavigationRoleSet = oLandmarkInfo && oLandmarkInfo.getNavigationRole();
+				bNavigationRoleSet = oLandmarkInfo && oLandmarkInfo.getNavigationRole(),
+				bShowFooter = oControl.getShowFooter();
 
 			if (oControl.getShowAnchorBar() && oControl._getInternalAnchorBarVisible()) {
 				oAnchorBar = oControl.getAggregation("_anchorBar");
@@ -51,6 +58,9 @@ sap.ui.define(["sap/ui/Device"],
 				oRm.attr("aria-label", sRootAriaLabelText);
 			}
 			oRm.class("sapUxAPObjectPageLayout");
+			if (bShowFooter) {
+				oRm.class("sapUxAPObjectPageLayoutFooterVisible");
+			}
 			if (bTitleClickable) {
 				oRm.class("sapUxAPObjectPageLayoutTitleClickEnabled");
 			}
@@ -66,11 +76,6 @@ sap.ui.define(["sap/ui/Device"],
 			oRm.style("height", oControl.getHeight());
 			oRm.accessibilityState(oControl, oControl._formatLandmarkInfo(oLandmarkInfo, "Root"));
 			oRm.openEnd();
-
-			// custom scrollbar
-			if (Device.system.desktop) {
-				oRm.renderControl(oControl._getCustomScrollBar());
-			}
 
 			// Header
 			oRm.openStart(sHeaderTag, oControl.getId() + "-headerTitle");
@@ -92,7 +97,7 @@ sap.ui.define(["sap/ui/Device"],
 			}
 
 			// Sticky Header Content
-			this._renderHeaderContentDOM(oRm, oControl, bRenderHeaderContent && oControl._bHeaderInTitleArea, "-stickyHeaderContent");
+			this._renderHeaderContentDOM(oRm, oControl, oControl._bHeaderInTitleArea, "-stickyHeaderContent");
 
 			// Sticky anchorBar placeholder
 			oRm.openStart("div", oControl.getId() + "-stickyAnchorBar");
@@ -139,7 +144,7 @@ sap.ui.define(["sap/ui/Device"],
 				.openEnd();
 
 			// Header Content
-			this._renderHeaderContentDOM(oRm, oControl, bRenderHeaderContent && !oControl._bHeaderInTitleArea, "-headerContent",  true);
+			this._renderHeaderContentDOM(oRm, oControl, !oControl._bHeaderInTitleArea, "-headerContent",  true);
 
 			// Anchor Bar
 			oRm.openStart("section", oControl.getId() + "-anchorBar");
@@ -186,11 +191,6 @@ sap.ui.define(["sap/ui/Device"],
 			}
 			oRm.close("section");
 
-			oRm.openStart("span", oControl.getId() + "-skipFastGroupAnchor")
-				.class("sapUiPseudoInvisibleText")
-				.openEnd()
-				.close("span");
-
 			// run hook method
 			this.renderFooterContent(oRm, oControl);
 
@@ -211,7 +211,7 @@ sap.ui.define(["sap/ui/Device"],
 		 * This method is called to render AnchorBar
 		 *
 		 * @param {sap.ui.core.RenderManager} oRm the RenderManager that can be used for writing to the render output buffer
-		 * @param {sap.ui.core.Control} oControl an object representation of the control that should be rendered
+		 * @param {sap.uxap.ObjectPageLayout} oControl an object representation of the control that should be rendered
 		 */
 		ObjectPageLayoutRenderer._renderAnchorBar = function (oRm, oControl, oAnchorBar, bRender) {
 			var aSections = oControl.getAggregation("sections"),
@@ -240,13 +240,16 @@ sap.ui.define(["sap/ui/Device"],
 		 * @param {sap.ui.core.Control} oControl an object representation of the control that should be rendered
 		 * @param {boolean} bRender - shows if the control should be rendered
 		 * @param {string} sId - the id of the div that should be rendered
-		 * @param {boolean} bRenderAlways - shows if the DOM of the control should be rendered no matter if the control is rendered inside or not
+		 * @param {boolean} bApplyBelizePlusClass - shows if the DOM of the control should be rendered no matter if the control is rendered inside or not
 		 */
 		ObjectPageLayoutRenderer._renderHeaderContentDOM = function (oRm, oControl, bRender, sId, bApplyBelizePlusClass) {
 			oRm.openStart("header", oControl.getId() + sId)
 				.class("ui-helper-clearfix")
-				.class("sapUxAPObjectPageHeaderDetails")
-				.class("sapUxAPObjectPageHeaderDetailsDesign-" + oControl._getHeaderDesign());
+				.class("sapUxAPObjectPageHeaderDetails");
+			/**
+			 * @deprecated As of version 1.40.1
+			 */
+			oRm.class("sapUxAPObjectPageHeaderDetailsDesign-" + oControl._getHeaderDesign());
 
 			if (bApplyBelizePlusClass) {
 				oRm.class("sapContrastPlus");
@@ -267,7 +270,7 @@ sap.ui.define(["sap/ui/Device"],
 		 * This hook method is called to render objectpagelayout header content
 		 *
 		 * @param {sap.ui.core.RenderManager} oRm the RenderManager that can be used for writing to the render output buffer
-		 * @param {sap.ui.core.Control} oControl an object representation of the control that should be rendered
+		 * @param {sap.uxap.ObjectPageLayout} oControl an object representation of the control that should be rendered
 		 */
 		ObjectPageLayoutRenderer.renderHeaderContent = function (oRm, oControl) {
 			oRm.renderControl(oControl._getHeaderContent());
@@ -277,7 +280,7 @@ sap.ui.define(["sap/ui/Device"],
 		 * This hook method is called to render objectpagelayout footer content
 		 *
 		 * @param {sap.ui.core.RenderManager} oRm the RenderManager that can be used for writing to the render output buffer
-		 * @param {sap.ui.core.Control} oControl an object representation of the control that should be rendered
+		 * @param {sap.uxap.ObjectPageLayout} oControl an object representation of the control that should be rendered
 		 */
 		ObjectPageLayoutRenderer.renderFooterContent = function (oRm, oControl) {
 
@@ -287,7 +290,7 @@ sap.ui.define(["sap/ui/Device"],
 		 * This internal method is called to render objectpagelayout footer content
 		 *
 		 * @param {sap.ui.core.RenderManager} oRm the RenderManager that can be used for writing to the render output buffer
-		 * @param {sap.ui.core.Control} oObjectPageLayout an object representation of the control that should be rendered
+		 * @param {sap.uxap.ObjectPageLayout} oObjectPageLayout an object representation of the control that should be rendered
 		 */
 		ObjectPageLayoutRenderer._renderFooterContentInternal = function (oRm, oObjectPageLayout, sFooterTag, oLandmarkInfo, oRb) {
 			var oFooter = oObjectPageLayout.getFooter(),
@@ -321,7 +324,7 @@ sap.ui.define(["sap/ui/Device"],
 		 * This method is called to rerender headerContent
 		 *
 		 * @param {sap.ui.core.RenderManager} oRm the RenderManager that can be used for writing to the render output buffer
-		 * @param {sap.ui.core.Control} oControl an object representation of the control that should be rendered
+		 * @param {sap.uxap.ObjectPageLayout} oControl an object representation of the control that should be rendered
 		 */
 		ObjectPageLayoutRenderer._rerenderHeaderContentArea = function (oRm, oControl) {
 			var sHeaderContentDOMId = oControl._bHeaderInTitleArea ? "stickyHeaderContent" : "headerContent",

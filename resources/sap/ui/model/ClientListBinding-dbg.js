@@ -1,30 +1,21 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2024 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
-
-// Provides the JSON model implementation of a list binding
+/*eslint-disable max-len */
 sap.ui.define([
-	'./ChangeReason',
-	'./Filter',
-	'./FilterType',
-	'./ListBinding',
-	'./FilterProcessor',
-	'./Sorter',
-	'./SorterProcessor',
-	"sap/base/util/each"
-],
-	function(
-		ChangeReason,
-		Filter,
-		FilterType,
-		ListBinding,
-		FilterProcessor,
-		Sorter,
-		SorterProcessor,
-		each
-	) {
+	"sap/base/Log",
+	"sap/base/util/each",
+	"sap/ui/model/ChangeReason",
+	"sap/ui/model/Filter",
+	"sap/ui/model/FilterType",
+	"sap/ui/model/ListBinding",
+	"sap/ui/model/FilterProcessor",
+	"sap/ui/model/Sorter",
+	"sap/ui/model/SorterProcessor"
+], function (Log, each, ChangeReason, Filter, FilterType, ListBinding, FilterProcessor, Sorter,
+		SorterProcessor) {
 	"use strict";
 
 	/**
@@ -39,7 +30,9 @@ sap.ui.define([
 	 * @param {sap.ui.model.Sorter|sap.ui.model.Sorter[]} [aSorters] Initial sort order (can be either a sorter or an array of sorters)
 	 * @param {sap.ui.model.Filter|sap.ui.model.Filter[]} [aFilters] Predefined filter/s (can be either a filter or an array of filters)
 	 * @param {object} [mParameters] Map of optional parameters as defined by subclasses; this class does not introduce any own parameters
-	 * @throws {Error} When one of the filters uses an operator that is not supported by the underlying model implementation
+	 * @throws {Error} If one of the filters uses an operator that is not supported by the underlying model
+	 *   implementation or if the {@link sap.ui.model.Filter.NONE} filter instance is contained in <code>aFilters</code>
+	 *   together with other filters
 	 *
 	 * @class
 	 * List binding implementation for client models.
@@ -54,10 +47,25 @@ sap.ui.define([
 			ListBinding.apply(this, arguments);
 
 			this.mNormalizeCache = {};
-			this.oModel.checkFilterOperation(this.aApplicationFilters);
+			this.oModel.checkFilter(this.aApplicationFilters);
 			this.oCombinedFilter = FilterProcessor.combineFilters(this.aFilters, this.aApplicationFilters);
-
 			this.bIgnoreSuspend = false;
+			// the serialized context data for the contexts returned by the last call of getContexts
+			// if extended change detection is enabled
+			this.aLastContextData = undefined;
+			// the contexts returned by the last call of getContexts if extended change detection is
+			// enabled
+			this.aLastContexts = undefined;
+			// if this.bUseExtendedChangeDetection is true it is the end index calculated from the
+			// defaulted values of the given iStartIndex and iLength from the last call of
+			// getContexts
+			this.iLastEndIndex = undefined;
+			// the defaulted value of the given iLength from the last call of getContexts with
+			// bKeepCurrent !== true
+			this.iLastLength = undefined;
+			// the defaulted value of the given iStartIndex from the last call of getContexts with
+			// bKeepCurrent !== true
+			this.iLastStartIndex = undefined;
 			this.update();
 		},
 
@@ -89,7 +97,7 @@ sap.ui.define([
 		var iEndIndex = Math.min(iStartIndex + iLength, this.aIndices.length),
 		oContext,
 		aContexts = [],
-		sPrefix = this.oModel.resolve(this.sPath, this.oContext);
+		sPrefix = this.getResolvedPath();
 
 		if (sPrefix && !sPrefix.endsWith("/")) {
 			sPrefix += "/";
@@ -101,6 +109,120 @@ sap.ui.define([
 		}
 
 		return aContexts;
+	};
+
+	/**
+	 * This helper function must be called only by {@link #getContexts}. It updates
+	 * <code>iLastStartIndex</code> and <code>iLastLength</code> of the current instance with the
+	 * given start index and length. If <code>bKeepCurrent</code> is set, throw an error if keeping
+	 * current contexts untouched is not supported, otherwise don't update
+	 * <code>iLastStartIndex</code> and <code>iLastLength</code>.
+	 *
+	 * @param {int} [iStartIndex]
+	 *   The start index
+	 * @param {int} [iLength]
+	 *   The length
+	 * @param {int} [iMaximumPrefetchSize]
+	 *   Must not be used
+	 * @param {boolean} [bKeepCurrent]
+	 *   Whether the result of {@link #getCurrentContexts} keeps untouched
+	 * @throws {Error}
+	 *   If extended change detection is enabled and <code>bKeepCurrent</code> is set, or if
+	 *   <code>iMaximumPrefetchSize</code> and <code>bKeepCurrent</code> are set
+	 *
+	 * @private
+	 */
+	 ClientListBinding.prototype._updateLastStartAndLength = function (iStartIndex, iLength,
+			iMaximumPrefetchSize, bKeepCurrent) {
+		if (bKeepCurrent) {
+			this._checkKeepCurrentSupported(iMaximumPrefetchSize);
+		} else {
+			this.iLastStartIndex = iStartIndex;
+			this.iLastLength = iLength;
+		}
+	};
+
+	/**
+	 * Returns an array of binding contexts for the bound target list.
+	 *
+	 * In case of extended change detection, the context array may have an additional
+	 * <code>diff</code> property, see
+	 * {@link topic:7cdff73f308b4b10bdf7d83b7aba72e7 documentation on extended change detection} for
+	 * details.
+	 *
+	 * <strong>Note:</strong>The public usage of this method is deprecated, as calls from outside of
+	 * controls will lead to unexpected side effects. To avoid this, use
+	 * {@link sap.ui.model.ListBinding.prototype.getCurrentContexts} instead.
+	 *
+	 * @param {int} [iStartIndex=0]
+	 *   The start index where to start the retrieval of contexts
+	 * @param {int} [iLength=length of the list]
+	 *   Determines how many contexts to retrieve beginning from the start index; default is the
+	 *   whole list length up to the model's size limit; see {@link sap.ui.model.Model#setSizeLimit}
+	 * @param {int} [iMaximumPrefetchSize]
+	 *   Must not be used
+	 * @param {boolean} [bKeepCurrent]
+	 *   Whether this call keeps the result of {@link #getCurrentContexts} untouched; since 1.102.0.
+	 * @return {sap.ui.model.Context[]}
+	 *   The array of contexts for each row of the bound list
+	 * @throws {Error}
+	 *   If <code>bKeepCurrent</code> is set and extended change detection is enabled or
+	 *   <code>iMaximumPrefetchSize</code> is set
+	 *
+	 * @protected
+	 */
+	 ClientListBinding.prototype.getContexts = function (iStartIndex, iLength, iMaximumPrefetchSize,
+			bKeepCurrent) {
+		var aContextData, aContexts;
+
+		// Do not update last start and length with the defaulted values as #checkUpdate would only
+		// check in this range for changes. For controls that want to show all data the range must
+		// not be limited.
+		this._updateLastStartAndLength(iStartIndex, iLength, iMaximumPrefetchSize, bKeepCurrent);
+		iStartIndex = iStartIndex || 0;
+		iLength = iLength || Math.min(this.iLength, this.oModel.iSizeLimit);
+		aContexts = this._getContexts(iStartIndex, iLength);
+		if (this.bUseExtendedChangeDetection) {
+			aContextData = [];
+			// Use try/catch to detect issues with getting context data
+			try {
+				for (var i = 0; i < aContexts.length; i++) {
+					aContextData.push(this.getContextData(aContexts[i]));
+				}
+				if (this.aLastContextData && iStartIndex < this.iLastEndIndex) {
+					aContexts.diff = this.diffData(this.aLastContextData, aContextData);
+				}
+				this.iLastEndIndex = iStartIndex + iLength;
+				this.aLastContextData = aContextData;
+				this.aLastContexts = aContexts.slice(0);
+			} catch (oError) {
+				this.aLastContextData = undefined;
+				this.aLastContexts = undefined;
+				this.bUseExtendedChangeDetection = false;
+				Log.warning(
+					"Disabled extended change detection for binding path '" + this.getResolvedPath()
+						+ "'; context data could not be serialized",
+					oError, this.getMetadata().getName());
+			}
+		}
+
+		return aContexts;
+	};
+
+	// documented in sap.ui.model.ListBinding#getCurrentContexts
+	ClientListBinding.prototype.getCurrentContexts = function() {
+		if (this.bUseExtendedChangeDetection) {
+			return this.aLastContexts || [];
+		} else {
+			return this.getContexts(this.iLastStartIndex, this.iLastLength);
+		}
+	};
+
+	/*
+	 * @see sap.ui.model.ListBinding#getAllCurrentContexts
+	 */
+	ClientListBinding.prototype.getAllCurrentContexts = function () {
+		return this._getContexts(0, Infinity);
 	};
 
 	/**
@@ -166,7 +288,6 @@ sap.ui.define([
 		this.bIgnoreSuspend = true;
 
 		this._fireChange({reason: ChangeReason.Sort});
-		// TODO remove this if the sorter event gets removed which is deprecated
 		this._fireSort({sorter: aSorters});
 		this.bIgnoreSuspend = false;
 
@@ -198,16 +319,19 @@ sap.ui.define([
 	 * When no <code>sFilterType</code> is given, any previously configured application
 	 * filters are cleared and the given filters are used as control filters
 	 *
-	 * @param {sap.ui.model.Filter[]} aFilters Array of filter objects
+	 * @param {sap.ui.model.Filter|sap.ui.model.Filter[]} aFilters Single filter object or an array of filter objects
 	 * @param {sap.ui.model.FilterType} [sFilterType=undefined] Type of the filter which should
 	 *  be adjusted; if no type is given, then any previously configured application filters are
 	 *  cleared and the given filters are used as control filters
-	 * @return {sap.ui.model.ListBinding} returns <code>this</code> to facilitate method chaining
-	 * @throws {Error} When one of the filters uses an operator that is not supported by the underlying model implementation
+	 * @returns {this} returns <code>this</code> to facilitate method chaining
+	 * @throws {Error} If one of the filters uses an operator that is not supported by the underlying model
+	 *   implementation or if the {@link sap.ui.model.Filter.NONE} filter instance is contained in
+	 *   <code>aFilters</code> together with other filters
+	 *
 	 * @public
 	 */
 	ClientListBinding.prototype.filter = function(aFilters, sFilterType){
-		this.oModel.checkFilterOperation(aFilters);
+		this.oModel.checkFilter(aFilters);
 
 		if (this.bSuspended) {
 			this.checkUpdate(true);
@@ -238,7 +362,6 @@ sap.ui.define([
 		this.bIgnoreSuspend = true;
 
 		this._fireChange({reason: ChangeReason.Filter});
-		// TODO remove this if the filter event gets removed which is deprecated
 		if (sFilterType == FilterType.Application) {
 			this._fireFilter({filters: this.aApplicationFilters});
 		} else {

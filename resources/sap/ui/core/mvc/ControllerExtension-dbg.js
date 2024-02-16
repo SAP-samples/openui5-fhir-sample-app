@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2024 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -36,16 +36,18 @@ sap.ui.define([
 			metadata: {
 				stereotype: "controllerextension",
 				methods: {
-					"byId" : 				{"public": true, "final": true},
+					"byId": 				{"public": true, "final": true},
+					"getInterface" : 		{"public": false, "final": true},
+					"getMetadata" : 		{"public": true, "final": true},
 					"getView" : 			{"public": true, "final": true},
-					"getInterface" : 		{"public": false, "final": true}
+					"isA" : 				{"public": true, "final": true}
 				}
 			},
 
 			/**
 			 * Sets the controller for this extension. Accessible by the base member.
 			 *
-			 * @param {sap.ui.core.mvcController} oController The controller
+			 * @param {sap.ui.core.mvc.Controller} oController The controller
 			 * @private
 			 */
 			_setController: function(oController) {
@@ -93,7 +95,7 @@ sap.ui.define([
 			getInterface: function() {
 				var mMethods = {};
 				var oMetadata = this.getMetadata();
-				var aPublicMethods = oMetadata.getAllPublicMethods();
+				var aPublicMethods = oMetadata._aAllPublicMethods;
 
 				aPublicMethods.forEach(function(sMethod) {
 					var fnFunction = this[sMethod];
@@ -133,7 +135,7 @@ sap.ui.define([
 		 * <b>Note:</b> This static method is automatically propagated to subclasses of
 		 * <code>ControllerExtension</code>.
 		 *
-		 * @param {object} oExtension The custom extension definition
+		 * @param {Object<string, function>} oExtension The custom extension definition
 		 * @return {function} A controller extension class
 		 * @public
 		 */
@@ -186,7 +188,7 @@ sap.ui.define([
 					} else if (typeof fnCust === "function") {
 						oOrigDef[sMemberName] = fnCust;
 					} else {
-						Log.error("Controller extension failed: lifecycleMethod '" + sMemberName + "', is not a function");
+						Log.error("[FUTURE FATAL] Controller extension failed: lifecycleMethod '" + sMemberName + "', is not a function");
 					}
 					break;
 				case OverrideExecution.After:
@@ -195,7 +197,7 @@ sap.ui.define([
 					} else if (typeof fnCust === "function") {
 						oOrigDef[sMemberName] = fnCust;
 					} else {
-						Log.error("Controller extension failed: lifecycleMethod '" + sMemberName + "', is not a function");
+						Log.error("[FUTURE FATAL] Controller extension failed: lifecycleMethod '" + sMemberName + "', is not a function");
 					}
 					break;
 				case OverrideExecution.Instead:
@@ -205,7 +207,7 @@ sap.ui.define([
 						if (!this.getMetadata().isMethodFinal(sMemberName)) {
 							oOrigDef[sMemberName] = fnCust;
 						}  else {
-							Log.error("Error in ControllerExtension.override: Method '" + sMemberName + "' of extension '" + this.getMetadata().getName() + "' is flagged final and cannot be overridden!");
+							Log.error("[FUTURE FATAL] Error in ControllerExtension.override: Method '" + sMemberName + "' of extension '" + this.getMetadata().getName() + "' is flagged final and cannot be overridden!");
 						}
 					} else {
 						oOrigDef[sMemberName] = fnCust;

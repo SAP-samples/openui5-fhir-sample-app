@@ -5,12 +5,6 @@
 
 @_sap_m_Table_SelNavColWidth: 2.75rem;
 
-html[data-sap-ui-browser='ie11'] .sapMListTbl,
-html[data-sap-ui-browser^='ed'] .sapMListTbl,
-.sapMSticky > .sapMListTbl {
-	padding: 2px; /* outline must be visible */
-}
-
 .sapMListTblHeader,
 .sapMListTblFooter {
 	background: @sapUiListBackground;
@@ -26,10 +20,6 @@ html[data-sap-ui-browser^='ed'] .sapMListTbl,
 	margin-bottom: 0;
 }
 
-.sapMSticky .sapMListInfoTBarContainer {
-	padding: 2px 0;
-}
-
 /* table column header */
 .sapMListTbl th {
 	border-bottom: 0.125rem solid @sapUiListHeaderBorderColor;
@@ -37,8 +27,12 @@ html[data-sap-ui-browser^='ed'] .sapMListTbl,
 
 // to ensure that the bottom focus outline is visible on the table header row,
 // the <th> bottom border color is made transparent
-.sapMLIBFocusable:focus > th {
+.sapMLIBFocusable:not(.sapMTableRowCustomFocus):focus > .sapMTableTH {
 	border-bottom-color: transparent;
+}
+
+.sapMTableRowCustomFocus:focus > :not(.sapMListTblDummyCell:last-child)::before {
+	border-width: 2px;
 }
 
 .sapMColumnHeaderActive:focus {
@@ -48,17 +42,4 @@ html[data-sap-ui-browser^='ed'] .sapMListTbl,
 /* table footer */
 .sapMListTblFooter > td {
 	border-top: 0.125rem solid @sapUiListTableFooterBorder;
-}
-
-/* Moved due to new default vertical-align regardless of density */
-.sapMListTblNavCol,
-.sapMListTblCell {
-  vertical-align: top;
-}
-
-.sapUiSizeCompact{
-  .sapMListTblNavCol,
-  .sapMListTblCell {
-    vertical-align: middle;
-  }
 }

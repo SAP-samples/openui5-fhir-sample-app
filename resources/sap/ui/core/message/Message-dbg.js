@@ -1,25 +1,25 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2024 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 // Provides the implementation for a Message
 sap.ui.define([
-	'sap/ui/base/Object',
-	'./MessageProcessor',
+	'./MessageType',
+	'sap/base/Log',
 	'sap/base/util/uid',
-	'sap/base/Log'
+	'sap/ui/base/Object'
 ],
-	function(BaseObject, MessageProcessor, uid, Log) {
+	function(MessageType, Log, uid, BaseObject) {
 	"use strict";
 
-	var mMessageType2Severity = {
-			"Error" : 0,
-			"Warning" : 1,
-			"Success" : 2,
-			"Information" : 3,
-			"None" : 4
+	const mMessageType2Severity = {
+			[MessageType.Error] : 0,
+			[MessageType.Warning] : 1,
+			[MessageType.Success] : 2,
+			[MessageType.Information] : 3,
+			[MessageType.None] : 4
 		};
 
 	/**
@@ -35,7 +35,7 @@ sap.ui.define([
 	 * @extends sap.ui.base.Object
 	 *
 	 * @author SAP SE
-	 * @version 1.79.0
+	 * @version 1.120.6
 	 *
 	 * @param {object} [mParameters] a map which contains the following parameter properties:
 	 * @param {string} [mParameters.id] The message id: will be generated if no id is set
@@ -43,7 +43,7 @@ sap.ui.define([
 	 * @param {string} [mParameters.description] The message description
 	 * @param {string} [mParameters.descriptionUrl] The message description url to get a more detailed message
 	 * @param {string} [mParameters.additionalText] The message additionalText
-	 * @param {sap.ui.core.MessageType} [mParameters.type=sap.ui.core.MessageType.None] The message type
+	 * @param {module:sap/ui/core/message/MessageType} [mParameters.type=module:sap/ui/core/message/MessageType.None] The message type
 	 * @param {string} [mParameters.code] The message code
 	 * @param {boolean} [mParameters.technical=false] If the message is set as technical message
 	 * @param {object} [mParameters.technicalDetails] An object containing technical details for a message
@@ -71,7 +71,7 @@ sap.ui.define([
 			this.description = mParameters.description;
 			this.descriptionUrl = mParameters.descriptionUrl;
 			this.additionalText = mParameters.additionalText;
-			this.setType(mParameters.type || sap.ui.core.MessageType.None);
+			this.setType(mParameters.type || MessageType.None);
 			this.code = mParameters.code;
 			this.aTargets = [];
 			if (mParameters.target !== undefined) {
@@ -79,6 +79,9 @@ sap.ui.define([
 					? mParameters.target.slice()
 					: [mParameters.target];
 			}
+			/**
+			 * @deprecated As of version 1.79.0
+			 */
 			Object.defineProperty(this, "target", {
 				get : this.getTarget,
 				set : this.setTarget,
@@ -100,6 +103,9 @@ sap.ui.define([
 			} else {
 				this.aFullTargets = [mParameters.fullTarget || ""];
 			}
+			/**
+			 * @deprecated As of version 1.79.0
+			 */
 			Object.defineProperty(this, "fullTarget", {
 				get : function () { return this.aFullTargets[0]; },
 				set : function (sFullTarget) { this.aFullTargets[0] = sFullTarget; },
@@ -264,21 +270,21 @@ sap.ui.define([
 	/**
 	 * Set message type
 	 *
-	 * @param {sap.ui.core.MessageType} sType The Message type
+	 * @param {module:sap/ui/core/message/MessageType} sType The Message type
 	 * @public
 	 */
 	Message.prototype.setType = function(sType) {
-		if (sType in sap.ui.core.MessageType) {
+		if (sType in MessageType) {
 			this.type = sType;
 		} else {
-			Log.error("MessageType must be of type sap.ui.core.MessageType");
+			Log.error("[FUTURE FATAL] MessageType must be of type sap/ui/core/message/MessageType");
 		}
 	};
 
 	/**
 	 * Returns the message type
 	 *
-	 * @returns {sap.ui.core.MessageType} type
+	 * @returns {module:sap/ui/core/message/MessageType} type
 	 * @public
 	 */
 	Message.prototype.getType = function() {
@@ -293,7 +299,8 @@ sap.ui.define([
 	 *
 	 * @param {string} sTarget The message target
 	 *
-	 * @deprecated As a message may have multiple targets, use {@link #setTargets} instead
+	 * @deprecated since 1.79.0; As a message may have multiple targets, use {@link #setTargets}
+	 *   instead
 	 * @public
 	 */
 	Message.prototype.setTarget = function(sTarget) {
@@ -305,7 +312,8 @@ sap.ui.define([
 	 *
 	 * @returns {string} The message target
 	 *
-	 * @deprecated As a message may have multiple targets, use {@link #getTargets} instead
+	 * @deprecated since 1.79.0; As a message may have multiple targets, use {@link #getTargets}
+	 *   instead
 	 * @public
 	 */
 	Message.prototype.getTarget = function() {
@@ -340,14 +348,14 @@ sap.ui.define([
 	/**
 	 * Set message processor
 	 *
-	 * @param {sap.ui.core.message.MessageProcessor} oMessageProcessor The Message processor
+	 * @param {sap.ui.model.Model} oMessageProcessor The Message processor
 	 * @public
 	 */
 	Message.prototype.setMessageProcessor = function(oMessageProcessor) {
-		if (oMessageProcessor instanceof MessageProcessor) {
+		if (BaseObject.isObjectA(oMessageProcessor, "sap.ui.core.message.MessageProcessor")) {
 			this.processor = oMessageProcessor;
 		} else {
-			Log.error("MessageProcessor must be an instance of sap.ui.core.message.MessageProcessor");
+			Log.error("[FUTURE FATAL] oMessageProcessor must be an instance of 'sap.ui.core.message.MessageProcessor'");
 		}
 	};
 
@@ -500,7 +508,7 @@ sap.ui.define([
 	 *   <code>0</code> if the message types are equal, a number smaller than <code>0</code> if the
 	 *   first message's type has higher severity, a number larger than <code>0</code> if the
 	 *   first message's type has lower severity and <code>NaN</code> in case one of the given
-	 *   messages has a type not defined in {@link sap.ui.core.MessageType}
+	 *   messages has a type not defined in {@link module:sap/ui/core/message/MessageType}
 	 * @private
 	 */
 	Message.compare = function (oMessage0, oMessage1) {

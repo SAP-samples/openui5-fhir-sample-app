@@ -7,24 +7,24 @@
 // Variables
 // ==========================================================================
 
-@_sap_m_Dialog_MarginHeight: 6%;
+@_sap_m_Dialog_VerticalMargin: 3%;
 @_sap_m_Dialog_BarHeight: 2.75rem;
-@_sap_m_Dialog_SubHeaderHeight: 2.75rem;
-@_sap_m_Dialog_InfoDesignBarHeight: 2.75rem;
+@_sap_m_Dialog_SubHeaderCompactHeight: 2.25rem;
 
 @_sap_m_Dialog_NoStateHeaderShadow: @sapUiShadowHeader;
-@_sap_m_Dialog_SuccessHeaderShadow: inset 0 -0.125rem @sapUiSuccessBorder;
-@_sap_m_Dialog_ErrorHeaderShadow: inset 0 -0.125rem @sapUiErrorBorder;
-@_sap_m_Dialog_WarningHeaderShadow: inset 0 -0.125rem @sapUiWarningBorder;
-@_sap_m_Dialog_InformationHeaderShadow: inset 0 -0.125rem @sapUiInformationBorder;
 
-.sapMDialog.sapMPopup-CTX > header .sapMHeader-CTX,
-.sapMDialog.sapMPopup-CTX > header .sapMSubHeader-CTX {
-	background-color: @sapUiGroupContentBackground;
+.sapMDialogSubHeader .sapMIBar {
+	height: 100%;
+	padding-bottom: 0.25rem;
+	box-sizing: border-box;
 }
 
-.sapMDialog > header.sapMDialogTitle .sapMDialogIcon.sapUiIcon {
+.sapMDialog > header .sapMDialogTitleGroup .sapMDialogIcon.sapUiIcon {
 	font-size: 1rem;
+}
+
+.sapMDialogInformation > header .sapMDialogTitleGroup .sapMDialogIcon.sapUiIcon {
+	color: @sapUiInformativeElement;
 }
 
 .sapMDialogResizeHandler::before {
@@ -36,7 +36,7 @@
 	min-width: 4rem;
 }
 
-.sapMDialogTitle {
+.sapMDialogTitleGroup {
 	z-index: 3; // to hide the shadow from the header when there is sub-header
 }
 
@@ -68,7 +68,7 @@ html.sap-phone .sapMDialog {
 	}
 }
 
-.sapMDialogTitle, .sapMDialogSubHeader {
+.sapMDialogTitleGroup, .sapMDialogSubHeader {
 	.sapUi-Std-PaddingS, .sapUi-Std-PaddingM,
 	.sapUi-Std-PaddingL, .sapUi-Std-PaddingXL {
 		&.sapMIBar {

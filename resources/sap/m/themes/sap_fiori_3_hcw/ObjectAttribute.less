@@ -5,36 +5,36 @@
 
 @_sap_m_ObjectAttribute_ListTextShadowColor: none;
 
-.sapMObjectAttributeActive:focus .sapMObjectAttributeText {
+.sapMListTbl .sapMObjectAttributeActive .sapMText,
+.sapMObjectAttributeActive .sapMText,
+.sapMObjectAttributeActive .sapMObjectAttributeText {
+	text-decoration: underline;
+}
+
+.sapMObjectAttributeActive .sapMObjectAttributeText:focus {
 	position: relative;
 }
 
-.sapMObjectAttributeActive:focus .sapMObjectAttributeText::after {
+.sapMObjectAttributeActive .sapMObjectAttributeText:focus::after {
 	pointer-events: none;
 	display: block;
 	content: "";
 	position: absolute;
-	top: 1px;
+	top: 2px;
 	left: 1px;
-	bottom: 1px;
+	bottom: 2px;
 	right: 1px;
-	outline: 1px dotted @sapUiContentFocusColor;
+	outline: 2px dotted @sapUiContentFocusColor;
 }
 
-.sapMObjectAttributeActive:focus .sapMObjectAttributeText {
+.sapMObjectAttributeActive .sapMObjectAttributeText:focus {
 	text-decoration: none;
 }
 
 .sapMObjectAttributeActive .sapMObjectAttributeText:active,
 .sapMObjectAttributeActive .sapMObjectAttributeText:hover {
-	text-decoration: underline;
+	text-decoration: none;
 	color: @sapUiLinkHover;
-}
-
-html[data-sap-ui-browser ^= "ie"], html[data-sap-ui-browser^="ed"] {
-	.sapMObjectAttributeActive:focus > .sapMText {
-		outline-style: dashed;
-	}
 }
 
 /*=========================================== */
@@ -43,8 +43,8 @@ html[data-sap-ui-browser ^= "ie"], html[data-sap-ui-browser^="ed"] {
 
 .sapMOHR .sapMObjectAttributeActive .sapMObjectAttributeText:active,
 .sapMOHR .sapMObjectAttributeActive .sapMObjectAttributeText:hover,
-.sapMOHR .sapMObjectAttributeActive:focus .sapMObjectAttributeText {
-	text-decoration: underline;
+.sapMOHR .sapMObjectAttributeActive .sapMObjectAttributeText:focus {
+	text-decoration: none;
 	color: @sapUiLinkHover;
 }
 
@@ -54,7 +54,7 @@ html[data-sap-ui-browser ^= "ie"], html[data-sap-ui-browser^="ed"] {
 
 .sapMOH .sapMObjectAttributeActive .sapMObjectAttributeText:active,
 .sapMOH .sapMObjectAttributeActive .sapMObjectAttributeText:hover {
-	text-decoration: underline;
+	text-decoration: none;
 	color: @sapUiLinkHover;
 }
 

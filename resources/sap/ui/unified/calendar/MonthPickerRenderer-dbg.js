@@ -1,11 +1,11 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2024 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
-sap.ui.define(["sap/ui/unified/calendar/CalendarDate", 'sap/ui/core/InvisibleText'],
-	function(CalendarDate, InvisibleText) {
+sap.ui.define(["sap/ui/unified/calendar/CalendarDate", 'sap/ui/core/format/DateFormat', 'sap/ui/core/InvisibleText', 'sap/ui/core/date/UI5Date'],
+	function(CalendarDate, DateFormat, InvisibleText, UI5Date) {
 	"use strict";
 
 
@@ -25,7 +25,7 @@ sap.ui.define(["sap/ui/unified/calendar/CalendarDate", 'sap/ui/core/InvisibleTex
 	 */
 	MonthPickerRenderer.render = function(oRm, oMP){
 
-		var iMonth = oMP.getMonth(),
+		var iMonth = (oMP.getProperty("_firstMonth") !== undefined) ? oMP.getProperty("_firstMonth") : oMP.getMonth(),
 			iMonths = oMP.getMonths(),
 			iStartMonth = 0,
 			iColumns = oMP.getColumns(),
@@ -36,6 +36,10 @@ sap.ui.define(["sap/ui/unified/calendar/CalendarDate", 'sap/ui/core/InvisibleTex
 			aMonthNames = [],
 			aMonthNamesWide = [],
 			sCalendarType = oMP.getPrimaryCalendarType(),
+			sSecondaryType = oMP._getSecondaryCalendarType(),
+			oPrimaryYearFormat = DateFormat.getDateInstance({format: "y", calendarType: oMP.getPrimaryCalendarType()}),
+			iYear = oMP._iYear ? oMP._iYear : UI5Date.getInstance().getFullYear(),
+			sPrimaryCalTypeFormattedYear = oPrimaryYearFormat.format(UI5Date.getInstance(Date.UTC(iYear, 0, 1)), true),
 			i,
 			bApplySelection,
 			bApplySelectionBetween;
@@ -50,6 +54,10 @@ sap.ui.define(["sap/ui/unified/calendar/CalendarDate", 'sap/ui/core/InvisibleTex
 		oRm.openStart("div",oMP);
 		oRm.class("sapUiCalMonthPicker");
 
+		if (sSecondaryType) {
+			oRm.class("sapUiCalMonthSecType");
+		}
+
 		if (sTooltip) {
 			oRm.attr("tooltip", sTooltip);
 		}
@@ -58,7 +66,7 @@ sap.ui.define(["sap/ui/unified/calendar/CalendarDate", 'sap/ui/core/InvisibleTex
 			role: "grid",
 			readonly: "true",
 			multiselectable: oMP.getIntervalSelection(),
-			label: sap.ui.getCore().getLibraryResourceBundle("sap.ui.unified").getText("MONTH_PICKER"),
+			roledescription: sap.ui.getCore().getLibraryResourceBundle("sap.ui.unified").getText("MONTH_PICKER"),
 			describedby: oMP._bCalendar ? InvisibleText.getStaticId("sap.ui.unified", "CALENDAR_YEAR_PICKER_OPEN_HINT") : ""
 		});
 
@@ -69,10 +77,7 @@ sap.ui.define(["sap/ui/unified/calendar/CalendarDate", 'sap/ui/core/InvisibleTex
 			iMonths = 12;
 		} else if (iMonths < 12) {
 			// Month blocks should start with multiple of number of displayed months
-			iStartMonth = Math.floor( iMonth / iMonths) * iMonths;
-			if (iStartMonth + iMonths > 12) {
-				iStartMonth = 12 - iMonths;
-			}
+			iStartMonth = iMonth;
 		}
 
 		if (iColumns > 0) {
@@ -83,7 +88,7 @@ sap.ui.define(["sap/ui/unified/calendar/CalendarDate", 'sap/ui/core/InvisibleTex
 
 		for (i = 0; i < iMonths; i++) {
 			var iCurrentMonth = i + iStartMonth,
-				oCurrentDate = CalendarDate.fromLocalJSDate(new Date(), oMP.getPrimaryCalendarType());
+				oCurrentDate = CalendarDate.fromLocalJSDate(UI5Date.getInstance(), oMP.getPrimaryCalendarType());
 
 			oCurrentDate.setMonth(iCurrentMonth, 1);
 			oMP._iYear && oCurrentDate.setYear(oMP._iYear);
@@ -95,7 +100,7 @@ sap.ui.define(["sap/ui/unified/calendar/CalendarDate", 'sap/ui/core/InvisibleTex
 				mAccProps["label"] = aMonthNamesWide[iCurrentMonth];
 			}
 
-			if (iColumns > 0 && i % iColumns == 0) {
+			if (iColumns > 0 && i % iColumns === 0) {
 				// begin of row
 				oRm.openStart("div");
 				oRm.accessibilityState(null, {role: "row"});
@@ -127,14 +132,44 @@ sap.ui.define(["sap/ui/unified/calendar/CalendarDate", 'sap/ui/core/InvisibleTex
 				mAccProps["disabled"] = true;
 			}
 
+			mAccProps["label"] = aMonthNames[iCurrentMonth] + " " + sPrimaryCalTypeFormattedYear;
+			if (sSecondaryType) {
+				var sSecondaryCalendarType = oMP.getSecondaryCalendarType(),
+					// always use wide month names for the screen reader
+					aMonthNamesSecondary = oLocaleData.getMonthsStandAlone("abbreviated", sSecondaryCalendarType),
+					oSecondaryYearFormat = DateFormat.getDateInstance({format: "y", calendarType: sSecondaryCalendarType}),
+					oSecondaryMonths = oMP._getDisplayedSecondaryDates(iCurrentMonth),
+					sSecondaryMonthInfo, sSecondaryYearInfo,  sPattern;
+
+				if (oSecondaryMonths.start.getMonth() === oSecondaryMonths.end.getMonth()) {
+					sSecondaryMonthInfo = aMonthNamesSecondary[oSecondaryMonths.start.getMonth()];
+					sSecondaryYearInfo = oSecondaryYearFormat.format(oSecondaryMonths.start.toUTCJSDate(), true);
+				} else {
+					sPattern = oLocaleData.getIntervalPattern();
+					sSecondaryMonthInfo = sPattern.replace(/\{0\}/, aMonthNamesSecondary[oSecondaryMonths.start.getMonth()]).replace(/\{1\}/, aMonthNamesSecondary[oSecondaryMonths.end.getMonth()]);
+					sSecondaryYearInfo = sPattern.replace(/\{0\}/, oSecondaryYearFormat.format(oSecondaryMonths.start.toUTCJSDate(), true))
+						.replace(/\{1\}/, oSecondaryYearFormat.format(oSecondaryMonths.end.toUTCJSDate(), true));
+				}
+				mAccProps["label"] = mAccProps["label"] + " " + sSecondaryMonthInfo + " " + sSecondaryYearInfo;
+			}
+
 			oRm.attr("tabindex", "-1");
 			oRm.style("width", sWidth);
 			oRm.accessibilityState(null, mAccProps);
 			oRm.openEnd();
 			oRm.text(aMonthNames[iCurrentMonth]);
+
+			if (sSecondaryType) {
+				oRm.openStart("div", sId + "-m" + iCurrentMonth + "-secondary");
+				oRm.class("sapUiCalItemSecText");
+				oRm.openEnd();
+				oRm.text(sSecondaryMonthInfo);
+				oRm.close("div");
+			}
+
 			oRm.close("div");
 
-			if (iColumns > 0 && ((i + 1) % iColumns == 0)) {
+			if (iColumns > 0 && ((i + 1) % iColumns === 0)) {
 				// end of row
 				oRm.close("div");
 			}

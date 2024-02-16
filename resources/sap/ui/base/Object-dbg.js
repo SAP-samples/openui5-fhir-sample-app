@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2024 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -13,8 +13,8 @@
  */
 
 // Provides class sap.ui.base.Object
-sap.ui.define(['./Interface', './Metadata', "sap/base/Log"],
-	function(Interface, Metadata, Log) {
+sap.ui.define(['./Metadata', "sap/base/Log"],
+	function(Metadata, Log) {
 	"use strict";
 
 
@@ -26,7 +26,7 @@ sap.ui.define(['./Interface', './Metadata', "sap/base/Log"],
 	 * @class Base class for all SAPUI5 Objects.
 	 * @abstract
 	 * @author Malte Wedel
-	 * @version 1.79.0
+	 * @version 1.120.6
 	 * @public
 	 * @alias sap.ui.base.Object
 	 * @throws {Error} When an instance of the class or its subclasses is created without the <code>new</code> operator.
@@ -60,13 +60,14 @@ sap.ui.define(['./Interface', './Metadata', "sap/base/Log"],
 	 * The facade is created on the first call of <code>getInterface</code> and reused for all later calls.
 	 *
 	 * @public
+	 * @returns {sap.ui.base.Object} A facade for this object, with at least the public methods of the class of this.
 	 */
 	BaseObject.prototype.getInterface = function() {
 		// New implementation that avoids the overhead of a dedicated member for the interface
 		// initially, an Object instance has no associated Interface and the getInterface
 		// method is defined only in the prototype. So the code here will be executed.
 		// It creates an interface (basically the same code as in the old implementation)
-		var oInterface = new Interface(this, this.getMetadata().getAllPublicMethods());
+		var oInterface = new BaseObject._Interface(this, this.getMetadata().getAllPublicMethods());
 		// Now this Object instance gets a new, private implementation of getInterface
 		// that returns the newly created oInterface. Future calls of getInterface on the
 		// same Object therefore will return the already created interface
@@ -91,21 +92,30 @@ sap.ui.define(['./Interface', './Metadata', "sap/base/Log"],
 	 */
 
 	/**
+	 * The structure of the "metadata" object which is passed when inheriting from sap.ui.base.Object using its static "extend" method.
+	 * See {@link sap.ui.base.Object.extend} for details on its usage.
+	 *
+	 * @typedef {object} sap.ui.base.Object.MetadataOptions
+	 *
+	 * @property {string[]} [interfaces] set of names of implemented interfaces (defaults to no interfaces)
+	 * @property {boolean} [abstract=false] flag that marks the class as abstract (purely informational, defaults to false)
+	 * @property {boolean} [final=false] flag that marks the class as final (defaults to false)
+	 * @property {boolean} [deprecated=false] flag that marks the class as deprecated (defaults to false). May lead to an additional warning
+	 *     log message at runtime when the object is still used. For the documentation, also add a <code>@deprecated</code> tag in the JSDoc,
+	 *     describing since when it is deprecated and what any alternatives are.
+	 *
+	 * @public
+	 */
+
+	/**
 	 * Creates a subclass of class sap.ui.base.Object with name <code>sClassName</code>
 	 * and enriches it with the information contained in <code>oClassInfo</code>.
 	 *
 	 * <code>oClassInfo</code> might contain three kinds of information:
 	 * <ul>
-	 * <li><code>metadata:</code> an (optional) object literal with metadata about the class.
-	 * The information in the object literal will be wrapped by an instance of {@link sap.ui.base.Metadata Metadata}
-	 * and might contain the following information
-	 * <ul>
-	 * <li><code>interfaces:</code> {string[]} (optional) set of names of implemented interfaces (defaults to no interfaces)</li>
-	 * <li><code>publicMethods:</code> {string[]} (optional) list of methods that should be part of the public
-	 * facade of the class</li>
-	 * <li><code>abstract:</code> {boolean} (optional) flag that marks the class as abstract (purely informational, defaults to false)</li>
-	 * <li><code>final:</code> {boolean} (optional) flag that marks the class as final (defaults to false)</li>
-	 * </ul>
+	 * <li><code>metadata:</code> an (optional) object literal with metadata about the class like implemented interfaces,
+	 * see {@link sap.ui.base.Object.MetadataOptions MetadataOptions} for details.
+	 * The information in the object literal will be wrapped by an instance of {@link sap.ui.base.Metadata Metadata}.
 	 * Subclasses of sap.ui.base.Object can enrich the set of supported metadata (e.g. see {@link sap.ui.core.Element.extend}).
 	 * </li>
 	 *
@@ -224,15 +234,78 @@ sap.ui.define(['./Interface', './Metadata', "sap/base/Log"],
 	 *
 	 * Please see the API documentation of {@link sap.ui.base.Object#isA} for more details.
 	 *
-	 * @param {object} oObject Object which will be checked whether it is an instance of the given type
+	 * @param {any} oObject Object which will be checked whether it is an instance of the given type
 	 * @param {string|string[]} vTypeName Type or types to check for
 	 * @returns {boolean} Whether the given object is an instance of the given type or of any of the given types
 	 * @public
 	 * @since 1.56
 	 * @static
+	 * @deprecated Since 1.120, please use {@link sap.ui.base.Object.isObjectA}.
 	 */
 	BaseObject.isA = function(oObject, vTypeName) {
 		return oObject instanceof BaseObject && oObject.isA(vTypeName);
+	};
+
+	/**
+	 * Checks whether the given object is an instance of the named type.
+	 * This function is a short-hand convenience for {@link sap.ui.base.Object#isA}.
+	 *
+	 * Please see the API documentation of {@link sap.ui.base.Object#isA} for more details.
+	 *
+	 * @param {any} oObject Object which will be checked whether it is an instance of the given type
+	 * @param {string|string[]} vTypeName Type or types to check for
+	 * @returns {boolean} Whether the given object is an instance of the given type or of any of the given types
+	 * @public
+	 * @since 1.120
+	 * @static
+	 */
+	BaseObject.isObjectA = function(oObject, vTypeName) {
+		return oObject instanceof BaseObject && oObject.isA(vTypeName);
+	};
+
+	/**
+	 * @param  {sap.ui.base.Object} [oObject] Object for which a facade should be created
+	 * @param  {string[]} [aMethods=[]] Names of the methods, that should be available in the new facade
+	 * @param  {boolean} [_bReturnFacade=false] If true, the return value of a function call is this created Interface instance instead of the BaseObject interface
+	 * @private
+	 * @static
+	 */
+	BaseObject._Interface = function(oObject, aMethods, _bReturnFacade) {
+		// if object is null or undefined, return itself
+		if (!oObject) {
+			return oObject;
+		}
+
+		function fCreateDelegator(oObject, sMethodName) {
+			return function() {
+					// return oObject[sMethodName].apply(oObject, arguments);
+					var tmp = oObject[sMethodName].apply(oObject, arguments);
+					// to avoid to hide the implementation behind the interface you need
+					// to override the getInterface function in the object or create the interface with bFacade = true
+					if (_bReturnFacade) {
+						return this;
+					} else {
+						return (tmp instanceof BaseObject) ? tmp.getInterface() : tmp;
+					}
+				};
+		}
+
+		// if there are no methods return
+		if (!aMethods) {
+			return {};
+		}
+
+		var sMethodName;
+
+		// create functions for all delegated methods
+		// PERFOPT: 'cache' length of aMethods to reduce # of resolutions
+		for (var i = 0, ml = aMethods.length; i < ml; i++) {
+			sMethodName = aMethods[i];
+			//!oObject[sMethodName] for 'lazy' loading interface methods ;-)
+			if (!oObject[sMethodName] || typeof oObject[sMethodName] === "function") {
+				this[sMethodName] = fCreateDelegator(oObject, sMethodName);
+			}
+		}
 	};
 
 	return BaseObject;

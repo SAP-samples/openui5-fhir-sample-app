@@ -1,9 +1,9 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2024 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
-
+/*eslint-disable max-len */
 // Provides an abstraction for list bindings
 sap.ui.define(['./Binding', './Filter', './Sorter'],
 	function(Binding, Filter, Sorter) {
@@ -33,6 +33,8 @@ sap.ui.define(['./Binding', './Filter', './Sorter'],
 	 *         [mParameters=null] Additional model specific parameters (optional)
 	 * @param {sap.ui.model.Sorter|sap.ui.model.Sorter[]}
 	 *         [aSorters=null] Predefined sorter or an array of sorters (optional)
+	 * @throws {Error} If the {@link sap.ui.model.Filter.NONE} filter instance is contained in
+	 *   <code>aFilters</code> together with other filters
 	 * @public
 	 * @alias sap.ui.model.TreeBinding
 	 * @extends sap.ui.model.Binding
@@ -44,6 +46,7 @@ sap.ui.define(['./Binding', './Filter', './Sorter'],
 			this.aFilters = [];
 
 			this.aSorters = makeArray(aSorters, Sorter);
+			Filter.checkFilterNone(aFilters);
 			this.aApplicationFilters = makeArray(aFilters, Filter);
 			this.oCombinedFilter = null;
 
@@ -84,10 +87,10 @@ sap.ui.define(['./Binding', './Filter', './Sorter'],
 	 *
 	 * @function
 	 * @name sap.ui.model.TreeBinding.prototype.getNodeContexts
-	 * @param {Object} oContext the context element of the node
+	 * @param {sap.ui.model.Context} oContext the context element of the node
 	 * @param {int} iStartIndex the startIndex where to start the retrieval of contexts
 	 * @param {int} iLength determines how many contexts to retrieve beginning from the start index.
-	 * @return {Array} the array of child contexts for the given node
+	 * @return {sap.ui.model.Context[]} the array of child contexts for the given node
 	 *
 	 * @public
 	 */
@@ -119,11 +122,29 @@ sap.ui.define(['./Binding', './Filter', './Sorter'],
 	};
 
 	/**
+	 * Returns the count of entries in the tree, or <code>undefined</code> if it is unknown. If the
+	 * tree is filtered, the count of all entries matching the filter conditions is returned. The
+	 * entries required only for the tree structure are not counted.
+	 *
+	 * <b>Note:</b> The default implementation returns <code>undefined</code> and has to be
+	 * overwritten by subclasses.
+	 *
+	 * @returns {number|undefined} The count of entries in the tree, or <code>undefined</code> if it
+	 *   is unknown, for example because the binding is not resolved or because this feature is not
+	 *   supported.
+	 * @public
+	 * @since 1.108.0
+	 */
+	TreeBinding.prototype.getCount = function () {
+		return undefined;
+	};
+
+	/**
 	 * Filters the tree according to the filter definitions.
 	 *
 	 * @function
 	 * @name sap.ui.model.TreeBinding.prototype.filter
-	 * @param {sap.ui.model.Filter[]} aFilters Array of sap.ui.model.Filter objects
+	 * @param {sap.ui.model.Filter|sap.ui.model.Filter[]} aFilters Single sap.ui.model.Filter object or an array of filter objects
 	 * @param {sap.ui.model.FilterType} sFilterType Type of the filter which should be adjusted, if it is not given, the standard behaviour applies
 	 *
 	 * @public

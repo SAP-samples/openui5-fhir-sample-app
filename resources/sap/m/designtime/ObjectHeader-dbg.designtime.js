@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2024 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -14,6 +14,32 @@ sap.ui.define([],
 			group: "INPUT",
 			icons: {
 				svg: "sap/m/designtime/ObjectHeader.icon.svg"
+			}
+		},
+		aggregations: {
+			headerContainer: {
+				propagateMetadata: function (oInnerControl, oObjectHeader) {
+					if (oInnerControl.isA("sap.m.IconTabBar")) {
+						return {
+							domRef: function () {
+								return oObjectHeader.getDomRef().querySelector(".sapMITH");
+							},
+							aggregations: {
+								items: {
+									domRef: function () {
+										return oObjectHeader.getDomRef().querySelector(".sapMITH");
+									},
+									actions: {
+										move: "moveControls"
+									}
+								}
+							}
+						};
+					}
+
+					return null;
+				},
+				propagateRelevantContainer: true
 			}
 		},
 		templates: {

@@ -40,7 +40,7 @@ sap.ui.define([
 	 * @extends sap.ui.model.TreeBinding
 	 * @public
 	 * @since 1.0.0
-	 * @version 2.2.8
+	 * @version 2.3.6
 	*/
 	var FHIRTreeBinding = TreeBinding.extend("sap.fhir.model.r4.FHIRTreeBinding", {
 
@@ -268,7 +268,7 @@ sap.ui.define([
 												mParams.urlParameters[this.sNodeProperty + ":exact"] = sRootValue;
 												oRequestHandle = this._submitRequest(this.sPath, mParams, fnSuccess);
 												this.mRequestHandle[oRequestHandle.getId()] = oRequestHandle;
-												oRequestHandle.getRequest().complete(function(oGivenRequestHandle) {
+												oRequestHandle.getRequest().always(function(oGivenRequestHandle) {
 													delete this.mRequestHandle[oGivenRequestHandle.getId()];
 													this._canRootAggregationsBeResolved(oData);
 												}.bind(this, oRequestHandle));
@@ -391,7 +391,7 @@ sap.ui.define([
 		if (FHIRUtils.isEmptyObject(this.mRequestHandle)) {
 			var oRequestHandle = this._submitRequest(this.sNextLink, undefined, fnSuccess, undefined, true);
 			this.mRequestHandle[oRequestHandle.getId()] = oRequestHandle;
-			oRequestHandle.getRequest().complete(function(oGivenRequestHandle) {
+			oRequestHandle.getRequest().always(function(oGivenRequestHandle) {
 				delete this.mRequestHandle[oGivenRequestHandle.getId()];
 			}.bind(this, oRequestHandle));
 		}
@@ -488,10 +488,17 @@ sap.ui.define([
 	};
 
 	/**
+	 * @typedef {object} sap.fhir.model.r4.FHIRTreeBinding.Parameter
+	 * @prop {object} [urlParameters] The parameters that will be passed as query strings
+	 * @public
+	 * @since 1.0.0
+	 */
+
+	/**
 	 * Creates the parameters for the FHIR request based on the configured filters and sorters
 	 *
 	 * @param {number} [iLength] The number of contexts to retrieve beginning from the start index
-	 * @returns {object} The map of parameters
+	 * @returns {sap.fhir.model.r4.FHIRTreeBinding.Parameter} The map of parameters
 	 * @private
 	 * @since 1.0.0
 	 */
@@ -1318,7 +1325,7 @@ sap.ui.define([
 				var oRequestHandle = this._loadNumberOfChildren(oChildContext, function(oData) {
 					this._processChildren(oNode, oChildContext, j + oCurrentSection.startIndex, oData);
 				}.bind(this));
-				oRequestHandle.getRequest().complete(function(oGivenRequestHandle) {
+				oRequestHandle.getRequest().always(function(oGivenRequestHandle) {
 					delete this.mRequestHandle[oGivenRequestHandle.getId()];
 					if (FHIRUtils.isEmptyObject(this.mRequestHandle)) {
 						this.bPendingRequest = false;

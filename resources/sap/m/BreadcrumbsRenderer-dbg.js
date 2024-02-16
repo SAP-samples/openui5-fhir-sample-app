@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2024 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -16,7 +16,6 @@ sap.ui.define(["sap/m/Text"], function (Text) {
 		apiVersion: 2
 	};
 
-	var oResource = sap.ui.getCore().getLibraryResourceBundle("sap.m");
 
 	/**
 	 * Renders the HTML for the given control, using the provided {@link sap.ui.core.RenderManager}.
@@ -27,11 +26,26 @@ sap.ui.define(["sap/m/Text"], function (Text) {
 	BreadcrumbsRenderer.render = function (oRm, oControl) {
 		var aControls = oControl._getControlsForBreadcrumbTrail(),
 			oSelect = oControl._getSelect(),
-			sSeparator = oControl._sSeparatorSymbol;
+			sSeparator = oControl._sSeparatorSymbol,
+			sDefaultAriaLabelledBy = oControl._getInvisibleText().getId(),
+			aAriaLabelledBy = oControl.getAriaLabelledBy().slice();
 
 		oRm.openStart("nav", oControl);
 		oRm.class("sapMBreadcrumbs");
-		oRm.attr("aria-label", BreadcrumbsRenderer._getResourceBundleText("BREADCRUMB_LABEL"));
+
+		aAriaLabelledBy.push(sDefaultAriaLabelledBy);
+
+		oRm.accessibilityState(null, {
+			labelledby: {
+				value: aAriaLabelledBy.join(" "),
+				append: true
+			}
+		});
+
+		if (oControl._iMinWidth && oControl._iMinWidth !== oControl.MIN_WIDTH_IN_OFT) {
+			oRm.style("min-width", oControl._iMinWidth + "px");
+		}
+
 		oRm.openEnd();
 		oRm.openStart("ol");
 		oRm.openEnd();
@@ -40,15 +54,15 @@ sap.ui.define(["sap/m/Text"], function (Text) {
 			this._renderControlInListItem(oRm, oSelect, sSeparator, false, "sapMBreadcrumbsSelectItem");
 		}
 
-		aControls.forEach(function (oChildControl) {
-			this._renderControlInListItem(oRm, oChildControl, sSeparator, oChildControl instanceof Text);
+		aControls.forEach(function (oChildControl, iIndex) {
+			this._renderControlInListItem(oRm, oChildControl, sSeparator, oChildControl instanceof Text, undefined, iIndex, aControls.length);
 		}, this);
 
 		oRm.close("ol");
 		oRm.close("nav");
 	};
 
-	BreadcrumbsRenderer._renderControlInListItem = function (oRm, oControl, sSeparator, bSkipSeparator, sAdditionalItemClass) {
+	BreadcrumbsRenderer._renderControlInListItem = function (oRm, oControl, sSeparator, bSkipSeparator, sAdditionalItemClass, iIndex, iVisibleItemsCount) {
 		oRm.openStart("li");
 		oRm.class("sapMBreadcrumbsItem");
 		oRm.class(sAdditionalItemClass);
@@ -60,9 +74,6 @@ sap.ui.define(["sap/m/Text"], function (Text) {
 		oRm.close("li");
 	};
 
-	BreadcrumbsRenderer._getResourceBundleText = function (sText) {
-		return oResource.getText(sText);
-	};
 
 	return BreadcrumbsRenderer;
 

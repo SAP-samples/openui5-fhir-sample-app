@@ -1,9 +1,9 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2024 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
-
+/*eslint-disable max-len */
 // Provides the resource model implementation of a property binding
 sap.ui.define(['sap/ui/model/PropertyBinding', 'sap/ui/model/ChangeReason'],
 	function(PropertyBinding, ChangeReason) {
@@ -52,7 +52,7 @@ sap.ui.define(['sap/ui/model/PropertyBinding', 'sap/ui/model/ChangeReason'],
 	 * Checks whether an update of this bindings is required. If the binding is not suspended, it
 	 * fires a change event if either the value has changed or bForceUpdate is <code>true</code>.
 	 *
-	 * @param {boolean} bForceUpdate
+	 * @param {boolean} [bForceUpdate]
 	 *   Whether to fire a change event even if the value did not change
 	 *
 	 * @private

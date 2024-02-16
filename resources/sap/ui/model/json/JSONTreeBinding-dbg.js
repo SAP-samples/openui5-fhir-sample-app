@@ -1,9 +1,9 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2024 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
-
+/*eslint-disable max-len */
 // Provides the JSON model implementation of a list binding
 sap.ui.define(['sap/ui/model/ClientTreeBinding'],
 	function(ClientTreeBinding) {
@@ -30,8 +30,9 @@ sap.ui.define(['sap/ui/model/ClientTreeBinding'],
 	 * 			Keys of arrays to be used for building the tree structure. If not specified, all arrays and objects in the bound data will be used.
 	 *			Note that for arrays nested inside differently named arrays, you need to add both to <code>arrayNames</code>. You always have to add the complete parent chain.
 	 *			If any array is ignored, its child arrays will be ignored as well even if they have been added to <code>arrayNames</code>.
-	 * @throws {Error} When one of the filters uses an operator that is not supported by the underlying model implementation
-	 *
+	 * @throws {Error} If one of the filters uses an operator that is not supported by the underlying model
+	 *   implementation or if the {@link sap.ui.model.Filter.NONE} filter instance is contained in <code>aFilters</code>
+	 *   together with other filters
 	 *
 	 * @class
 	 * Tree binding implementation for JSON format.

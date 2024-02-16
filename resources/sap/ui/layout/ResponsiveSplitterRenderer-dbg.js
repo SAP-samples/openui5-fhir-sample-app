@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2024 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -43,6 +43,11 @@ sap.ui.define([
 		var iMaxPageCount = oRespSplitter._getMaxPageCount(),
 			aPages = oRespSplitter.getAggregation("_pages") || [];
 
+		// Render paginator when there are more than one pages.
+		if (iMaxPageCount <= 1) {
+			return;
+		}
+
 		oRm.openStart("div")
 			.attr("role", "navigation")
 			.class("sapUiResponsiveSplitterPaginator")
@@ -58,7 +63,8 @@ sap.ui.define([
 
 		oRm.openStart("div")
 			.class("sapUiResponsiveSplitterPaginatorButtons")
-			.attr("role", "radiogroup")
+			.attr("role", "listbox")
+			.attr("aria-multiselectable", true)	// Still, only one item at a time can be selected. Set to 'true', as JAWS won't announce selection and root's descriptions otherwise.
 			.attr("aria-label", oResourceBundle.getText("RESPONSIVE_SPLITTER_ARIA_PAGINATOR_LABEL"));
 
 		if (aPages.length > 0) {
@@ -78,8 +84,8 @@ sap.ui.define([
 
 			oRm.class("sapUiResponsiveSplitterHiddenElement")
 				.class("sapUiResponsiveSplitterPaginatorButton")
-				.attr("role", "radio")
-				.attr("aria-checked", false)
+				.attr("role", "option")
+				.attr("aria-selected", false)
 				.openEnd()
 				.close("div");
 		}

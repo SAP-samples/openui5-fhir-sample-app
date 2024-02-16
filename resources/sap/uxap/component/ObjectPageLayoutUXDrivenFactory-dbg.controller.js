@@ -1,27 +1,25 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2024 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 sap.ui.define([
-	"jquery.sap.global",
 	"sap/ui/model/BindingMode",
 	"sap/ui/model/Context",
 	"sap/ui/base/ManagedObject",
 	"sap/ui/core/mvc/Controller",
 	"sap/base/Log",
-	"sap/base/util/ObjectPath",
-	"sap/ui/thirdparty/jquery"
+	"sap/base/util/each",
+	"sap/base/util/isEmptyObject"
 ], function(
-	jQuery,
 	BindingMode,
 	Context,
 	ManagedObject,
 	Controller,
 	Log,
-	ObjectPath,
-	jQueryDOM
+	each,
+	isEmptyObject
 ) {
 	"use strict";
 
@@ -29,16 +27,16 @@ sap.ui.define([
 
 		/**
 		 * injects the header based on configuration
-		 * @param {object} oModel model instanse
+		 * @param {object} oModel model instance
 		 */
 		connectToComponent: function (oModel) {
 
-			var bHasPendingRequest = jQueryDOM.isEmptyObject(oModel.getData());
+			var bHasPendingRequest = isEmptyObject(oModel.getData());
 
 			//ensure a 1 way binding otherwise it cause any block property change to update the entire subSections
 			oModel.setDefaultBindingMode(BindingMode.OneWay);
 
-			var fnHeaderFactory = jQueryDOM.proxy(function () {
+			var fnHeaderFactory = function () {
 
 				if (bHasPendingRequest) {
 					oModel.detachRequestCompleted(fnHeaderFactory);
@@ -58,7 +56,7 @@ sap.ui.define([
 					}
 				}
 
-			}, this);
+			}.bind(this);
 
 			//if data are not there yet, we wait for them
 			if (bHasPendingRequest) {
@@ -84,21 +82,21 @@ sap.ui.define([
 				oControlMetadata = oControlClass.getMetadata();
 
 				//pre-processing: substitute event handler as strings by their function instance
-				jQueryDOM.each(oControlMetadata._mAllEvents, jQueryDOM.proxy(function (sEventName, oEventProperties) {
+				each(oControlMetadata._mAllEvents, function (sEventName, oEventProperties) {
 					if (typeof oControlInfo[sEventName] == "string") {
 						oControlInfo[sEventName] = this.convertEventHandler(oControlInfo[sEventName]);
 					}
-				}, this));
+				}.bind(this));
 
 				//creates the control with control info = create with provided properties
 				oControl = ManagedObject.create(oControlInfo);
 
 				//post-processing: bind properties on the objectPageLayoutMetadata model
-				jQueryDOM.each(oControlMetadata._mAllProperties, jQueryDOM.proxy(function (sPropertyName, oProperty) {
+				each(oControlMetadata._mAllProperties, function (sPropertyName, oProperty) {
 					if (oControlInfo[sPropertyName]) {
 						oControl.bindProperty(sPropertyName, "objectPageLayoutMetadata>" + oBindingContext.getPath() + "/" + sPropertyName);
 					}
-				}, this));
+				});
 			} catch (sError) {
 				Log.error("ObjectPageLayoutFactory :: error in control creation from config: " + sError);
 			}
@@ -116,7 +114,7 @@ sap.ui.define([
 			var fnNameSpace = window, aNameSpaceParts = sStaticHandlerName.split('.');
 
 			try {
-				jQueryDOM.each(aNameSpaceParts, function (iIndex, sNameSpacePart) {
+				each(aNameSpaceParts, function (iIndex, sNameSpacePart) {
 					fnNameSpace = fnNameSpace[sNameSpacePart];
 				});
 			} catch (sError) {

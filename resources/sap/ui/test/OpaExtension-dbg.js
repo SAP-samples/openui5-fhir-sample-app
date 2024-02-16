@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2024 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -10,7 +10,7 @@ sap.ui.define(['sap/ui/base/Object'],function(Ui5Object) {
 
     /*
     var oLogger = _OpaLogger.getLogger("sap.ui.test.OpaExtension",
-        $.sap.log.Level.DEBUG);
+        Log.Level.DEBUG);
     */
 
     /**
@@ -96,9 +96,9 @@ sap.ui.define(['sap/ui/base/Object'],function(Ui5Object) {
          * <pre>
          *     <code>
          *      sap.ui.define([
-         *          'jquery.sap.global',
-         *          'sap/ui/test/OpaExtension'
-         *      ],function($, OpaExtension) {
+         *          'sap/ui/test/OpaExtension',
+         *          'sap/ui/thirdparty/jquery'
+         *      ],function(OpaExtension, $) {
          *          "use strict";
          *
          *          var customExtension = OpaExtension.extend("sap.ui.test.sample.CustomOpaExtension", {

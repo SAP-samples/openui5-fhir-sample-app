@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2024 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -10,13 +10,17 @@ sap.ui.define([
 	"use strict";
 
 	/**
-	 * @class HeaderContent renderer.
-	 * @static
+	 * HeaderContent renderer.
+	 * @namespace
 	 */
 	var ObjectPageHeaderContentRenderer = {
 		apiVersion: 2
 	};
 
+	/**
+	 * @param {sap.ui.core.RenderManager} oRm RenderManager
+	 * @param {sap.uxap.ObjectPageHeaderContent} oControl Control
+	 */
 	ObjectPageHeaderContentRenderer.render = function (oRm, oControl) {
 		var oParent = oControl.getParent(),
 			bParentLayout = oParent && oParent.isA("sap.uxap.ObjectPageLayout"),
@@ -28,6 +32,9 @@ sap.ui.define([
 		if (bRenderEditBtn) {
 			oRm.openStart("div", oControl)
 				.class("sapUxAPObjectPageHeaderContentFlexBox")
+				/**
+				 * @deprecated As of version 1.40.1
+				 */
 				.class("sapUxAPObjectPageHeaderContentDesign-" + oControl.getContentDesign());
 
 			if (oHeader) {
@@ -41,6 +48,9 @@ sap.ui.define([
 		if (bRenderEditBtn) {
 			oRm.class("sapUxAPObjectPageHeaderContentCellLeft");
 		} else {
+			/**
+			 * @deprecated As of version 1.40.1
+			 */
 			oRm.class("sapUxAPObjectPageHeaderContentDesign-" + oControl.getContentDesign());
 			if (oHeader) {
 				oRm.class('sapUxAPObjectPageContentObjectImage-' + oHeader.getObjectImageShape());
@@ -95,7 +105,7 @@ sap.ui.define([
 	 * @param {sap.ui.core.RenderManager} oRm oRm
 	 * @param {boolean} bRenderTitle render title
 	 * @param {sap.uxap.ObjectPageHeader} oTitle header title
-	 * @param {sap.ui.core.Control} oControl control
+	 * @param {sap.uxap.ObjectPageHeaderContent} oControl control
 	 */
 	ObjectPageHeaderContentRenderer._renderHeaderContentItem = function (oHeaderContentItem, iIndex, oRm, bRenderTitle, oTitle, oControl) {
 		var bHasSeparatorBefore = false,
@@ -167,7 +177,7 @@ sap.ui.define([
 	 * This method is called to render title and all it's parts if the property showTitleInHeaderContent is set to true
 	 *
 	 * @param {sap.ui.core.RenderManager} oRm the RenderManager that can be used for writing to the render output buffer
-	 * @param {sap.ui.core.Control} oControl an object representation of the control that should be rendered
+	 * @param {sap.uxap.ObjectPageHeaderContent} oControl an object representation of the control that should be rendered
 	 * @param {sap.ui.core.Control} oHeader an object representation of the titleHeader that should be rendered
 	 */
 	ObjectPageHeaderContentRenderer._renderTitleImage = function (oRm, oControl, oHeader) {
@@ -196,7 +206,7 @@ sap.ui.define([
 	 * This method is called to render the Edit button when the property showEditHeaderButton is set to true
 	 *
 	 * @param {sap.ui.core.RenderManager} oRm the RenderManager that can be used for writing to the render output buffer
-	 * @param {sap.ui.core.Control} oHeader an object representation of the control that should be rendered
+	 * @param {sap.uxap.ObjectPageHeaderContent} oHeader an object representation of the control that should be rendered
 	 */
 	ObjectPageHeaderContentRenderer._renderEditButton = function (oRm, oHeader) {
 		oRm.openStart("div")

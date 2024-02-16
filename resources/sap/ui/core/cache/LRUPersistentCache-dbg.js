@@ -1,31 +1,24 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2024 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
-/*!
- * Portions of this module ("Least Recently Used" logic) are taken from the node-lru-cache project (see https://github.com/isaacs/node-lru-cache/blob/v2.7.3/README.md),
- * but modified. Please see the OpenUI5 LICENSE file for license information respecting node-lru-cache.
- */
-
-sap.ui.define(["sap/base/Log", "sap/ui/performance/Measurement"],
-	function(Log, Measurement) {
+sap.ui.define(["sap/base/config", "sap/base/Log", "sap/ui/performance/Measurement", "sap/ui/Global"],
+	function(BaseConfig, Log, Measurement, Global) {
 		"use strict";
 
 		/**
 		 * @classdesc
 		 * This object provides cache functionality with persistence in IndexedDB.
-		 * The component is an experimental and private.
+		 * The component is private and restricted to the factory class sap.ui.core.cache.CacheManager.
 		 * Do not use outside UI5 framework itself.
 		 * This implementation works with entries corresponding to a single ui5 version.
 		 * If the cache is loaded with different ui5 version, all previous entries will be deleted. The latter behavior is about of a further changes (feature requests)
 		 *
-		 * This implementation relies on existing configuration @see sap.ui.core.Configuration.
-		 *
 		 * Do not use it directly, use {@link sap.ui.core.cache.CacheManager} instead
 		 * @private
-		 * @experimental
+		 * @ui5-restricted sap.ui.core.cache.CacheManager
 		 * @since 1.40.0
 		 * @namespace
 		 * @alias sap.ui.core.cache.LRUPersistentCache
@@ -33,6 +26,9 @@ sap.ui.define(["sap/base/Log", "sap/ui/performance/Measurement"],
 
 		var LRUPersistentCache = {
 			name: "LRUPersistentCache",
+			logResolved: function(sFnName) {
+				Log.debug("Cache Manager: " + sFnName + " completed successfully.");
+			},
 
 			defaultOptions: {
 				databaseName: "ui5-cachemanager-db",
@@ -171,8 +167,12 @@ sap.ui.define(["sap/base/Log", "sap/ui/performance/Measurement"],
 					Log.warning("Cache Manager ignored 'has' for key [" + key + "]");
 					return Promise.resolve(false);
 				}
-				return this.get(key).then(function (value) {
-					return typeof value !== "undefined";
+				return this.get(key).then(function(value) {
+					var result = typeof value !== "undefined";
+
+					Log.debug("Cache Manager: has key [" + key + "] returned " + result);
+
+					return result;
 				});
 			},
 
@@ -250,6 +250,9 @@ sap.ui.define(["sap/base/Log", "sap/ui/performance/Measurement"],
 									transaction.abort();
 								});
 							} else {
+								if (!self._metadata.timestamps) {
+									self._metadata.timestamps = {};
+								}
 								resolve();
 							}
 						};
@@ -278,6 +281,62 @@ sap.ui.define(["sap/base/Log", "sap/ui/performance/Measurement"],
 					return Promise.resolve();
 				}
 				return del(this, key);
+			},
+
+			delWithFilters: function(filters) {
+				var self = this,
+					oFilters = filters || {};
+
+				return new Promise(function (resolve, reject) {
+					var oMetadataBackup = cloneMetadata(self._metadata),
+						oTransaction = self._db.transaction([ self.defaultOptions._contentStoreName, self.defaultOptions._metadataStoreName ], "readwrite"),
+						oContentStore = oTransaction.objectStore(self.defaultOptions._contentStoreName),
+						oMetadataStore = oTransaction.objectStore(self.defaultOptions._metadataStoreName),
+						oContentCursor = oContentStore.openCursor(),
+						sPrefix = oFilters.prefix || "";
+
+					function restoreMetadata() {
+						self._metadata = oMetadataBackup;
+						assignRUCounters(self);
+					}
+
+					function onTransactionFail(event) {
+						restoreMetadata();
+						reject(collectErrorData(event));
+					}
+
+					oTransaction.onerror = onTransactionFail;
+					oTransaction.onabort = onTransactionFail;
+
+					oTransaction.oncomplete = function(event) {
+						resolve();
+					};
+
+					oContentCursor.onsuccess = function(event) {
+						var oCursor = event.target.result,
+							sKey,
+							oRequest;
+
+						if (!oCursor) {
+							oMetadataStore.put(self._metadata, self.defaultOptions._metadataKey);
+							return;
+						}
+
+						sKey = oCursor.value.key;
+
+						if (sKey.indexOf(sPrefix) === 0
+							&& (!oFilters.olderThan || !(sKey in self._metadata.timestamps)
+								|| self._metadata.timestamps[sKey] <= oFilters.olderThan)) {
+							oRequest = oCursor.delete();
+							oRequest.onsuccess = function() {
+								Log.debug('Deleted ' + sKey + '!');
+								deleteMetadataForEntry(self, sKey);
+							};
+						}
+
+						oCursor.continue();
+					};
+				});
 			},
 
 			reset: function () {
@@ -312,7 +371,7 @@ sap.ui.define(["sap/base/Log", "sap/ui/performance/Measurement"],
 								transaction.abort();
 							};
 							clearMetadataStoreReq.onsuccess = function () {
-								self._metadata = initMetadata(sap.ui.version);
+								self._metadata = initMetadata(Global.version);
 								assignRUCounters(self);
 							};
 						};
@@ -327,9 +386,13 @@ sap.ui.define(["sap/base/Log", "sap/ui/performance/Measurement"],
 			sMsrCatSet = "LRUPersistentCache,set",
 			iMsrCounter = 0;
 
-		function scheduleMetadataSave(self) {//an async store of the metadata , the caller should not be interested in the result, since no reporting status back is supported
+		function scheduleMetadataSave(self, oItem) {//an async store of the metadata , the caller should not be interested in the result, since no reporting status back is supported
+			var transaction;
+
+			self._metadata.timestamps[oItem.oData.key] = Date.now();
+
 			//locking both stores as no further modification is required. This will block any further metadata update and sets, but this is the way to keep the metadata consistent
-			var transaction = self._db.transaction([self.defaultOptions._contentStoreName, self.defaultOptions._metadataStoreName], "readwrite");
+			transaction = self._db.transaction([self.defaultOptions._contentStoreName, self.defaultOptions._metadataStoreName], "readwrite");
 
 			transaction.onerror = transaction.onabort = function (event) {
 				Log.warning("Cache Manager cannot persist the information about usage of an entry. This may lead to earlier removal of the entry if browser storage space is over. Details: " + transaction.error);
@@ -439,8 +502,10 @@ sap.ui.define(["sap/base/Log", "sap/ui/performance/Measurement"],
 							if (oItem.oData.lu !== self._mru) { // Update the usage data only if the item is not already the most used one
 								oItem.oData.lu = ++self._mru;
 								updateItemUsage(self, oItem);
-								scheduleMetadataSave(self); //postponed as update of the metadata is not crucial here
 							}
+
+							//postponed as update of the metadata is not crucial here
+							scheduleMetadataSave(self, oItem);
 
 							Measurement.end(sMsrPutMetadata);
 							result = oItem.deserialize().oData.value;
@@ -604,7 +669,7 @@ sap.ui.define(["sap/base/Log", "sap/ui/performance/Measurement"],
 		}
 
 		function initIndexedDB(instance) {
-			instance._ui5version = sap.ui.version;
+			instance._ui5version = Global.version;
 			return new Promise(function executorInitIndexedDB(resolve, reject) {
 				var DBOpenRequest;
 
@@ -710,6 +775,7 @@ sap.ui.define(["sap/base/Log", "sap/ui/performance/Measurement"],
 
 		function initMetadata(ui5version) {
 			return {
+				timestamps: {},
 				__byKey__: {},
 				__byIndex__: {},
 				__ui5version: ui5version
@@ -728,6 +794,9 @@ sap.ui.define(["sap/base/Log", "sap/ui/performance/Measurement"],
 			}
 			for (var key in source.__byKey__) {
 				backupMetadata.__byKey__[key] = source.__byKey__[key];
+			}
+			for (var key in source.timestamps) {
+				backupMetadata.timestamps[key] = source.timestamps[key];
 			}
 			return backupMetadata;
 		}
@@ -778,7 +847,8 @@ sap.ui.define(["sap/base/Log", "sap/ui/performance/Measurement"],
 		/**
 		 * Tries to free space until the given new item is successfully added.
 		 * @param {sap.ui.core.cache.LRUPersistentCache} self the instance of the Cache Manager
-		 * @param {ItemData} oItem the item to free space for
+		 * @param {string|number} key the key to associate the value with
+		 * @param {any} value value to free space for
 		 * @returns {Promise} a promise that will resolve if the given item is added, or reject - if not.
 		 */
 		function cleanAndStore(self, key, value) {
@@ -823,6 +893,9 @@ sap.ui.define(["sap/base/Log", "sap/ui/performance/Measurement"],
 			var iIndex = self._metadata.__byKey__[key];
 			delete self._metadata.__byKey__[key];
 			delete self._metadata.__byIndex__[iIndex];
+			if (self._metadata.timestamps[key]) {
+				delete self._metadata.timestamps[key];
+			}
 			seekMetadataLRU(self);
 		}
 
@@ -851,11 +924,19 @@ sap.ui.define(["sap/base/Log", "sap/ui/performance/Measurement"],
 		}
 
 		function isSerializationSupportOn() {
-			return sap.ui.getCore().getConfiguration().isUI5CacheSerializationSupportOn();
+			return BaseConfig.get({
+				name: "sapUiXxCacheSerialization",
+				type: BaseConfig.Type.Boolean,
+				external: true
+			});
 		}
 
 		function getExcludedKeys() {
-			return sap.ui.getCore().getConfiguration().getUI5CacheExcludedKeys();
+			return BaseConfig.get({
+				name: "sapUiXxCacheExcludedKeys",
+				type: BaseConfig.Type.StringArray,
+				external: true
+			});
 		}
 
 		/**
@@ -892,10 +973,12 @@ sap.ui.define(["sap/base/Log", "sap/ui/performance/Measurement"],
 		}
 
 		/**
-		 * Logs a debug message related to certain measurement if log level is debug or higher
+		 * Logs a debug message related to a certain {@link module:sap/ui/performance/Measurement measurement}
+		 * if log level is debug or higher.
+		 *
 		 * @param {string} sMsg the message
 		 * @param {string} sKey the key to log message for
-		 * @param {string} sMsrId the measurementId to use for obtaining the jquery.sap.measure measurement
+		 * @param {string} sMsrId the measurementId to use for obtaining the measurement
 		 */
 		function debugMsr(sMsg, sKey, sMsrId) {
 			//avoid redundant string concatenation & getMeasurement call

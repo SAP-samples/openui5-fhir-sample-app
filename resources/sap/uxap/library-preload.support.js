@@ -1,7 +1,7 @@
 //@ui5-bundle sap/uxap/library-preload.support.js
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2024 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 /**
@@ -20,14 +20,14 @@ sap.ui.predefine("sap/uxap/library.support", ["./rules/ObjectPageLayout.support"
 }, true);
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2024 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 /**
  * Defines support rules of the ObjectPageHeader control of sap.uxap library.
  */
-sap.ui.predefine("sap/uxap/rules/ObjectPageLayout.support", ["sap/ui/support/library"],
-	function (SupportLib) {
+sap.ui.predefine("sap/uxap/rules/ObjectPageLayout.support", ["sap/ui/support/library", "sap/ui/base/Object"],
+	function (SupportLib, BaseObject) {
 		"use strict";
 
 		// shortcuts
@@ -64,7 +64,7 @@ sap.ui.predefine("sap/uxap/rules/ObjectPageLayout.support", ["sap/ui/support/lib
 
 						var parent = oControl.getParent();
 						while (parent) {
-							if (parent instanceof sap.ui.core.Component) {
+							if (BaseObject.isObjectA(parent, "sap.ui.core.Component")) {
 								return parent;
 							} else {
 								parent = parent.getParent();
@@ -135,16 +135,16 @@ sap.ui.predefine("sap/uxap/rules/ObjectPageLayout.support", ["sap/ui/support/lib
 							sHeaderId = oHeaderTitle.getId();
 
 						if (bShowTitleInHeaderContent) {
-							if (!!oHeaderTitle.getObjectImageURI() && bIsObjectIconAlwaysVisible) {
+							if (oHeaderTitle.getObjectImageURI() && bIsObjectIconAlwaysVisible) {
 								addIssueBuilder(sHeaderName, sHeaderId, "Icon");
 
 							}
 
-							if (!!oHeaderTitle.getObjectTitle() && bIsObjectTitleAlwaysVisible) {
+							if (oHeaderTitle.getObjectTitle() && bIsObjectTitleAlwaysVisible) {
 								addIssueBuilder(sHeaderName, sHeaderId, "Title");
 							}
 
-							if (!!oHeaderTitle.getObjectSubtitle() && bIsObjectSubtitleAlwaysVisible) {
+							if (oHeaderTitle.getObjectSubtitle() && bIsObjectSubtitleAlwaysVisible) {
 								addIssueBuilder(sHeaderName, sHeaderId, "SubTitle");
 							}
 						}
@@ -238,3 +238,4 @@ sap.ui.predefine("sap/uxap/rules/ObjectPageLayout.support", ["sap/ui/support/lib
 		];
 
 	}, true);
+//# sourceMappingURL=library-preload.support.js.map

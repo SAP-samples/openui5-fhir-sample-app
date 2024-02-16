@@ -1,12 +1,12 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2024 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
-sap.ui.define(["sap/m/library", "sap/ui/core/InvisibleText"],
+sap.ui.define(["sap/m/library", "sap/ui/core/InvisibleText", "sap/ui/core/ShortcutHintsMixin"],
 
-	function(library, InvisibleText) {
+	function(library, InvisibleText, ShortcutHintsMixin) {
 		"use strict";
 
 		// shortcut for sap.m.ButtonType
@@ -29,7 +29,7 @@ sap.ui.define(["sap/m/library", "sap/ui/core/InvisibleText"],
 		 * @param {sap.ui.core.RenderManager} oRm
 		 *            the RenderManager that can be used for writing to
 		 *            the Render-Output-Buffer
-		 * @param {sap.ui.core.Control} oButton
+		 * @param {sap.m.SplitButton} oButton
 		 *            the button to be rendered
 		 */
 		SplitButtonRenderer.render = function(oRm, oButton) {
@@ -50,7 +50,11 @@ sap.ui.define(["sap/m/library", "sap/ui/core/InvisibleText"],
 				|| sType === ButtonType.Reject
 				|| sType === ButtonType.Emphasized
 				|| sType === ButtonType.Transparent
-				|| sType === ButtonType.Attention) {
+				|| sType === ButtonType.Attention
+				|| sType === ButtonType.Neutral
+				|| sType === ButtonType.Critical
+				|| sType === ButtonType.Success
+				|| sType === ButtonType.Negative) {
 				oRm.class(SplitButtonRenderer.CSS_CLASS + sType);
 			}
 
@@ -58,7 +62,7 @@ sap.ui.define(["sap/m/library", "sap/ui/core/InvisibleText"],
 			oRm.attr("tabindex", bEnabled ? "0" : "-1");
 
 			// add tooltip if available
-			if (sTitleAttribute) {
+			if (sTitleAttribute && !ShortcutHintsMixin.isDOMIDRegistered(oButton.getId())) {
 				oRm.attr("title", sTitleAttribute);
 			}
 
@@ -85,8 +89,7 @@ sap.ui.define(["sap/m/library", "sap/ui/core/InvisibleText"],
 
 			if (sTitleAttribute) {
 				sTooltipId = oButton.getId() + "-tooltip";
-				oRm.openStart("span");
-				oRm.attr("id", sTooltipId);
+				oRm.openStart("span", sTooltipId);
 				oRm.class("sapUiInvisibleText");
 				oRm.openEnd();
 				oRm.text(sTitleAttribute);

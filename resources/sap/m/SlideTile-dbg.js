@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2024 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -8,26 +8,31 @@ sap.ui.define([
 	'./library',
 	'sap/ui/core/Control',
 	'sap/m/GenericTile',
-	'sap/ui/Device',
 	'sap/ui/core/Icon',
 	'./SlideTileRenderer',
 	"sap/ui/events/KeyCodes",
 	"sap/ui/events/PseudoEvents",
-	"sap/ui/thirdparty/jquery"
+	"sap/ui/thirdparty/jquery",
+	"sap/ui/core/Configuration",
+	"sap/ui/core/InvisibleText",
+	"sap/ui/core/Lib"
 ],
 	function(
 		library,
 		Control,
 		GenericTile,
-		Device,
 		Icon,
 		SlideTileRenderer,
 		KeyCodes,
 		PseudoEvents,
-		jQuery
+		jQuery,
+		Configuration,
+		InvisibleText,
+		CoreLib
 	) {
 	"use strict";
 
+	var GenericTileScope = library.GenericTileScope;
 	var TileSizeBehavior = library.TileSizeBehavior;
 
 	/**
@@ -40,12 +45,11 @@ sap.ui.define([
 	 * @extends sap.ui.core.Control
 	 *
 	 * @author SAP SE
-	 * @version 1.79.0
+	 * @version 1.120.6
 	 * @since 1.34
 	 *
 	 * @public
 	 * @alias sap.m.SlideTile
-	 * @ui5-metamodel This control/element also will be described in the UI5 (legacy) designtime metamodel
 	 */
 	var SlideTile = Control.extend("sap.m.SlideTile", /** @lends sap.m.SlideTile.prototype */ {
 		metadata: {
@@ -76,7 +80,13 @@ sap.ui.define([
 				 * Width of the control.
 				 * @since 1.72
 				 */
-				width: {type: "sap.ui.core.CSSSize", group: "Appearance"}
+				width: {type: "sap.ui.core.CSSSize", group: "Appearance"},
+				/**
+				 * Height of the control.
+				 * @experimental
+				 * @since 1.96
+				 */
+				height: {type: "sap.ui.core.CSSSize", group: "Appearance"}
 			},
 			defaultAggregation: "tiles",
 			aggregations: {
@@ -87,7 +97,11 @@ sap.ui.define([
 				/**
 				 * The pause/play icon that is being used to display the pause/play state of the control.
 				 */
-				_pausePlayIcon: {type: "sap.ui.core.Icon", multiple: false, visibility: "hidden"}
+				_pausePlayIcon: {type: "sap.ui.core.Icon", multiple: false, visibility: "hidden"},
+				/**
+				 * The hidden aggregation that uses this id in aria-describedby attribute.
+				 */
+				_invisibleText: {type:"sap.ui.core.InvisibleText",multiple: false, visibility: "hidden" }
 			},
 			events: {
 				/**
@@ -117,7 +131,9 @@ sap.ui.define([
 					}
 				}
 			}
-		}
+		},
+
+		renderer: SlideTileRenderer
 	});
 
 	/* --- Lifecycle Handling --- */
@@ -125,7 +141,7 @@ sap.ui.define([
 	 * Init function for the control
 	 */
 	SlideTile.prototype.init = function () {
-		this._oRb = sap.ui.getCore().getLibraryResourceBundle("sap.m");
+		this._oRb = CoreLib.getResourceBundleFor("sap.m");
 		this.setAggregation("_pausePlayIcon", new Icon({
 			id: this.getId() + "-pause-play-icon",
 			src: "sap-icon://media-pause",
@@ -133,6 +149,9 @@ sap.ui.define([
 			size: "1rem",
 			noTabStop: true
 		}), true);
+
+		this._oInvisibleText = new InvisibleText(this.getId() + "-ariaText");
+		this.setAggregation("_invisibleText", this._oInvisibleText, true);
 	};
 
 	/**
@@ -141,7 +160,7 @@ sap.ui.define([
 	SlideTile.prototype.onBeforeRendering = function () {
 		// initialize SlideTile scope with SlideTile CSS class name
 		GenericTile.prototype._initScopeContent.call(this, "sapMST");
-		var bActionsView = this.getScope() === library.GenericTileScope.Actions;
+		var bActionsView = this.getScope() === GenericTileScope.Actions;
 		// According to the scope of SlideTile, displays corresponding view of GenericTiles
 		for (var i = 0; i < this.getTiles().length; i++) {
 			this.getTiles()[i].showActionsView(bActionsView);
@@ -154,6 +173,11 @@ sap.ui.define([
 		this._stopAnimation();
 		this._sWidth = this._sHeight = undefined;
 		this._iCurrentTile = this._iPreviousTile = undefined;
+
+		//Applies new dimensions for the SlideTile if it is inscribed inside a GridContainer
+		if (this.getParent() && this.getParent().isA("sap.f.GridContainer")){
+			this._applyNewDim();
+		}
 	};
 
 	/**
@@ -164,7 +188,6 @@ sap.ui.define([
 
 		var cTiles = this.getTiles().length,
 			sScope = this.getScope();
-		this._removeGTFocus();
 		this._iCurrAnimationTime = 0;
 		this._bAnimationPause = false;
 		// if the last displayed tile exists, then scrolls to this tile. Otherwise displays first tile.
@@ -173,13 +196,44 @@ sap.ui.define([
 		} else {
 			this._scrollToNextTile();
 		}
-		if (cTiles > 1 && sScope === library.GenericTileScope.Display) {
+		if (cTiles > 1 && sScope === GenericTileScope.Display) {
 			this._startAnimation();
 		}
 		// in actions scope, the more icon color is changed when the displayed tile has news content (dark background)
-		if (sScope === library.GenericTileScope.Actions && this._iCurrentTile >= 0 &&
+		if (sScope === GenericTileScope.Actions && this._iCurrentTile >= 0 &&
 			this._hasNewsContent(this._iCurrentTile)) {
 			this.addStyleClass("sapMSTDarkBackground");
+		}
+
+		// Slide Navigation through bullet click
+		var oCurrentBullet;
+		for (var i = 0; i < this.getTiles().length; i++) {
+			var oCurrentTile = this.getTiles()[this._iCurrentTile];
+			if (oCurrentTile && oCurrentTile._isNavigateActionEnabled()) {
+				oCurrentTile._oNavigateAction._bExcludeFromTabChain = false;
+				oCurrentTile._oNavigateAction.invalidate();
+			}
+			oCurrentBullet = document.querySelector('span[id$="tileIndicator-' + i + '"]');
+			if (oCurrentBullet) {
+				oCurrentBullet.addEventListener("click", function(event) {
+					var sId = event.currentTarget.id,
+						iCurrentIndex = parseInt(sId.substring(sId.lastIndexOf("-") + 1)),
+						bIsbackward = this._iCurrentTile > iCurrentIndex;
+
+					if (this._iCurrentTile !== iCurrentIndex) {
+						this._scrollToNextTile(this._bAnimationPause, bIsbackward, iCurrentIndex);
+					}
+				}.bind(this));
+			}
+		}
+		this._attachFocusEvents();
+
+		//Removing the child aria attributes becasuse its interfering with the Jaws when its in VPC mode on
+		this._removeChildAria();
+
+		//Sets the aria-describedby attribute and uses the _invisibleText id in it
+		if (this.getDomRef()) {
+			this.getDomRef().setAttribute("aria-describedby",this.getAggregation("_invisibleText").getId());
 		}
 	};
 
@@ -205,7 +259,7 @@ sap.ui.define([
 	SlideTile.prototype.ontap = function (oEvent) {
 		var sScope = this.getScope();
 		this.$().trigger("focus");
-		if (sScope === library.GenericTileScope.Actions) {
+		if (sScope === GenericTileScope.Actions) {
 			var oParams = this._getEventParams(oEvent);
 			this.firePress(oParams);
 			oEvent.preventDefault();
@@ -218,7 +272,7 @@ sap.ui.define([
 	 * @param {sap.ui.base.Event} oEvent which was fired
 	 */
 	SlideTile.prototype.ontouchstart = function (oEvent) {
-		if (this.getScope() === library.GenericTileScope.Display) {
+		if (this.getScope() === GenericTileScope.Display) {
 			// hover of SlideTile should not be triggered when user only touch the Play/Pause button on mobile devices
 			if (jQuery(oEvent.target).hasClass("sapMSTIconClickTapArea")) {
 				this.addStyleClass("sapMSTIconPressed");
@@ -256,7 +310,7 @@ sap.ui.define([
 	 * @param {sap.ui.base.Event} oEvent which was fired
 	 */
 	SlideTile.prototype.onkeydown = function (oEvent) {
-		if (this.getScope() === library.GenericTileScope.Display) {
+		if (this.getScope() === GenericTileScope.Display) {
 			if (PseudoEvents.events.sapenter.fnCheck(oEvent)) {
 				var oGenericTile = this.getTiles()[this._iCurrentTile];
 				oGenericTile.onkeydown(oEvent);
@@ -271,7 +325,7 @@ sap.ui.define([
 	 */
 	SlideTile.prototype.onkeyup = function (oEvent) {
 		var oParams;
-		if (this.getScope() === library.GenericTileScope.Display) {
+		if (this.getScope() === GenericTileScope.Display) {
 			if (PseudoEvents.events.sapenter.fnCheck(oEvent)) {
 				var oGenericTile = this.getTiles()[this._iCurrentTile];
 				oGenericTile.onkeyup(oEvent);
@@ -279,6 +333,8 @@ sap.ui.define([
 			}
 			if (PseudoEvents.events.sapspace.fnCheck(oEvent)) {
 				this._toggleAnimation();
+				// Saving the current state in the following variable so that when the focus goes out it would remain in the present state
+				this.bIsPrevStateNormal = !this._bAnimationPause;
 			}
 			if (oEvent.which === KeyCodes.B && this._bAnimationPause) {
 				this._scrollToNextTile(true, true);
@@ -286,7 +342,7 @@ sap.ui.define([
 			if (oEvent.which === KeyCodes.F && this._bAnimationPause) {
 				this._scrollToNextTile(true, false);
 			}
-		} else if (this.getScope() === library.GenericTileScope.Actions) {
+		} else if (this.getScope() === GenericTileScope.Actions) {
 			if (PseudoEvents.events.sapselect.fnCheck(oEvent)) {
 				this.firePress(this._getEventParams(oEvent));
 				oEvent.preventDefault();
@@ -313,7 +369,7 @@ sap.ui.define([
 	 * @param {sap.ui.base.Event} oEvent which was fired
 	 */
 	SlideTile.prototype.onmouseup = function (oEvent) {
-		if (this.getScope() === library.GenericTileScope.Display) {
+		if (this.getScope() === GenericTileScope.Display) {
 			if (this.hasStyleClass("sapMSTIconPressed")) {
 				this._toggleAnimation();
 				this.removeStyleClass("sapMSTIconPressed");
@@ -330,6 +386,7 @@ sap.ui.define([
 		if (jQuery(oEvent.target).hasClass("sapMSTIconClickTapArea")) {
 			this.addStyleClass("sapMSTIconPressed");
 		}
+		this.mouseDown = true;
 	};
 
 	/* --- Public methods --- */
@@ -337,7 +394,7 @@ sap.ui.define([
 	// Overwrites setScope of SlideTile control to be able to call method _setTilePressState
 	SlideTile.prototype.setScope = function (value) {
 		if (this.getScope() !== value) {
-			if (value === library.GenericTileScope.Actions) {
+			if (value === GenericTileScope.Actions) {
 				this.setProperty("scope", value, true);
 				// Invalidate after the sliding animation is done
 				this._bNeedInvalidate = true;
@@ -356,7 +413,11 @@ sap.ui.define([
 	 */
 	SlideTile.prototype._setupResizeClassHandler = function () {
 		var fnCheckMedia = function () {
-			if (this.getSizeBehavior() === TileSizeBehavior.Small || window.matchMedia("(max-width: 374px)").matches) {
+			var oParent = this.getParent();
+			if (oParent && oParent.isA("sap.f.GridContainer")) {
+				this._applyNewDim();
+			}
+			if (this.getSizeBehavior() === TileSizeBehavior.Small || window.matchMedia("(max-width: 374px)").matches || this._hasStretchTiles()){
 				this.$().addClass("sapMTileSmallPhone");
 			} else {
 				this.$().removeClass("sapMTileSmallPhone");
@@ -368,6 +429,58 @@ sap.ui.define([
 	};
 
 	/**
+	 *Attaching focusin and foucusout event handles, and activating them when the tile is focused by tabnavigating
+	 * @private
+	 */
+
+	SlideTile.prototype._attachFocusEvents = function() {
+		var oSlideTile = this.getDomRef();
+		//These Event Listeners should be activated only when the tile gets it focus by tab navigation not by clicking on the tile
+		if (oSlideTile) {
+			oSlideTile.addEventListener('focusin', function() {
+				if (!this.mouseDown) {
+					this.bIsPrevStateNormal = this.getDomRef().classList.contains("sapMSTPauseIcon");
+					this._stopAnimation();
+					this._updatePausePlayIcon();
+				}
+			}.bind(this));
+			oSlideTile.addEventListener('focusout', function(){
+				if (!this.mouseDown) {
+					if (this.bIsPrevStateNormal) {
+						this._startAnimation(true);
+					}
+					this._updatePausePlayIcon();
+				}
+				this.mouseDown = false;
+			}.bind(this));
+		}
+	};
+
+	/**
+	 *Removes role and aria-roledescription attributes from the GenericTile so that these attributes are not read by Jaws when the VPC Mode is turned on
+	 * @private
+	 */
+
+	SlideTile.prototype._removeChildAria = function() {
+		this.getTiles().forEach(function(oTile){
+			oTile.getDomRef().removeAttribute("role");
+			oTile.getDomRef().removeAttribute("aria-roledescription");
+		});
+	};
+
+	/**
+	 *Checks if the tiles inside the slidetile has stretch frametype and the window size is below 600px
+	 *
+	 * @returns {boolean} True if the above mentioned condition is met
+	 * @private
+	 */
+	SlideTile.prototype._hasStretchTiles = function () {
+		return this.getTiles().some(function(tile) {
+			return tile._isSmallStretchTile();
+		});
+	};
+
+	/**
 	 * Checks if the focus is inside of SlideTile
 	 *
 	 * @private
@@ -375,17 +488,6 @@ sap.ui.define([
 	 */
 	SlideTile.prototype._isFocusInsideST = function () {
 		return this.$()[0] === document.activeElement || this.$().find(document.activeElement).length;
-	};
-
-	/**
-	 * Removes the focus of tiles in SlideTile
-	 *
-	 * @private
-	 */
-	SlideTile.prototype._removeGTFocus = function () {
-		for (var i = 0; i < this.getTiles().length; i++) {
-			this.getTiles()[i].$().removeAttr("tabindex");
-		}
 	};
 
 	/**
@@ -436,10 +538,10 @@ sap.ui.define([
 
 	/**
 	 * Starts the animation
-	 *
+	 * @param {boolean} bIsFocusOut Checks if the focus is moving out
 	 * @private
 	 */
-	SlideTile.prototype._startAnimation = function () {
+	SlideTile.prototype._startAnimation = function (bIsFocusOut) {
 		var iDisplayTime = this.getDisplayTime() - this._iCurrAnimationTime;
 
 		clearTimeout(this._sTimerId);
@@ -448,6 +550,10 @@ sap.ui.define([
 		}.bind(this), iDisplayTime);
 		this._iStartTime = Date.now();
 		this._bAnimationPause = false;
+		//Restricting the updation of aria text while focusing out because its causing the aria text to read twice
+		if (this.getTiles()[this._iCurrentTile] && !bIsFocusOut) {
+			this._setAriaDescriptor();
+		}
 	};
 
 	/**
@@ -459,7 +565,7 @@ sap.ui.define([
 	SlideTile.prototype._scrollToTile = function (tileIndex) {
 		if (tileIndex >= 0) {
 			var oWrapperTo = this.$("wrapper-" + tileIndex);
-			var sDir = sap.ui.getCore().getConfiguration().getRTL() ? "right" : "left";
+			var sDir = Configuration.getRTL() ? "right" : "left";
 
 			this._changeSizeTo(tileIndex);
 			oWrapperTo.css(sDir, "0rem");
@@ -476,10 +582,11 @@ sap.ui.define([
 	 * Scrolls to the next tile, forward or backward
 	 *
 	 * @private
-	 * @param {Boolean} pause Triggers if the animation gets paused or not
-	 * @param {Boolean} backward Sets the direction backward or forward
+	 * @param {boolean} pause Triggers if the animation gets paused or not
+	 * @param {boolean} backward Sets the direction backward or forward
+	 * @param {int} iNextTile Scrolls to custom tile
 	 */
-	SlideTile.prototype._scrollToNextTile = function (pause, backward) {
+	SlideTile.prototype._scrollToNextTile = function (pause, backward, iNextTile) {
 		var iTransitionTime = this._iCurrAnimationTime - this.getDisplayTime(),
 			bFirstAnimation, iNxtTile, oWrapperFrom, oWrapperTo, sWidthFrom, fWidthTo, fWidthFrom, bChangeSizeBefore, sDir, oDir;
 
@@ -496,10 +603,24 @@ sap.ui.define([
 			this._iCurrentTile = iNxtTile;
 		}
 
-		oWrapperTo = this.$("wrapper-" + this._iCurrentTile);
-		sDir = sap.ui.getCore().getConfiguration().getRTL() ? "right" : "left";
+		if (iNextTile >= 0) {
+			this._iCurrentTile = iNextTile;
+		}
 
-		if (jQuery.isNumeric(this._iPreviousTile)) {
+		oWrapperTo = this.$("wrapper-" + this._iCurrentTile);
+		sDir = Configuration.getRTL() ? "right" : "left";
+
+		var oCurrentTile = this.getTiles()[this._iCurrentTile];
+		if (oCurrentTile && oCurrentTile._isNavigateActionEnabled()) {
+			oCurrentTile._oNavigateAction._bExcludeFromTabChain = false;
+			oCurrentTile._oNavigateAction.invalidate();
+		}
+		if (this._iPreviousTile != undefined) {
+			var oPreviousTile = this.getTiles()[this._iPreviousTile];
+			if (oPreviousTile && oPreviousTile._isNavigateActionEnabled()) {
+				oPreviousTile._oNavigateAction._bExcludeFromTabChain = true;
+				oPreviousTile._oNavigateAction.invalidate();
+			}
 			oWrapperFrom = this.$("wrapper-" + this._iPreviousTile);
 			sWidthFrom = oWrapperFrom.css("width");
 			fWidthTo = parseFloat(oWrapperTo.css("width"));
@@ -566,25 +687,28 @@ sap.ui.define([
 	 * @private
 	 */
 	SlideTile.prototype._setAriaDescriptor = function () {
-		var sText, sScope, aTiles, oCurrentTile;
-
+		var sText = "", sScope, aTiles, oCurrentTile,iTiles,sPrefixText,sState;
 		sScope = this.getScope();
 		aTiles = this.getTiles();
+		iTiles = aTiles.length;
+		sState = (this._bAnimationPause) ? "SLIDETILE_INSTANCE_FOCUS_PAUSE" : "SLIDETILE_INSTANCE_FOCUS_SCROLL";
+		sPrefixText = this._oRb.getText(sState,[this._iCurrentTile + 1,iTiles]);
+		sText += sPrefixText;
 		oCurrentTile = aTiles[this._iCurrentTile];
-		sText = oCurrentTile._getAriaText().replace(/\s/g, " ");// Gets Tile's ARIA text and collapses whitespaces
+		sText += oCurrentTile._getAriaText(true).replace(/\s/g, " ");// Gets Tile's ARIA text and collapses whitespaces
 
-		if (sScope === library.GenericTileScope.Actions) {
+		if (sScope === GenericTileScope.Actions) {
 			sText = this._oRb.getText("GENERICTILE_ACTIONS_ARIA_TEXT") + "\n" + sText;
-		} else if (aTiles.length > 1 && sScope === library.GenericTileScope.Display) {
+		} else if (aTiles.length > 1 && sScope === GenericTileScope.Display) {
 			sText += "\n" + this._oRb.getText("SLIDETILE_MULTIPLE_CONTENT") + "\n" +
-				this._oRb.getText("SLIDETILE_TOGGLE_SLIDING");
+			this._oRb.getText("SLIDETILE_TOGGLE_SLIDING");
 			if (this._bAnimationPause) {
 				sText += "\n" + this._oRb.getText("SLIDETILE_SCROLL_BACK") + "\n" +
 					this._oRb.getText("SLIDETILE_SCROLL_FORWARD");
 			}
 		}
 		sText += "\n" + this._oRb.getText("SLIDETILE_ACTIVATE");
-		this.$().attr("aria-label", sText);
+		this.getAggregation("_invisibleText").setText(sText);
 	};
 
 	/**
@@ -602,12 +726,8 @@ sap.ui.define([
 			this.$().removeClass(this._sFrameType);
 		}
 
-		if (this._sSize) {
-			this.$().removeClass(this._sSize);
-		}
-		this.$().addClass(oTile.getFrameType()).addClass(oTile.getSize());
+		this.$().addClass(oTile.getFrameType());
 		this._sFrameType = oTile.getFrameType();
-		this._sSize = oTile.getSize();
 	};
 
 	/**
@@ -664,12 +784,14 @@ sap.ui.define([
 	 * @private
 	 */
 	SlideTile.prototype._updatePausePlayIcon = function () {
-		if (this._bAnimationPause) {
-			this.getAggregation("_pausePlayIcon").setSrc("sap-icon://media-play");
-			this.$().removeClass("sapMSTPauseIcon");
-		} else {
-			this.getAggregation("_pausePlayIcon").setSrc("sap-icon://media-pause");
-			this.$().addClass("sapMSTPauseIcon");
+		if (this.getAggregation("_pausePlayIcon")) {
+			if (this._bAnimationPause) {
+				this.getAggregation("_pausePlayIcon").setSrc("sap-icon://media-play");
+				this.$().removeClass("sapMSTPauseIcon");
+			} else {
+				this.getAggregation("_pausePlayIcon").setSrc("sap-icon://media-pause");
+				this.$().addClass("sapMSTPauseIcon");
+			}
 		}
 	};
 
@@ -680,7 +802,7 @@ sap.ui.define([
 	 */
 	SlideTile.prototype._setTilePressState = function () {
 		var oTiles = this.getTiles(),
-			bTilePressEnabled = this.getScope() === library.GenericTileScope.Display;//if scope is 'Display', enable press events of GenericTiles
+			bTilePressEnabled = this.getScope() === GenericTileScope.Display;//if scope is 'Display', enable press events of GenericTiles
 
 		for (var i = 0; i < oTiles.length; i++) {
 			oTiles[i].setPressEnabled(bTilePressEnabled);
@@ -702,6 +824,26 @@ sap.ui.define([
 			}
 		}
 		return false;
+	};
+
+	/**
+	 * Applies new dimensions for the SlideTile if it is inscribed inside a GridContainer
+	 *
+	 * @private
+	 */
+	SlideTile.prototype._applyNewDim = function() {
+		var oParent = this.getParent();
+		var sGap = oParent.getActiveLayoutSettings().getGap();
+		var bisGap16px = sGap === "16px" || sGap === "1rem";
+		if (bisGap16px){
+			this.addStyleClass("sapMSTGridContainerOneRemGap");
+		} else if (!bisGap16px && this.hasStyleClass("sapMSTGridContainerOneRemGap")){
+			this.removeStyleClass("sapMSTGridContainerOneRemGap");
+		}
+		//Applying the new dimensions to the GenericTile as well
+		this.getTiles().forEach(function(oTile){
+			oTile._applyNewDim(oParent);
+		});
 	};
 
 	/**

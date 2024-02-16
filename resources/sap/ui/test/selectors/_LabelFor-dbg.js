@@ -1,13 +1,14 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2024 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 sap.ui.define([
     "sap/ui/test/selectors/_Selector",
+    "sap/ui/core/Element",
     "sap/ui/core/LabelEnablement"
-], function (_Selector, LabelEnablement) {
+], function (_Selector, Element, LabelEnablement) {
 	"use strict";
 
     /**
@@ -30,7 +31,7 @@ sap.ui.define([
             var aLabelId = LabelEnablement.getReferencingLabels(oControl);
             if (aLabelId.length) {
                 // TODO: return selector for each label
-                var oLabel = sap.ui.getCore().byId(aLabelId[0]);
+                var oLabel = Element.getElementById(aLabelId[0]);
                 this._oLogger.debug("Control " + oControl + " has an associated label with ID " + aLabelId[0]);
 
                 return {

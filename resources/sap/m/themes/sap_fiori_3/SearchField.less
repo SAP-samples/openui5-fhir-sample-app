@@ -8,11 +8,8 @@
 // ==========================================================================
 
 @_sap_m_SearchField_Height: 2.75rem;
-@_sap_m_SearchField_FormHeight: 2.25rem;
-@_sap_m_SearchField_InputHeight: 2.125rem;
 @_sap_m_SearchField_ButtonSize: 2.125rem;
 @_sap_m_SearchField_ButtonFontSize: 1rem;
-@_sap_m_SearchField_NoSearchButtonPadding: 2.25rem;
 @_sap_m_SearchField_Compact_FormPaddingLeft: 0.5rem;
 @_sap_m_SearchField_ResetIcon: "\e03e";
 
@@ -45,4 +42,14 @@
 .sapMSFF>.sapMSFB.sapMSFBA {
 	background-color: @sapUiButtonLiteActiveBackground;
 	color: @sapUiContentContrastIconColor;
+}
+
+.sapMSFB:first-of-type {
+	margin-left: 0.5rem;
+}
+
+.sapUiSizeCompact {
+	.sapMSFB:first-of-type {
+		margin-left: 0;
+	}
 }

@@ -1,17 +1,12 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2024 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
-// Ensure that sap.ui.unified is loaded before the module dependencies will be required.
-// Loading it synchronously is the only compatible option and doesn't harm when sap.ui.unified
-// already has been loaded asynchronously (e.g. via a dependency declared in the manifest)
-sap.ui.getCore().loadLibrary("sap.ui.unified");
-
 // Provides control sap.m.PlanningCalendarLegend.
-sap.ui.define(['sap/ui/unified/CalendarLegend', 'sap/ui/unified/CalendarAppointment', './PlanningCalendarLegendRenderer'],
-	function(CalendarLegend, CalendarAppointment, PlanningCalendarLegendRenderer) {
+sap.ui.define(['sap/ui/unified/CalendarLegend', 'sap/ui/unified/CalendarAppointment', 'sap/ui/core/Core', './PlanningCalendarLegendRenderer'],
+	function(CalendarLegend, CalendarAppointment, Core, PlanningCalendarLegendRenderer) {
 		"use strict";
 
 
@@ -28,36 +23,39 @@ sap.ui.define(['sap/ui/unified/CalendarLegend', 'sap/ui/unified/CalendarAppointm
 		 * @extends sap.ui.unified.CalendarLegend
 		 *
 		 * @author SAP SE
-		 * @version 1.79.0
+		 * @version 1.120.6
 		 *
 		 * @constructor
 		 * @public
 		 * @since 1.50
 		 * @alias sap.m.PlanningCalendarLegend
-		 * @ui5-metamodel This control/element also will be described in the UI5 (legacy) designtime metamodel
 		 */
-		var PlanningCalendarLegend = CalendarLegend.extend("sap.m.PlanningCalendarLegend", /** @lends sap.m.PlanningCalendarLegend.prototype */ { metadata : {
+		var PlanningCalendarLegend = CalendarLegend.extend("sap.m.PlanningCalendarLegend", /** @lends sap.m.PlanningCalendarLegend.prototype */ {
+			metadata : {
 
-			library : "sap.m",
-			properties: {
-				/**
-				 * Defines the text displayed in the header of the items list. It is commonly related to the calendar days.
-				 */
-				itemsHeader: { type: "string", group: "Appearance", defaultValue: "Calendar" },
+				library : "sap.m",
+				properties: {
+					/**
+					 * Defines the text displayed in the header of the items list. It is commonly related to the calendar days.
+					 */
+					itemsHeader: { type: "string", group: "Appearance" },
 
-				/**
-				 * Defines the text displayed in the header of the appointment items list. It is commonly related to the calendar appointments.
-				 */
-				appointmentItemsHeader: { type: "string", group: "Appearance", defaultValue: "Appointments" }
+					/**
+					 * Defines the text displayed in the header of the appointment items list. It is commonly related to the calendar appointments.
+					 */
+					appointmentItemsHeader: { type: "string", group: "Appearance" }
+				},
+				aggregations : {
+					/**
+					 * The legend items which show color and type information about the calendar appointments.
+					 */
+					appointmentItems: {type: "sap.ui.unified.CalendarLegendItem", multiple: true, singularName: "appointmentItem"}
+				},
+				designtime: "sap/m/designtime/PlanningCalendarLegend.designtime"
 			},
-			aggregations : {
-				/**
-				 * The legend items which show color and type information about the calendar appointments.
-				 */
-				appointmentItems: {type: "sap.ui.unified.CalendarLegendItem", multiple: true, singularName: "appointmentItem"}
-			},
-			designtime: "sap/m/designtime/PlanningCalendarLegend.designtime"
-		}});
+
+			renderer: PlanningCalendarLegendRenderer
+		});
 
 		/** Default value for column width. */
 		PlanningCalendarLegend._COLUMN_WIDTH_DEFAULT = "auto";
@@ -112,6 +110,26 @@ sap.ui.define(['sap/ui/unified/CalendarLegend', 'sap/ui/unified/CalendarAppointm
 			}
 
 			return sLegendItemText;
+		};
+
+		PlanningCalendarLegend.prototype._getItemsHeader = function() {
+			var sItemsHeader = this.getItemsHeader();
+
+			if (sItemsHeader == undefined) {
+				return Core.getLibraryResourceBundle('sap.m').getText("PLANNING_CALENDAR_LEGEND_ITEMS_HEADER");
+			}
+
+			return sItemsHeader;
+		};
+
+		PlanningCalendarLegend.prototype._getAppointmentItemsHeader = function() {
+			var sAppointmentItemsHeader = this.getAppointmentItemsHeader();
+
+			if (sAppointmentItemsHeader == undefined) {
+				return Core.getLibraryResourceBundle('sap.m').getText("PLANNING_CALENDAR_LEGEND_APPOINTMENT_ITEMS_HEADER");
+			}
+
+			return sAppointmentItemsHeader;
 		};
 
 		return PlanningCalendarLegend;

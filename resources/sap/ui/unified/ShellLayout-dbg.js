@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2024 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -16,6 +16,7 @@ sap.ui.define([
 	'sap/ui/dom/containsOrEquals',
 	'sap/base/Log',
 	"sap/ui/thirdparty/jquery",
+	"sap/ui/core/Configuration",
 	// jQuery Plugin "firstFocusableDomRef"
 	'sap/ui/dom/jquery/Focusable'
 ], function(
@@ -28,7 +29,8 @@ sap.ui.define([
 	ShellLayoutRenderer,
 	containsOrEquals,
 	Log,
-	jQuery
+	jQuery,
+	Configuration
 ) {
 	"use strict";
 
@@ -48,18 +50,18 @@ sap.ui.define([
 	 * @extends sap.ui.core.Control
 	 *
 	 * @author SAP SE
-	 * @version 1.79.0
+	 * @version 1.120.6
 	 *
 	 * @constructor
 	 * @public
 	 * @since 1.25.0
 	 * @alias sap.ui.unified.ShellLayout
 	 * @deprecated Since version 1.44.0.
-	 * @ui5-metamodel This control/element also will be described in the UI5 (legacy) designtime metamodel
 	 */
 	var ShellLayout = Control.extend("sap.ui.unified.ShellLayout", /** @lends sap.ui.unified.ShellLayout.prototype */ { metadata : {
 
 		library : "sap.ui.unified",
+		deprecated: true,
 		properties : {
 
 			/**
@@ -105,7 +107,7 @@ sap.ui.define([
 			 */
 			curtainSplitContainer : {type : "sap.ui.unified.SplitContainer", multiple : false, visibility : "hidden"}
 		}
-	}});
+	}, renderer: ShellLayoutRenderer});
 
 
 	ShellLayout._SIDEPANE_WIDTH_PHONE = 208;
@@ -120,8 +122,8 @@ sap.ui.define([
 	}
 
 	ShellLayout.prototype.init = function(){
-		this._rtl = sap.ui.getCore().getConfiguration().getRTL();
-		this._animation = sap.ui.getCore().getConfiguration().getAnimation();
+		this._rtl = Configuration.getRTL();
+		this._animation = Configuration.getAnimation();
 		this._showHeader = true;
 		this._showCurtain = false;
 		this._iHeaderHidingDelay = 3000; /*Currently hidden but maybe a property later (see getter and setter below)*/
@@ -129,7 +131,7 @@ sap.ui.define([
 
 		this._cont = new SplitContainer(this.getId() + "-container");
 		this._cont._bRootContent = true; // see e.g. sap.m.App#onAfterRendering
-		if (sap.ui.getCore().getConfiguration().getAccessibility()) {
+		if (Configuration.getAccessibility()) {
 			var that = this;
 			this._cont.addEventDelegate({
 				onAfterRendering : function() {
@@ -467,7 +469,7 @@ sap.ui.define([
 		}
 
 		var duration = parseInt(Parameters.get("_sap_ui_unified_ShellLayout_AnimDuration"));
-		if (!this._animation || (Device.browser.internet_explorer && Device.browser.version < 10)) {
+		if (!this._animation) {
 			duration = 0;
 		}
 
@@ -502,7 +504,7 @@ sap.ui.define([
 //		this._cssWorkaroundTimer = setTimeout(function(){
 //			this._cssWorkaroundTimer = null;
 //			Log.debug("sap.ui.unified.ShellLayout: CSS Workaround applied.");
-//			jQuery("head").append("<link type='text/css' rel='stylesheet' id='" + this.getId() + "-css' href='data:text/css;base64,LnNhcFVpVWZkU2hlbGxDaHJvbWVSZXBhaW50e291dGxpbmUtY29sb3I6aW5pdGlhbDt9'/>");
+//			jQuery("head").append("<link type='text/css' rel='stylesheet' id='" + this.getId() + "-css' href='data:text/css;base64,LnNhcFVpVWZkU2hlbGxDaHJvbWVSZXBhaW50e291dGxpbmUtY29sb3I6aW5pdGlhbDt9'>");
 //			this._cssWorkaroundTimer = setTimeout(function(){
 //				this.$("css").remove();
 //			}.bind(this), 100);

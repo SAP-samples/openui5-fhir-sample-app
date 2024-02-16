@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2024 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -57,7 +57,7 @@ sap.ui.define([
 		 * Navigation via year picker switches to the corresponding year and the same month as before the navigation.
 		 *
 		 * @extends sap.ui.unified.CalendarDateInterval
-		 * @version 1.79.0
+		 * @version 1.120.6
 		 *
 		 * @constructor
 		 * @private
@@ -65,6 +65,7 @@ sap.ui.define([
 		 * @alias sap.ui.unified.CalendarOneMonthInterval
 		 */
 		var CalendarOneMonthInterval = CalendarDateInterval.extend("sap.ui.unified.CalendarOneMonthInterval", /** @lends sap.ui.unified.CalendarOneMonthInterval.prototype */  {
+			renderer: CalendarOneMonthIntervalRenderer
 		});
 
 		CalendarOneMonthInterval.prototype.init = function() {
@@ -72,17 +73,16 @@ sap.ui.define([
 			this._bShowOneMonth = true;
 		};
 
-		CalendarOneMonthInterval.prototype._getCalendarPicker = function (){
-			var oCalPicker = this.getAggregation("calendarPicker");
+		CalendarOneMonthInterval.prototype._getCalendar = function (){
+			var oCalendar;
 
-			if (!oCalPicker) {
-				oCalPicker = new CustomMonthPicker(this.getId() + "--Cal");
-				oCalPicker.setPopupMode(true);
+			if (!this._oCalendar) {
+				oCalendar = new CustomMonthPicker(this.getId() + "--Cal");
 
-				oCalPicker.attachEvent("select", function () {
-					var oCalPicker = this._getCalendarPicker(),
+				oCalendar.attachEvent("select", function () {
+					var oCalPicker = this._getCalendar(),
 						oCalPickerFocusedDate = oCalPicker._getFocusedDate(),
-						oNewStartDate = CalendarUtils._getFirstDateOfMonth(oCalPickerFocusedDate);
+						oNewStartDate = CalendarUtils._getFirstDateOfMonth(new CalendarDate(oCalPickerFocusedDate, this.getPrimaryCalendarType()));
 					var oOneMonthDateRow = this.getAggregation("month")[0];
 
 					this._setStartDate(oNewStartDate);
@@ -96,8 +96,8 @@ sap.ui.define([
 					this._closeCalendarPicker(true);// true means do not focus, as we set the this._oFocusDateOneMonth and focus will happen in .focusDateExtend
 					this._focusDate(oCalPickerFocusedDate, false, true); //true means don't fire event (we already did it in setStartDate())
 				}, this);
-				oCalPicker.attachEvent("cancel", function (oEvent) {
-					var oCalPicker = this._getCalendarPicker(),
+				oCalendar.attachEvent("cancel", function (oEvent) {
+					var oCalPicker = this._getCalendar(),
 						oCalPickerFocusedDate = oCalPicker._getFocusedDate();
 
 					this._closeCalendarPicker(true);
@@ -109,9 +109,9 @@ sap.ui.define([
 						oDomRefB1.focus();
 					}
 				}, this);
-				this.setAggregation("calendarPicker", oCalPicker);
+				this._oCalendar = oCalendar;
 			}
-			return oCalPicker;
+			return this._oCalendar;
 		};
 
 		/**
@@ -133,7 +133,7 @@ sap.ui.define([
 		CalendarOneMonthInterval.prototype._handleFocus = function (oEvent) {
 			var bOutsideVisibleArea = !!oEvent.getParameter("_outsideBorder"),
 				oDateTime = oEvent.getParameter("date"),
-				oCalDate = CalendarDate.fromLocalJSDate(oDateTime),
+				oCalDate = CalendarDate.fromLocalJSDate(oDateTime, this.getPrimaryCalendarType()),
 				oCalStartDate = CalendarDate.fromLocalJSDate(this.getStartDate()),
 				bIsOtherMonth = !CalendarUtils._isSameMonthAndYear(oCalDate, oCalStartDate),
 				iDays,
@@ -287,7 +287,7 @@ sap.ui.define([
 
 		/**
 		 * Called by PlanningCalendar to check if the given datetime matches the visible dates.
-		 * @param {Date} oDateTime The JavaScript date to be checked
+		 * @param {Date|module:sap/ui/core/date/UI5Date} oDateTime The date instance to be checked
 		 * @return {boolean} Whether the given datetime is one of the visible dates
 		 * @private
 		 */
@@ -302,7 +302,7 @@ sap.ui.define([
 			var iYearMin = this._oMinDate.getYear();
 			var iMonthMax = this._oMaxDate.getMonth();
 			var iMonthMin = this._oMinDate.getMonth();
-			var oFirstOfMonth = CalendarUtils._getFirstDateOfMonth(oDate);
+			var oFirstOfMonth = CalendarUtils._getFirstDateOfMonth(new CalendarDate(oDate, this.getPrimaryCalendarType()));
 			var oFirstOfNextMonth = new CalendarDate(oFirstOfMonth),
 				iYear, iMonth;
 			oFirstOfNextMonth.setMonth(oFirstOfNextMonth.getMonth() + 1);

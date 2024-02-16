@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2024 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -14,7 +14,17 @@ sap.ui.define(['../base/ManagedObject', "sap/base/assert"],
 
 	// The controls which should not be referenced by a "for" attribute (Specified in the HTML standard).
 	// Extend when needed.
-	var NON_LABELABLE_CONTROLS = ["sap.ui.comp.navpopover.SmartLink", "sap.m.Link", "sap.m.Label", "sap.m.Text"];
+	var NON_LABELABLE_CONTROLS = [
+		"sap.ui.comp.navpopover.SmartLink",
+		"sap.m.Link",
+		"sap.m.Label",
+		"sap.m.Text",
+		"sap.m.Select",
+		"sap.ui.webc.main.Label",
+		"sap.ui.webc.main.Link"
+	];
+
+	var Element;
 
 	// Returns the control for the given id (if available) and invalidates it if desired
 	function toControl(sId, bInvalidate) {
@@ -22,7 +32,8 @@ sap.ui.define(['../base/ManagedObject', "sap/base/assert"],
 			return null;
 		}
 
-		var oControl = sap.ui.getCore().byId(sId);
+		Element = Element ? Element : sap.ui.require("sap/ui/core/Element");
+		var oControl = Element.getElementById(sId);
 		// a control must only be invalidated if there is already a DOM Ref. If there is no DOM Ref yet, it will get
 		// rendered later in any case. Elements must always be invalidated because they have no own renderer.
 		if (oControl && bInvalidate && (!oControl.isA('sap.ui.core.Control') || oControl.getDomRef())) {
@@ -129,7 +140,7 @@ sap.ui.define(['../base/ManagedObject', "sap/base/assert"],
 	 * @see sap.ui.core.LabelEnablement#enrich
 	 *
 	 * @author SAP SE
-	 * @version 1.79.0
+	 * @version 1.120.6
 	 * @protected
 	 * @alias sap.ui.core.LabelEnablement
 	 * @namespace
@@ -138,11 +149,20 @@ sap.ui.define(['../base/ManagedObject', "sap/base/assert"],
 	var LabelEnablement = {};
 
 	/**
-	 * Helper function for the <code>Label</code> control to render the HTML 'for' attribute. This function should be called
-	 * at the desired location in the renderer code of the <code>Label</code> control.
+	 * Helper function for the <code>Label</code> control to render the HTML 'for' attribute.
 	 *
-	 * @param {sap.ui.core.RenderManager} oRenderManager The RenderManager that can be used for writing to the render-output-buffer.
-	 * @param {sap.ui.core.Label} oLabel The <code>Label</code> for which the 'for' HTML attribute should be written to the render-output-buffer.
+	 * This function should be called at the desired location in the renderer code of the <code>Label</code> control.
+	 * It can be used with both rendering APIs, with the new semantic rendering API (<code>apiVersion 2</code>)
+	 * as well as with the old, string-based API.
+	 *
+	 * As this method renders an attribute, it can only be called while a start tag is open. For the new semantic
+	 * rendering API, this means it can only be called between an <code>openStart/voidStart</code> call and the
+	 * corresponding <code>openEnd/voidEnd</code> call. In the context of the old rendering API, it can be called
+	 * only after the prefix of a start tag has been written (e.g. after <code>rm.write("&lt;span id=\"foo\"");</code>),
+	 * but before the start tag ended, e.g before the right-angle ">" of the start tag has been written.
+	 *
+	 * @param {sap.ui.core.RenderManager} oRenderManager The RenderManager that can be used for rendering.
+	 * @param {sap.ui.core.Label} oLabel The <code>Label</code> for which the 'for' HTML attribute should be rendered.
 	 * @protected
 	 */
 	LabelEnablement.writeLabelForAttribute = function(oRenderManager, oLabel) {
@@ -199,8 +219,10 @@ sap.ui.define(['../base/ManagedObject', "sap/base/assert"],
 		var aLabelIds = LabelEnablement.getReferencingLabels(oElement),
 			oLabel;
 
+		Element = Element ? Element : sap.ui.require("sap/ui/core/Element");
+
 		for (var i = 0; i < aLabelIds.length; i++) {
-			oLabel = sap.ui.getCore().byId(aLabelIds[i]);
+			oLabel = Element.getElementById(aLabelIds[i]);
 			if (checkRequired(oLabel)) {
 				return true;
 			}
@@ -235,7 +257,7 @@ sap.ui.define(['../base/ManagedObject', "sap/base/assert"],
 	 * <b>What does this function do?</b>
 	 *
 	 * A mechanism is added that ensures that a bidirectional reference between the label and its labeled control is established:
-	 * The label references the labeled control via the HTML 'for' attribute (@see sap.ui.core.LabelEnablement#writeLabelForAttribute).
+	 * The label references the labeled control via the HTML 'for' attribute (see {@link sap.ui.core.LabelEnablement#writeLabelForAttribute}).
 	 * If the labeled control supports the aria-labelledby attribute, a reference to the label is added automatically.
 	 *
 	 * In addition an alternative to apply a 'for' reference without influencing the labelFor association of the API is applied (e.g. used by Form).
@@ -284,8 +306,24 @@ sap.ui.define(['../base/ManagedObject', "sap/base/assert"],
 		oControl.getLabelForRendering = function() {
 			var sId = this.getLabelFor() || this._sAlternativeId;
 			var oControl = toControl(sId);
+			var oLabelForControl;
+
+			Element = Element ? Element : sap.ui.require("sap/ui/core/Element");
+
+			if (oControl && oControl.getIdForLabel && oControl.getIdForLabel()) {
+				oLabelForControl = Element.getElementById(oControl.getIdForLabel());
+				if (oLabelForControl) {
+					oControl = oLabelForControl;
+				}
+			}
 
 			return isLabelableControl(oControl) ? sId : "";
+		};
+
+		oControl.isLabelFor = function(oControl) {
+			var sId = oControl.getId();
+			var aLabels = CONTROL_TO_LABELS_MAPPING[sId];
+			return aLabels && aLabels.indexOf(this.getId()) > -1;
 		};
 
 		if (!oControl.getMetadata().getProperty("required")) {

@@ -1,20 +1,18 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2024 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 sap.ui.define([
 		"sap/ui/thirdparty/jquery",
 		'sap/ui/base/Object',
-		"sap/base/util/UriParameters",
 		"sap/base/Log",
 		"sap/ui/support/RuleAnalyzer",
 		"sap/ui/support/library"
 	],
 	function(jQuery,
 			 BaseObject,
-			 UriParameters,
 			 Log,
 			 RuleAnalyzer,
 			 library) {
@@ -75,7 +73,7 @@ sap.ui.define([
 		getAssertions : function () {
 
 			var fnShouldSkipRulesIssues = function () {
-				return UriParameters.fromQuery(window.location.search).get('sap-skip-rules-issues') == 'true';
+				return new URLSearchParams(window.location.search).get('sap-skip-rules-issues') == 'true';
 			};
 			var getWindow = function () {
 				var opaWindow = window.parent;
@@ -87,32 +85,33 @@ sap.ui.define([
 			 * RuleEngineOpaAssertions represents a set of methods with which OPA test assertions can be enhanced.
 			 * To use this functionality, {@link sap.ui.core.support.RuleEngineOpaExtension RuleEngineOpaExtension} should be provided in the OPA extensions list.
 			 *
-			 * @namespace
-			 * @name sap.ui.core.support.RuleEngineOpaAssertions
+			 * @interface
+			 * @alias sap.ui.core.support.RuleEngineOpaAssertions
 			 * @public
 			 */
-			var oRuleEngineAssertions = /** @lends sap.ui.core.support.RuleEngineOpaAssertions */ {
+			var oRuleEngineAssertions = {
 				/**
 				 * Run the Support Assistant and analyze against a specific state of the application.
 				 * Depending on the options passed the assertion might either fail or not if any issues were found.
 				 *
 				 * If "sap-skip-rules-issues=true" is set as an URI parameter, assertion result will be always positive.
 				 *
-				 * @param {Object} [options] The options used to configure an analysis.
+				 * @param {object} [options] The options used to configure an analysis.
 				 * @param {boolean} [options.failOnAnyIssues=true] Should the test fail or not if there are issues of any severity.
 				 * @param {boolean} [options.failOnHighIssues] Should the test fail or not if there are issues of high severity.
 				 * This parameter will override failOnAnyIssues if set.
 				 * @param {Array.<{libName:string, ruleId:string}>} [options.rules] The rules to check.
-				 * @param {Object} [options.executionScope] The execution scope of the analysis.
-				 * @param {Object} [options.metadata] The metadata that will be passed to the analyse method.
+				 * @param {object} [options.preset] This parameter allows for selection of subset of rules for the analysis
+				 * @param {object} [options.executionScope] The execution scope of the analysis.
 				 * @param {string} [options.executionScope.type=global] The type of the execution scope, one of 'global', 'subtree' or 'components'.
 				 * @param {string|string[]} [options.executionScope.selectors] The IDs of the components or the subtree.
+				 * @param {object} [options.metadata] The metadata that will be passed to the analysis.
 				 * @public
-				 * @returns {Promise} Promise.
+				 * @returns {Promise<{result: boolean, message: string, actual: string, expected: string}>} Promise.
 				 */
 				noRuleFailures: function(options) {
+					options = options || {};
 					var ruleDeferred = jQuery.Deferred(),
-						options = options[0] || {},
 						failOnAnyRuleIssues = options["failOnAnyIssues"],
 						failOnHighRuleIssues = options["failOnHighIssues"],
 						rules = options.rules,
@@ -120,7 +119,6 @@ sap.ui.define([
 						metadata = options.metadata,
 						executionScope = options.executionScope;
 
-					// private API provided by jquery.sap.global
 					RuleAnalyzer.analyze(executionScope, rules || preset, metadata).then(function () {
 						var analysisHistory = RuleAnalyzer.getAnalysisHistory(),
 							lastAnalysis = { issues: [] };
@@ -167,7 +165,7 @@ sap.ui.define([
 				 * If "sap-skip-rules-issues=true" is set as an URI parameter, assertion result will be always positive.
 				 *
 				 * @public
-				 * @returns {Promise} Promise.
+				 * @returns {Promise<{result: boolean, message: string, actual: string, expected: object[]}>} Promise.
 				 */
 				getFinalReport: function () {
 					var ruleDeferred = jQuery.Deferred(),
@@ -201,19 +199,19 @@ sap.ui.define([
 				 * Stores analysis history (if such) as last element in window._$files array.
 				 * Accessing this array gives an opportunity to store this history in a file.
 				 *
-				 * @param {Object} [options] The options used to configure reporting.
+				 * @param {object} [options] The options used to configure reporting.
 				 * @param {sap.ui.support.HistoryFormats} [options.historyFormat] The format into which the history object will be converted.
 				 * @param {string} [options.fileName] The name of the file. It should have extension .support-assistant.json". Example: myfile.support-assistant.json
 				 *                                    <b>Note:</b> Extension ".support-assistant.json" will be appended automatically, if it is not already given.
 				 *                                    If only ".json" extension is given, it will be turned to ".support-assistant.json"
 				 *
 				 * @public
-				 * @returns {Promise} Promise.
+				 * @returns {Promise<{result: boolean, message: string, actual: boolean, expected: boolean}>} Promise.
 				 */
 				getReportAsFileInFormat: function (options) {
 					var oContext,
 						oHistory,
-						oOptions = options[0] || {},
+						oOptions = options || {},
 						ruleDeferred = jQuery.Deferred(),
 						sHistoryFormat = oOptions["historyFormat"],
 						sFileName = oOptions["fileName"];
@@ -242,8 +240,6 @@ sap.ui.define([
 
 					oContext = getWindow();
 
-					// Avoid method calls on _$files as IE11/Edge throws "Can't execute code from a freed script"
-					// BCP: 1980144925
 					oContext._$files[oContext._$files.length] = {
 						name: sFileName,
 						content: JSON.stringify(oHistory)

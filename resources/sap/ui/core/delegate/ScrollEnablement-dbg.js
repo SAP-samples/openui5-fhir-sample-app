@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2024 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -12,6 +12,7 @@
 
 // Provides class sap.ui.core.delegate.ScrollEnablement
 sap.ui.define([
+	'sap/base/i18n/Localization',
 	'sap/ui/Device',
 	'sap/ui/base/Object',
 	'sap/ui/core/IntervalTrigger',
@@ -20,6 +21,7 @@ sap.ui.define([
 	"sap/ui/events/KeyCodes"
 ],
 	function(
+		Localization,
 		Device,
 		BaseObject,
 		IntervalTrigger,
@@ -56,7 +58,7 @@ sap.ui.define([
 		 *
 		 * @protected
 		 * @alias sap.ui.core.delegate.ScrollEnablement
-		 * @version 1.79.0
+		 * @version 1.120.6
 		 * @author SAP SE
 		 */
 		var ScrollEnablement = BaseObject.extend("sap.ui.core.delegate.ScrollEnablement", /** @lends sap.ui.core.delegate.ScrollEnablement.prototype */ {
@@ -75,6 +77,7 @@ sap.ui.define([
 				this._scrollY = 0;
 				this._scrollCoef = 0.9; // Approximation coefficient used to mimic page down and page up behaviour when [CTRL] + [RIGHT] and [CTRL] + [LEFT] is used
 				this._iLastMaxScrollTop = 0;
+				this._iScrollPaddingTop = 0;
 
 				initDelegateMembers(this);
 
@@ -173,8 +176,8 @@ sap.ui.define([
 			 * Only a single listener can be registered
 			 *
 			 * @param {function} fnCallback
-			 * @ui5-restricted sap.m.GrowingEnablement
 			 * @private
+			 * @ui5-restricted sap.m.GrowingEnablement
 			 * @since 1.74
 			 */
 			onOverflowChange : function(fnCallback){
@@ -182,6 +185,20 @@ sap.ui.define([
 				if (!this._fnOverflowChangeCallback) {
 					this._deregisterOverflowMonitor();
 				}
+			},
+
+			/**
+			 * Sets the listener for the end of any <code>scrollToElement</code>
+			 *
+			 * Only a single listener can be registered
+			 *
+			 * @param {function} fnCallback
+			 * @private
+			 * @ui5-restricted sap.uxap.ObjectPageLayout, sap.f.DynamicPage
+			 * @since 1.87
+			 */
+			setOnAfterScrollToElement : function(fnCallback){
+				this._fnAfterScrollToElement = fnCallback;
 			},
 
 			/**
@@ -195,11 +212,40 @@ sap.ui.define([
 			 */
 			setIconTabBar : function(oIconTabBar, fnScrollEndCallback, fnScrollStartCallback) {
 				this._oIconTabBar = oIconTabBar;
-				this._fnScrollEndCallback = jQuery.proxy(fnScrollEndCallback, oIconTabBar);
-				this._fnScrollStartCallback = jQuery.proxy(fnScrollStartCallback, oIconTabBar);
+				if (fnScrollEndCallback) {
+					this._fnScrollEndCallback = fnScrollEndCallback.bind(oIconTabBar);
+				}
+				if (fnScrollStartCallback) {
+					this._fnScrollStartCallback = fnScrollStartCallback.bind(oIconTabBar);
+				}
 				return this;
 			},
-
+			/**
+			 * Sets the top offset of the optimal viewing region of the scrollport:
+			 * the region used as the target region for placing things in view of the user.
+			 * This offset is required when the topmost part of the scroll container is overlapped
+			 * by other content (e.g. overlapped by the sticky header content of the scrollable page)
+			 *
+			 * @param {number} iValue
+			 * @private
+			 * @ui5-restricted sap.uxap.ObjectPageLayout, sap.f.DynamicPage
+			 */
+			setScrollPaddingTop : function(iValue) {
+				if (typeof iValue === 'number') {
+					this._iScrollPaddingTop = iValue;
+				}
+			},
+			/**
+			 * Scrolls to a specific position in scroll container.
+			 * @param {int} x Horizontal position of the scrollbar
+			 * @param {int} y Vertical position of the scrollbar
+			 * @param {int} [time=0]
+			 *           The duration of animated scrolling in milliseconds. To scroll immediately without animation,
+			 *           give 0 as value.
+			 * @param {function} fnScrollEndCallback Called when the scroll completes or stops without completing
+			 * @returns {this}
+			 * @public
+			 */
 			scrollTo : function(x, y, time, fnScrollEndCallback) {
 				this._scrollX = x; // remember for later rendering
 				this._scrollY = y;
@@ -220,7 +266,10 @@ sap.ui.define([
 					$OffsetParent = $Element.offsetParent(),
 					oAddUpPosition;
 
-				while (!$OffsetParent.is(this._$Container)) {
+				// Not positioned elements (position = "unset" or "fixed") are skipped and not returned as offsetParent.
+				// If the this._$Container is not positioned this function ends in infinite loop.
+				// Last value returned from offsetParent is the root html element or null.
+				while (!$OffsetParent.is(this._$Container) && !$OffsetParent.is("html") && $OffsetParent.length) {
 					oAddUpPosition = $OffsetParent.position();
 					oElementPosition.top += oAddUpPosition.top;
 					oElementPosition.left += oAddUpPosition.left;
@@ -239,10 +288,12 @@ sap.ui.define([
 			 * @param {int[]} [aOffset=[0,0]]
 			 *           Specifies an additional left and top offset of the target scroll position, relative to
 			 *           the upper left corner of the DOM element
-			 * @returns {sap.ui.core.delegate.ScrollEnablement}
+			 * @param {boolean} [bSkipElementsInScrollport] The configuration of the parameter for scrolling only if the element is not in the view port -
+			 * i.e. if bSkipElementsInScrollport is set to true, there will be no scrolling if the element is already in the view port
+			 * @returns {this}
 			 * @protected
 			 */
-			scrollToElement: function(oElement, iTime, aOffset) {
+			scrollToElement: function(oElement, iTime, aOffset, bSkipElementsInScrollport) {
 				aOffset = aOffset || [0, 0];
 
 				// do nothing if _$Container is not a (grand)parent of oElement
@@ -251,6 +302,15 @@ sap.ui.define([
 					oElement.offsetParent.nodeName.toUpperCase() === "HTML") {
 						return this;
 				}
+
+				// the visible part of the scrollport is positioned below the
+				// <code>this._iScrollPaddingTop</code>, so we offset that padding as well
+				aOffset[1] -= this._iScrollPaddingTop;
+
+				if (bSkipElementsInScrollport && this._isInScrollport(oElement, aOffset)) {
+					return this;
+				}
+
 
 				var $Element = jQuery(oElement),
 					oScrollPosition = this.getChildPosition($Element),
@@ -263,7 +323,7 @@ sap.ui.define([
 				}
 
 				// scroll to destination
-				this._scrollTo(iLeftScroll, iTopScroll , iTime);
+				this._scrollTo(iLeftScroll, iTopScroll , iTime, this._fnAfterScrollToElement);
 
 				return this;
 			},
@@ -320,7 +380,7 @@ sap.ui.define([
 					}
 				}
 
-				if (oEvent.ctrlKey) {
+				if (oEvent.ctrlKey && !oEvent.altKey) {
 					switch (oEvent.keyCode) {
 						case KeyCodes.ARROW_UP:
 							// [CTRL]+[UP] - 1 page up
@@ -365,7 +425,8 @@ sap.ui.define([
 							}
 
 							if (!this.getVertical()) {
-								left = this._scrollX;
+								left = Localization.getRTL() ?
+									container.clientWidth - container.scrollWidth : this._scrollX;
 							}
 
 							this._customScrollTo(left, top, oEvent);
@@ -462,8 +523,7 @@ sap.ui.define([
 				}
 
 				if (!(this._oPullDown && this._oPullDown._bTouchMode)
-					&& !this._fnScrollLoadCallback
-					&& !Device.browser.msie) {
+					&& !this._fnScrollLoadCallback) {
 					// for IE the resize listener must remain in place for the case when navigating away and coming back.
 					// For the other browsers it seems to work fine without.
 					ResizeHandler.deregister(this._sResizeListenerId);
@@ -665,8 +725,9 @@ sap.ui.define([
 
 			onAfterRendering: function() {
 				var $Container = this._$Container = this._sContainerId ? jQuery(document.getElementById(this._sContainerId)) : jQuery(document.getElementById(this._sContentId)).parent();
-				var _fnRefresh = jQuery.proxy(this._refresh, this);
+				var _fnRefresh = this._refresh;
 				var bElementVisible = $Container.is(":visible");
+				$Container.addClass("sapUiScrollDelegate");
 
 				this._setOverflow();
 
@@ -678,12 +739,11 @@ sap.ui.define([
 				this._refresh();
 
 				if (!bElementVisible
-					|| Device.browser.msie
 					|| this._oPullDown
 					|| this._fnScrollLoadCallback) {
 
 					// element may be hidden and have height 0
-					this._sResizeListenerId = ResizeHandler.register($Container[0], _fnRefresh);
+					this._sResizeListenerId = ResizeHandler.register($Container[0], _fnRefresh.bind(this));
 				}
 
 				if (this._fnOverflowChangeCallback) {
@@ -752,10 +812,11 @@ sap.ui.define([
 			_scrollTo: function(x, y, time, fnScrollEndCallback) {
 				if (this._$Container.length > 0) {
 					if (time > 0) {
-						this._$Container.finish().animate({ scrollTop: y, scrollLeft: x }, time, jQuery.proxy(function() {
-							this._readActualScrollPosition();
-							fnScrollEndCallback && fnScrollEndCallback();
-						}, this));
+						this._$Container.finish().animate({ scrollTop: y, scrollLeft: x }, {
+							duration: time,
+							complete: this._readActualScrollPosition.bind(this),
+							always: fnScrollEndCallback
+						});
 					} else {
 						this._$Container.scrollTop(y);
 						this._$Container.scrollLeft(x);
@@ -763,6 +824,16 @@ sap.ui.define([
 						fnScrollEndCallback && fnScrollEndCallback();
 					}
 				}
+			},
+
+			//checks if the element is already visible in the view port
+			_isInScrollport: function(oElement, aOffset) {
+				var oElementRect = oElement.getBoundingClientRect(),
+					oContainerRect = this._$Container[0].getBoundingClientRect(),
+					iContainerRectTop = oContainerRect.top - aOffset[1];
+
+				return Math.ceil(oElementRect.top) >= Math.floor(iContainerRectTop)
+					&& Math.floor(oElementRect.bottom) <= Math.ceil(oContainerRect.bottom);
 			}
 		};
 
@@ -782,11 +853,8 @@ sap.ui.define([
 					if (oConfig.nonTouchScrolling === true) {
 						this._bDragScroll = true; // optional drag instead of native scrolling
 					}
-					if (sap.ui.getCore().getConfiguration().getRTL()) {
+					if (Localization.getRTL()) {
 						this._scrollX = 9999; // in RTL case initially scroll to the very right
-						if (Device.browser.msie || Device.browser.edge) {
-							this._bFlipX = true; // in IE and Edge RTL, scrollLeft goes opposite direction
-						}
 					}
 				},
 				_exit : function() {

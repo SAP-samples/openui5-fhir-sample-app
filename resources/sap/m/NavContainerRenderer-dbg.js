@@ -1,11 +1,11 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2024 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
-sap.ui.define([],
-	function() {
+sap.ui.define(["sap/ui/core/InvisibleRenderer"],
+	function(InvisibleRenderer) {
 	"use strict";
 
 
@@ -22,15 +22,16 @@ sap.ui.define([],
 	 * Renders the HTML for the given control, using the provided {@link sap.ui.core.RenderManager}.
 	 *
 	 * @param {sap.ui.core.RenderManager} oRm The RenderManager that can be used for writing to the Render-Output-Buffer
-	 * @param {sap.ui.core.Control} oControl The control that should be rendered
+	 * @param {sap.m.NavContainer} oControl The control that should be rendered
 	 */
 	NavContainerRenderer.render = function(oRm, oControl) {
 
 		oControl._bRenderingInProgress = true;
 
-		// return immediately if control is invisible
+		// render invisible placeholder
 		if (!oControl.getVisible()) {
-			return;
+			InvisibleRenderer.render(oRm, oControl, "div");
+			return false;
 		}
 
 		var sHeight = oControl.getHeight(),

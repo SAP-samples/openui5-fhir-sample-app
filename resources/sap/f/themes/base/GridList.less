@@ -1,3 +1,13 @@
+/* ============================== */
+/* CSS for control sap.f/GridList */
+/* Base theme                     */
+/* ============================== */
+
+@_sap_f_GridList_ItemFocusBorderRadius: unset;
+@_sap_f_GridList_ItemHighlightBorderRadius: 0px;
+@_sap_f_GridList_ItemFocusedHighlightOffset: 0px;
+@_sap_f_GridList_ItemOverflow: unset;
+
 .sapFGridList {
 	/* List headers overrides */
 	& > .sapMListHdrText,
@@ -9,33 +19,28 @@
 		padding-right: 1rem;
 	}
 
-	.sapMLIBFocusable:focus {
-		outline: none;
-	}
+	> .sapMListUl {
+		> .sapMLIBFocusable:focus {
+			outline: none;
+		}
 
-	.sapMLIBLegacyOutline:focus::before {
-		content: none;
-	}
-
-	.sapMLIBFocusable:focus::after {
-		border: @sapUiContentFocusWidth @sapUiContentFocusStyle @sapUiContentFocusColor;
-		position: absolute;
-		content: " ";
-		top: 1px;
-		right: 1px;
-		bottom: 1px;
-		left: 1px;
-		z-index: 2;
-		pointer-events: none;
-
-		[data-sap-ui-browser^="ie"] &,
-		[data-sap-ui-browser^="ed"] & {
-			border: @sapUiContentFocusWidth dashed @sapUiContentFocusColor;
+		> .sapMLIBFocusable:focus::after {
+			border: @sapUiContentFocusWidth @sapUiContentFocusStyle @sapUiContentFocusColor;
+			border-radius: @_sap_f_GridList_ItemFocusBorderRadius;
+			position: absolute;
+			content: " ";
+			top: 1px;
+			right: 1px;
+			bottom: 1px;
+			left: 1px;
+			z-index: 2;
+			pointer-events: none;
 		}
 	}
+
 }
 
-.sapFGridList ul:not(.sapUiLayoutCSSGridBoxLayoutPolyfill) {
+.sapFGridList ul {
 	margin-bottom: 0.5rem;
 }
 
@@ -61,23 +66,36 @@
 	}
 }
 
-/* List Item overrides. */
-.sapFGridList .sapMLIB:not(.sapMGHLI) {
-	border-radius: 0.25rem;
+// Overrides for various list items, except for GridListItem. It has its own independent styles
+.sapFGridList > .sapMListUl > .sapMLIB:not(.sapMGHLI):not(.sapFGLI) {
+	border-radius: @sapUiTileBorderCornerRadius;
 	border: none;
-	box-shadow: @sapUiShadowLevel0;
+	box-shadow: @sapUiContentShadow0;
+	overflow: @_sap_f_GridList_ItemOverflow;
 
 	// Highlighted items
-	.sapMLIBHighlight {
+	> .sapMLIBHighlight {
 		border-top-left-radius: 0.25rem;
 		border-bottom-left-radius: 0.25rem;
 	}
-	& > .sapMLIBContent {
+	
+	&.sapMLIBFocusable:focus > .sapMLIBHighlight {
+		top: @_sap_f_GridList_ItemFocusedHighlightOffset;
+		bottom: @_sap_f_GridList_ItemFocusedHighlightOffset;
+		border-top-left-radius: @_sap_f_GridList_ItemHighlightBorderRadius;
+		border-bottom-left-radius: @_sap_f_GridList_ItemHighlightBorderRadius;
+	}
+
+	> .sapMLIBContent {
 		height: 100%;
 	}
 }
 
-.sapFGridList .sapUiBlockLayerTabbable {
+.sapFGridList > .sapMListUl.sapMGrowingList {
+	border-radius: @sapUiTileBorderCornerRadius;
+}
+
+.sapFGridList > .sapMListUl > .sapUiBlockLayerTabbable {
 	// There are "span" helpers, which purpose is to block navigation into the blocked controls content.
 	// If the focus reaches the span before the blocked/busy control it is forwarded to the one after the control.
 	// These spans should not be visible.

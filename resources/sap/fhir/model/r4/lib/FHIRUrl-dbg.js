@@ -1,6 +1,6 @@
 /*!
  * SAP SE
- * (c) Copyright 2009-2021 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2024 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -19,10 +19,13 @@ sap.ui.define([], function() {
 	 * @private
 	 * @constructs {FHIRUrl}
 	 * @since 1.0.0
-	 * @version 2.2.8
+	 * @version 2.3.6
 	 */
-	var FHIRUrl = function(sUrl, sServiceUrl) {
+	var FHIRUrl = function (sUrl, sServiceUrl) {
 		this._sServiceUrl = sServiceUrl;
+		if (sServiceUrl.indexOf("http") == 0 || sServiceUrl.indexOf("https") == 0) {
+			sServiceUrl = sServiceUrl.replace(/^https?\:\/\//i, "");
+		}
 		var iStartOfServiceBaseUrl = sUrl.indexOf(sServiceUrl);
 		sUrl = (iStartOfServiceBaseUrl > -1 ? sUrl.substring(iStartOfServiceBaseUrl + sServiceUrl.length) : sUrl);
 		sUrl = sUrl && sUrl.charAt(0) !== "/" && sUrl.charAt(0) !== "?" ? "/" + sUrl : sUrl;
@@ -173,6 +176,17 @@ sap.ui.define([], function() {
 	 */
 	FHIRUrl.prototype.isSearchAtBaseLevel = function () {
 		return !this._sResourceId && !this._sHistoryVersion && !this._sCustomOperation;
+	};
+
+	/**
+	 * Determines if its metadata request
+	 *
+	 * @returns {boolean} True if its metadata request
+	 * @protected
+	 * @since 2.3.6
+	 */
+	FHIRUrl.prototype.isMetadataRequest = function () {
+		return this._sResourceType === "metadata";
 	};
 
 	return FHIRUrl;

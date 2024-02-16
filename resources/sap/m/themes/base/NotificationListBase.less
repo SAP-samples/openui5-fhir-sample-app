@@ -6,45 +6,18 @@
 .sapMNLIB {
 	position: relative;
 
-	.sapMIBar.sapMTB .sapMBarChild:only-child,
-	.sapMTB {
-		padding-right: 0;
-	}
-
-	.sapMNLICloseBtn {
-		margin-left: 0.5rem
-	}
-}
-
-html.sap-desktop {
-	.sapMNLIB:focus {
+	&:focus {
 		outline: none;
 	}
 
-	.sapMNLIB:focus::before {
-		content: " ";
-		border: 1px dotted @sapUiContentFocusColor;
-		position: absolute;
-		top: 1px;
-		right: 1px;
-		bottom: 1px;
-		left: 1px;
-		z-index: 2;
-		pointer-events: none;
+	.sapMNLICloseBtn:not(:empty) {
+		margin: 0 0.5rem;
 	}
 }
-
-html[data-sap-ui-browser^="ie"].sap-desktop,
-html[data-sap-ui-browser^="ed"].sap-desktop {
-	.sapMNLIB:focus::before {
-		border-style: dashed;
-	}
-}
-
 // Priority icons
 
 .sapMNLIBPriority {
-	padding-right: 0.5rem;
+	padding-right: 0.625rem;
 
 	.sapUiIcon {
 		font-size: 1rem;
@@ -56,7 +29,7 @@ html[data-sap-ui-browser^="ed"].sap-desktop {
 	color: @sapUiSuccessBorder;
 
 	&::before {
-		content: '\e203';
+		content: '\e1c1';
 	}
 }
 
@@ -64,7 +37,7 @@ html[data-sap-ui-browser^="ed"].sap-desktop {
 	color: @sapUiWarningBorder;
 
 	&::before {
-		content: '\e201';
+		content: '\e053';
 	}
 }
 
@@ -72,16 +45,16 @@ html[data-sap-ui-browser^="ed"].sap-desktop {
 	color: @sapUiErrorBorder;
 
 	&::before {
-		content: '\e0b1';
+		content: '\e1ec';
 	}
 }
 
-.sap-phone {
-	.sapMNLIBPriority {
-		padding-right: 0.25rem;
-	}
+.sapMNLIBHiddenButton {
+	display: none;
+}
 
-	.sapMNLIBHiddenButton {
-		display: none;
+.sapUiSizeCompact {
+	.sapMNLIBPriority {
+		padding-right: 0.5rem;
 	}
 }

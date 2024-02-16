@@ -1,12 +1,12 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2024 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 // Provides the default renderer for control sap.m.SliderTooltipContainer
-sap.ui.define(['sap/ui/core/Renderer'],
-	function(Renderer) {
+sap.ui.define([],
+	function() {
 	"use strict";
 
 	/**
@@ -26,7 +26,7 @@ sap.ui.define(['sap/ui/core/Renderer'],
 	 * Renders the HTML for the given control, using the provided {@link sap.ui.core.RenderManager}.
 	 *
 	 * @param {sap.ui.core.RenderManager} oRm The RenderManager that can be used for writing to the renderer output buffer
-	 * @param {sap.ui.core.Control} oControl An object representation of the control that should be rendered
+	 * @param {sap.m.SliderTooltipContainer} oControl An object representation of the control that should be rendered
 	 */
 	SliderTooltipContainerRenderer.render = function(oRm, oControl) {
 		var aTooltips = oControl.getAssociatedTooltipsAsControls();
@@ -34,8 +34,7 @@ sap.ui.define(['sap/ui/core/Renderer'],
 			.style("width", oControl.getWidth())
 			.openEnd();
 
-		oRm.openStart("div")
-			.attr("id", oControl.getId() + "-container")
+		oRm.openStart("div", oControl.getId() + "-container")
 			.style("left", "0%")
 			.style("right", "0%")
 			.class(CONSTANTS.MAIN_CLASS);

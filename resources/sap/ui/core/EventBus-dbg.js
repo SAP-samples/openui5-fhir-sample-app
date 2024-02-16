@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2024 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -14,6 +14,7 @@ sap.ui.define([
 	function(BaseObject, EventProvider, assert, Log) {
 	"use strict";
 
+	let oEventBus;
 
 	/**
 	 * Creates an instance of EventBus.
@@ -21,9 +22,16 @@ sap.ui.define([
 	 * @class Provides eventing capabilities for applications like firing events and attaching or detaching event
 	 *        handlers for events which are notified when events are fired.
 	 *
+	 *        It is recommended to use the EventBus only when there is no other option to communicate between different instances, e.g. native UI5 events.
+	 *        Custom events can be fired by classes that extend {@link sap.ui.base.EventProvider}, such as sap.ui.core.Control, sap.ui.core.mvc.View or sap.ui.core.Component,
+	 *        and the events can be consumed by other classes to achieve communication between different instances.
+	 *
+	 *        Heavily using the EventBus can easily result in code which is hard to read and maintain because it's
+	 *        difficult to keep an overview of all event publishers and subscribers.
+	 *
 	 * @extends sap.ui.base.Object
 	 * @author SAP SE
-	 * @version 1.79.0
+	 * @version 1.120.6
 	 * @public
 	 * @since 1.8.0
 	 * @alias sap.ui.core.EventBus
@@ -34,6 +42,7 @@ sap.ui.define([
 			BaseObject.apply(this);
 			this._mChannels = {};
 			this._defaultChannel = new EventProvider();
+			this._bIsSuspended = false;
 		}
 
 	});
@@ -47,7 +56,7 @@ sap.ui.define([
 	 *                         events on this channel but is not allowed to publish its own events there.
 	 * @param {string}
 	 *            sEventId The identifier of the event to listen for
-	 * @param {function}
+	 * @param {function(string, string, Object)}
 	 *            fnFunction The handler function to call when the event occurs. This function will be called in the context of the
 	 *                       <code>oListener</code> instance (if present) or on the event bus instance. The channel is provided as first argument of the handler, and
 	 *                       the event identifier is provided as the second argument. The parameter map carried by the event is provided as the third argument (if present).
@@ -55,7 +64,7 @@ sap.ui.define([
 	 * @param {object}
 	 *            [oListener] The object that wants to be notified when the event occurs (<code>this</code> context within the
 	 *                        handler function). If it is not specified, the handler function is called in the context of the event bus.
-	 * @return {sap.ui.core.EventBus} Returns <code>this</code> to allow method chaining
+	 * @return {this} Returns <code>this</code> to allow method chaining
 	 * @public
 	 */
 	EventBus.prototype.subscribe = function(sChannelId, sEventId, fnFunction, oListener) {
@@ -87,7 +96,7 @@ sap.ui.define([
 	 *                         events on this channel but is not allowed to publish its own events there.
 	 * @param {string}
 	 *            sEventId The identifier of the event to listen for
-	 * @param {function}
+	 * @param {function(string, string, Object)}
 	 *            fnFunction The handler function to call when the event occurs. This function will be called in the context of the
 	 *                       <code>oListener</code> instance (if present) or on the event bus instance. The channel is provided as first argument of the handler, and
 	 *                       the event identifier is provided as the second argument. The parameter map carried by the event is provided as the third argument (if present).
@@ -96,7 +105,7 @@ sap.ui.define([
 	 *            [oListener] The object that wants to be notified when the event occurs (<code>this</code> context within the
 	 *                        handler function). If it is not specified, the handler function is called in the context of the event bus.
 	 * @since 1.32.0
-	 * @return {sap.ui.core.EventBus} Returns <code>this</code> to allow method chaining
+	 * @return {this} Returns <code>this</code> to allow method chaining
 	 * @public
 	 */
 	EventBus.prototype.subscribeOnce = function(sChannelId, sEventId, fnFunction, oListener){
@@ -123,11 +132,11 @@ sap.ui.define([
 	 *            [sChannelId] The channel of the event to unsubscribe from. If not given, the default channel is used.
 	 * @param {string}
 	 *            sEventId The identifier of the event to unsubscribe from
-	 * @param {function}
+	 * @param {function(string, string, Object)}
 	 *            fnFunction The handler function to unsubscribe from the event
 	 * @param {object}
 	 *            [oListener] The object that wanted to be notified when the event occurred
-	 * @return {sap.ui.core.EventBus} Returns <code>this</code> to allow method chaining
+	 * @return {this} Returns <code>this</code> to allow method chaining
 	 * @public
 	 */
 	EventBus.prototype.unsubscribe = function(sChannelId, sEventId, fnFunction, oListener) {
@@ -193,6 +202,11 @@ sap.ui.define([
 			}
 		}
 
+		if (this._bIsSuspended) {
+			Log.warning("Failed to publish into channel '" + sChannelId + "'." + " The EventBus is suspended.", sChannelId + "#" + sEventId, "sap.ui.core.EventBus");
+			return;
+		}
+
 		oData = oData ? oData : {};
 
 		assert(!sChannelId || typeof (sChannelId) === "string", "EventBus.publish: sChannelId must be empty or a non-empty string");
@@ -250,6 +264,25 @@ sap.ui.define([
 		BaseObject.prototype.destroy.apply(this, arguments);
 	};
 
+	/**
+	 * Suspends the EventBus, so no further events will be published
+	 *
+	 * @private
+	 * @ui5-restricted sap.ui.core
+	 */
+	EventBus.prototype.suspend = function () {
+		this._bIsSuspended = true;
+	};
+
+	/**
+	 * Resumes the EventBus, so future events will be published
+	 *
+	 * @private
+	 * @ui5-restricted sap.ui.core
+	 */
+	EventBus.prototype.resume = function () {
+		this._bIsSuspended = false;
+	};
 
 	function getChannel(oEventBus, sChannelId){
 		if (!sChannelId) {
@@ -266,7 +299,23 @@ sap.ui.define([
 		}
 		return oChannel;
 	}
+	/**
+	 * Returns the singleton instance of the EventBus for global usage.
+	 *
+	 * @return {sap.ui.core.EventBus} the event bus
+	 * @since 1.119.0
+	 * @public
+	 */
+	EventBus.getInstance = () => {
+		if (!oEventBus) {
+			oEventBus = new EventBus();
+			// protect against destruction
+			oEventBus.destroy = () => {
+				Log.error("Global EventBus cannot be destroyed!");
+			};
+		}
+		return oEventBus;
+	};
 
 	return EventBus;
-
 });

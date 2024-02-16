@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2024 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -11,7 +11,8 @@ sap.ui.define([
 	"sap/ui/core/delegate/ScrollEnablement",
 	"sap/ui/core/Element",
 	"./ScrollContainerRenderer",
-	"sap/ui/dom/denormalizeScrollBeginRTL"
+	"sap/ui/dom/denormalizeScrollBeginRTL",
+	"sap/ui/core/Configuration"
 ],
 	function(
 		library,
@@ -19,7 +20,8 @@ sap.ui.define([
 		ScrollEnablement,
 		Element,
 		ScrollContainerRenderer,
-		denormalizeScrollBeginRTL
+		denormalizeScrollBeginRTL,
+		Configuration
 	) {
 		"use strict";
 
@@ -37,12 +39,11 @@ sap.ui.define([
 		 * @extends sap.ui.core.Control
 		 *
 		 * @author SAP SE
-		 * @version 1.79.0
+		 * @version 1.120.6
 		 *
 		 * @constructor
 		 * @public
 		 * @alias sap.m.ScrollContainer
-		 * @ui5-metamodel This control/element also will be described in the UI5 (legacy) designtime metamodel
 		 */
 		var ScrollContainer = Control.extend("sap.m.ScrollContainer", /** @lends sap.m.ScrollContainer.prototype */ {
 			metadata: {
@@ -93,7 +94,9 @@ sap.ui.define([
 				},
 				dnd: { draggable: false, droppable: true },
 				designtime: "sap/m/designtime/ScrollContainer.designtime"
-			}
+			},
+
+			renderer: ScrollContainerRenderer
 		});
 
 		ScrollContainer.prototype.init = function () {
@@ -122,8 +125,8 @@ sap.ui.define([
 		};
 
 		/**
-		 * Returns the sap.ui.core.ScrollEnablement delegate which is used with this control.
-		 * @rerurns {sap.ui.core.ScrollEnablementDelegate} The scroll delegate instance
+		 * Returns the sap.ui.core.delegate.ScrollEnablement delegate which is used with this control.
+		 * @rerurns {sap.ui.core.delegate.ScrollEnablementDelegate} The scroll delegate instance
 		 * @private
 		 */
 		ScrollContainer.prototype.getScrollDelegate = function () {
@@ -145,12 +148,11 @@ sap.ui.define([
 		 *         The vertical pixel position to scroll to.
 		 *         Scrolling down happens with positive values.
 		 *         If only horizontal scrolling is enabled, give 0 as value.
-		 * @param {int} time
-		 *         The duration of animated scrolling.
-		 *         To scroll immediately without animation, give 0 as value. 0 is also the default value, when this optional parameter is omitted.
-		 * @returns {sap.m.ScrollContainer} <code>this</code> to facilitate method chaining
+		 * @param {int} [time=0]
+		 *         The duration of animated scrolling in milliseconds.
+		 *         The value <code>0</code> results in immediate scrolling without animation.
+		 * @returns {this} <code>this</code> to facilitate method chaining
 		 * @public
-		 * @ui5-metamodel This method also will be described in the UI5 (legacy) designtime metamodel
 		 */
 		ScrollContainer.prototype.scrollTo = function (x, y, time) {
 			if (this._oScroller) {
@@ -158,7 +160,7 @@ sap.ui.define([
 				var oDomRef = this.getDomRef();
 				if (oDomRef) {
 					// only if rendered
-					if (sap.ui.getCore().getConfiguration().getRTL()) {
+					if (Configuration.getRTL()) {
 						x = denormalizeScrollBeginRTL(x, oDomRef);
 					}
 					this._oScroller.scrollTo(x, y, time);
@@ -175,7 +177,7 @@ sap.ui.define([
 		 * Scrolls to an element(DOM or sap.ui.core.Element) within the page if the element is rendered.
 		 * @param {HTMLElement | sap.ui.core.Element} element The element to which should be scrolled.
 		 * @param {int} [time=0] The duration of animated scrolling. To scroll immediately without animation, give 0 as value or leave it default.
-		 * @returns {sap.m.ScrollContainer} <code>this</code> to facilitate method chaining.
+		 * @returns {this} <code>this</code> to facilitate method chaining.
 		 * @since 1.30
 		 * @public
 		 */

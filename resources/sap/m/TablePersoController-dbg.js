@@ -1,27 +1,33 @@
 /*
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2024 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 // Provides TablePersoController
 sap.ui.define([
+	'./library',
 	'./TablePersoDialog',
 	'sap/ui/base/ManagedObject',
 	'sap/ui/base/ManagedObjectRegistry',
 	"sap/ui/core/syncStyleClass",
 	"sap/base/Log",
-	"sap/ui/thirdparty/jquery"
+	"sap/ui/thirdparty/jquery",
+	"sap/ui/core/Configuration"
 ],
-	function(TablePersoDialog, ManagedObject, ManagedObjectRegistry, syncStyleClass, Log, jQuery) {
+	function(library, TablePersoDialog, ManagedObject, ManagedObjectRegistry, syncStyleClass, Log, jQuery, Configuration) {
 	"use strict";
 
+	// shortcut for sap.m.ResetAllMode
+	var ResetAllMode = library.ResetAllMode;
 
 
 	/**
 	 * The TablePersoController can be used to connect a table that you want to provide
 	 * a personalization dialog for, with a persistence service such as one provided by
 	 * the unified shell.
+	 *
+	 * @deprecated since 1.115. Please use the {@link sap.m.p13n.Engine Engine} for personalization instead.
 	 *
 	 * @param {string}
 	 *			[sId] optional id for the new control; generated automatically if
@@ -31,14 +37,13 @@ sap.ui.define([
 	 *			[mSettings] optional map/JSON-object with initial settings for the
 	 *			new component instance
 	 * @public
-	 *
 	 * @class Table Personalization Controller
 	 * @extends sap.ui.base.ManagedObject
 	 * @author SAP
-	 * @version 1.79.0
+	 * @version 1.120.6
 	 * @alias sap.m.TablePersoController
 	 */
-	var TablePersoController = ManagedObject.extend("sap.m.TablePersoController", /** @lends sap.m.TablePersoController */
+	var TablePersoController = ManagedObject.extend("sap.m.TablePersoController", /** @lends sap.m.TablePersoController.prototype */
 
 	{
 		constructor: function(sId, mSettings) {
@@ -48,16 +53,30 @@ sap.ui.define([
 		},
 
 		metadata: {
+			deprecated: true,
 			properties: {
-				"contentWidth": {type: "sap.ui.core.CSSSize", defaultValue:"25rem"}, //TODO: put in TPD itself
-				"contentHeight": {type: "sap.ui.core.CSSSize", defaultValue: "28rem", since: "1.22"},
+				"contentWidth": {type: "sap.ui.core.CSSSize"},
+				"contentHeight": {type: "sap.ui.core.CSSSize", since: "1.22"},
 				/**
 				 * Available options for the text direction are LTR and RTL. By default the control inherits the text direction from its parent control.
 				 */
 				"componentName": {type: "string", since: "1.20.2"},
 				"hasGrouping": {type: "boolean", defaultValue: false, since: "1.22"},
 				"showSelectAll": {type: "boolean", defaultValue: true, since: "1.22"},
-				"showResetAll": {type: "boolean", defaultValue: true, since: "1.22"}
+
+				/**
+				 * Controls the visibility of the Reset button of the <code>TablePersoDialog</code>.<br>
+				**/
+				"showResetAll": {type: "boolean", defaultValue: true, since: "1.22"},
+
+				/**
+				 * Controls the behavior of the Reset button of the <code>TablePersoDialog</code>.<br>
+				 * The value must be specified in the constructor and cannot be set or modified later.<br>
+				 * If set to <code>Default</code>, the Reset button sets the table back to the initial state of the attached table when the controller is activated.<br>
+				 * If set to <code>ServiceDefault</code>, the Reset button goes back to the initial settings of <code>persoService</code>.<br>
+				 * If set to <code>ServiceReset</code>, the Reset button calls the <code>getResetPersData</code> of the attached <code>persoService</code> and uses it to reset the table.<br>
+				 */
+				"resetAllMode": {type: "sap.m.ResetAllMode", defaultValue: ResetAllMode.Default, since: "1.88"}
 			},
 			aggregations: {
 				"_tablePersoDialog": {
@@ -100,7 +119,7 @@ sap.ui.define([
 			} else {
 				var sMsg = "adding TablePersoController with duplicate id '" + sId + "'";
 				// duplicate ID detected => fail or at least log a warning
-				if (sap.ui.getCore().getConfiguration().getNoDuplicateIds()) {
+				if (Configuration.getNoDuplicateIds()) {
 					Log.error(sMsg);
 					throw new Error("Error: " + sMsg);
 				} else {
@@ -134,6 +153,15 @@ sap.ui.define([
 		/*eslint-disable */
 		this._triggersPersDoneEvent = true;
 		/*eslint-enable */
+	};
+
+	TablePersoController.prototype.setResetAllMode = function(resetAllMode) {
+		if (!this._resetAllModeSet) {
+			this.setProperty("resetAllMode", resetAllMode);
+			this._resetAllModeSet = true;
+		} else {
+			Log.warning("resetAllMode of the TablePersoController can only be set once.");
+		}
 	};
 
 	/**
@@ -185,12 +213,14 @@ sap.ui.define([
 	 *
 	 *
 	 * @public
-	 * @return {sap.m.TablePersoController} the TablePersoController instance.
+	 * @returns {this} the TablePersoController instance.
 	 */
 	TablePersoController.prototype.activate = function() {
 
 		//Remember initial table columns states before personalization
-		this._callFunctionForAllTables(this._rememberInitialTableStates);
+		if (this.getResetAllMode() === ResetAllMode.Default) {
+			this._callFunctionForAllTables(this._rememberInitialTableStates);
+		}
 		// Add 'onBeforeRendering' delegates to all tables
 		this._callFunctionForAllTables(this._createAndAddDelegateForTable);
 
@@ -233,6 +263,11 @@ sap.ui.define([
 			//SUGGESTED IMPROVEMENT: User should get some visual feedback as well
 			Log.error("Problem reading persisted personalization data.");
 		});
+
+		if (this.getResetAllMode() === ResetAllMode.ServiceDefault) {
+			//remember the setting after applyPersonalization for Reset handling
+			this._callFunctionForAllTables(this._rememberInitialTableStates);
+		}
 	};
 
 	/**
@@ -292,6 +327,7 @@ sap.ui.define([
 	 * @private
 	 */
 	TablePersoController.prototype._createTablePersoDialog = function(oTable) {
+
 		// Create a new TablePersoDialog control for the associated table.
 		// SUGGESTED IMPROVEMENT: the dialog gets created once, when 'activate'
 		// is called. Changes to the table after that are not reflected in the
@@ -311,6 +347,34 @@ sap.ui.define([
 				showResetAll: this.getShowResetAll()
 		});
 
+		if (this.getResetAllMode() === ResetAllMode.ServiceReset && this.getPersoService().getResetPersData) {
+			oTablePersoDialog.setShowResetAll(false);
+
+			this.getPersoService().getResetPersData().done(
+				function(oResetData) {
+					if (this._bIsBeingDestroyed) {
+						return;
+					}
+
+					if (oResetData) {
+						var aColumnInfo = oResetData.aColumns;
+						aColumnInfo.forEach(function(oColumnInfo){
+							var sGroup = null;
+							if (this.getPersoService().getGroup) {
+								var oTable = sap.ui.getCore().byId(oTablePersoDialog.getPersoDialogFor());
+								var oColumn = this._mTablePersMap[oTable][oColumnInfo.id];
+								sGroup = this.getPersoService().getGroup(oColumn);
+								oColumnInfo.group = sGroup;
+							}
+						}.bind(this));
+
+						oTablePersoDialog.setInitialColumnState(oResetData.aColumns);
+						oTablePersoDialog.setShowResetAll(this.getShowResetAll());
+					}
+				}.bind(this)
+			);
+		}
+
 		// Link to this new TablePersoDialog via the aggregation
 		this.setAggregation("_tablePersoDialog", oTablePersoDialog);
 
@@ -322,7 +386,6 @@ sap.ui.define([
 			this.savePersonalizations();
 			this.firePersonalizationsDone();
 		}, this));
-
 	};
 
 	/**
@@ -366,7 +429,7 @@ sap.ui.define([
 
 		// mPersoMap may be null if oTable's id is not static
 		// or if any of the column ids is not static
-		if (!!mPersoMap && !!this._oPersonalizations) {
+		if (mPersoMap && this._oPersonalizations) {
 			var bDoSaveMigration = false;
 			// Set order and visibility
 			for ( var c = 0, cl = this._oPersonalizations.aColumns.length; c < cl; c++) {
@@ -433,7 +496,7 @@ sap.ui.define([
 	 * Refresh the personalizations: reloads the personalization information from the table perso
 	 * provider, applies it to the controller's table and updates the controller's table perso dialog.
 	 *
-	 * Use case for a 'refresh' call would be that the table which si personalized changed its columns
+	 * Use case for a 'refresh' call would be that the table which is personalized changed its columns
 	 * during runtime, after personalization has been activated.
 	 *
 	 * @public
@@ -442,6 +505,7 @@ sap.ui.define([
 		var fnRefreshTable = function(oTable) {
 			// Clear the table perso map to have it repopulated by
 			// the 'onBeforeRendering' delegates (see '_createAndAddDelegateForTable')
+			// TODO should this not only reset this._mTablePersMap[oTable] = null;
 			this._mTablePersMap = {};
 			// This triggers a rerendering
 			oTable.invalidate();
@@ -479,7 +543,7 @@ sap.ui.define([
 	/**
 	 * Reflector for the controller's 'contentWidth' property.
 	 * @param {sap.ui.core.CSSSize} sWidth the new width of the tablePersoDialog
-	 * @return {sap.m.TablePersoController} the TablePersoController instance.
+	 * @returns {this} the TablePersoController instance.
 	 * @public
 	 */
 	TablePersoController.prototype.setContentWidth = function(sWidth) {
@@ -494,7 +558,7 @@ sap.ui.define([
 	/**
 	 * Reflector for the controller's 'contentHeight' property.
 	 * @param {sap.ui.core.CSSSize} sHeight the new height of the TablePersoDialog.
-	 * @return {sap.m.TablePersoController} the TablePersoController instance.
+	 * @returns {this} the TablePersoController instance.
 	 * @public
 	 */
 	TablePersoController.prototype.setContentHeight = function(sHeight) {
@@ -509,7 +573,7 @@ sap.ui.define([
 	/**
 	 * Reflector for the controller's 'hasGrouping' property.
 	 * @param {boolean} bHasGrouping is the tablePersoDialog displayed in grouping mode or not.
-	 * @return {sap.m.TablePersoController} the TablePersoController instance.
+	 * @returns {this} the TablePersoController instance.
 	 * @public
 	 */
 	TablePersoController.prototype.setHasGrouping = function(bHasGrouping) {
@@ -524,7 +588,7 @@ sap.ui.define([
 	/**
 	 * Reflector for the controller's 'showSelectAll' property.
 	 * @param {boolean} bShowSelectAll is the tablePersoDialog's 'Display All' checkbox displayed or not.
-	 * @return {sap.m.TablePersoController} the TablePersoController instance.
+	 * @returns {this} the TablePersoController instance.
 	 * @public
 	 */
 	TablePersoController.prototype.setShowSelectAll = function(bShowSelectAll) {
@@ -539,7 +603,7 @@ sap.ui.define([
 	/**
 	 * Reflector for the controller's 'showResetAll' property.
 	 * @param {boolean} bShowResetAll is the tablePersoDialog's 'UndoPersonalization' button displayed or not.
-	 * @return {sap.m.TablePersoController} the TablePersoController instance.
+	 * @returns {this} the TablePersoController instance.
 	 * @public
 	 */
 	TablePersoController.prototype.setShowResetAll = function(bShowResetAll) {
@@ -559,7 +623,7 @@ sap.ui.define([
 	 * whether the table's app has a different component name or not.
 	 *
 	 * @param {string} sCompName the new component name.
-	 * @return {sap.m.TablePersoController} the TablePersoController instance.
+	 * @returns {this} the TablePersoController instance.
 	 * @public
 	 */
 	TablePersoController.prototype.setComponentName = function(sCompName) {
@@ -630,7 +694,7 @@ sap.ui.define([
 	TablePersoController.prototype._isStatic = function (sId) {
 		// SUGGESTED IMPROVEMENT: make this an inline function of '_getPersoColumnMap'
 		// it is only used there
-		var sUidPrefix = sap.ui.getCore().getConfiguration().getUIDPrefix();
+		var sUidPrefix = Configuration.getUIDPrefix();
 		var rGeneratedPrefix = new RegExp("^" + sUidPrefix);
 		return !rGeneratedPrefix.test(sId);
 	};

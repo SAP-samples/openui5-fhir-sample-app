@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2024 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -105,15 +105,34 @@ sap.ui.define([
 	 * @public
 	*/
 	RecordReplay.findDOMElementByControlSelector = function (oOptions) {
-		// TODO: have greater control over result in case of multiple controls or DOM elements
+		return RecordReplay.findAllDOMElementsByControlSelector(oOptions)
+			.then(function (aElements) {
+				if (aElements.length) {
+					return aElements[0];
+				} else {
+					throw new Error("No DOM element found using the control selector " + JSON.stringify(oOptions.selector));
+				}
+			});
+	};
+
+	/**
+	 * Find DOM element representations of all controls specified by a selector object.
+	 * Useful when the selector matches multiple controls and you want all the results.
+	 *
+	 * @param {object} oOptions Options for the search
+	 * @param {sap.ui.test.RecordReplay.ControlSelector} oOptions.selector Control selector for this control
+	 * Could be the result of {@link sap.ui.test.RecordReplay.findControlSelectorByDOMElement}
+	 * If the selector matches multiple controls, all of their representations will be included in the result.
+	 * If the selector contains ID suffix for a DOM element, the result will include the first DOM element with a matching ID (one DOM element per control).
+	 * Otherwise, the result will include the first DOM element with ID matching the control's ID, or the DOM element that usually receives focus events (one DOM element per control).
+	 * @returns {Promise<array|Error>} Promise to be resolved with an array of DOM elements or rejected with Error when no suitable DOM elements are found
+	 * @public
+	*/
+	RecordReplay.findAllDOMElementsByControlSelector = function (oOptions) {
 		return new Promise(function (resolve, reject) {
 			try {
-				var oElement = _ControlFinder._findElements(oOptions.selector)[0];
-				if (oElement) {
-					resolve(oElement);
-				} else {
-					reject(new Error("No DOM element found using the control selector " + JSON.stringify(oOptions.selector)));
-				}
+				var aElements = _ControlFinder._findElements(oOptions.selector);
+				resolve(aElements);
 			} catch (oError) {
 				reject(new Error("No DOM element found using the control selector " + JSON.stringify(oOptions.selector) + ". Error: " + oError));
 			}
@@ -131,17 +150,21 @@ sap.ui.define([
 	 * To see the interaction details and options, see {@link sap.ui.test.actions}
 	 * @param {string} oOptions.enterText Text for the EnterText interaction
 	 * @param {string} [oOptions.clearTextFirst=true] Clear existing text before interaction
+	 * @param {boolean} oOptions.pressEnterKey If ENTER key will be entered after the text
+	 * @param {boolean} oOptions.keepFocus If the input will remain focused after text is entered
 	 * @returns {Promise<undefined|Error>} Promise to be resolved when the interaction is done or rejected if interaction is not possible
 	 * @public
 	 */
 	RecordReplay.interactWithControl = function (oOptions) {
-		var sControl = JSON.stringify(oOptions.selector);
+		var sControl = JSON.stringify(oOptions.selector),
+			oInteraction = oOptions.selector && oOptions.selector.interaction,
+			sIdSuffix = (oInteraction && typeof oInteraction === "object") ? oInteraction.idSuffix : "";
 
 		return new Promise(function (resolve, reject) {
 			var oAction;
 			switch (oOptions.interactionType) {
-				case RecordReplay.InteractionType.Press: oAction = new Press(); break;
-				case RecordReplay.InteractionType.EnterText: oAction = new EnterText({text:oOptions.enterText}); break;
+				case RecordReplay.InteractionType.Press: oAction = new Press({idSuffix: sIdSuffix}); break;
+				case RecordReplay.InteractionType.EnterText: oAction = new EnterText({text:oOptions.enterText, pressEnterKey: oOptions.pressEnterKey, keepFocus: oOptions.keepFocus, idSuffix: sIdSuffix}); break;
 				default: reject(new Error("Could not interact with control " + sControl +
 					". Unsupported interaction type: " + oOptions.interactionType +
 					" . Supported interaction types are: " + Object.keys(RecordReplay.InteractionType).join(", ")));
@@ -182,7 +205,7 @@ sap.ui.define([
 					resolve();
 				}
 			});
-		});
+		}, "PROMISE_WAITER_IGNORE");
 	};
 
 	return RecordReplay;

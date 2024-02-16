@@ -1,15 +1,14 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2024 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 sap.ui.define([
 	'./Splitter',
 	'./SplitterRenderer',
-	"sap/base/Log",
-	"sap/ui/layout/SplitterLayoutData"
-], function(Splitter, SplitterRenderer, Log, SplitterLayoutData) {
+	"sap/base/Log"
+], function(Splitter, SplitterRenderer, Log) {
 	"use strict";
 
 	/**
@@ -25,7 +24,7 @@ sap.ui.define([
 	 * @extends sap.ui.layout.Splitter
 	 *
 	 * @author SAP SE
-	 * @version 1.79.0
+	 * @version 1.120.6
 	 *
 	 * @constructor
 	 * @private
@@ -121,232 +120,54 @@ sap.ui.define([
 		}
 	};
 
-	// Overriding sap.ui.layout.Splitter's calculation functions in order to make it responsive
-
 	/**
-	 * Resizes the contents after a bar has been moved
-	 *
-	 * @param {Number} [iLeftContent] Number of the first (left) content that is resized
-	 * @param {Number} [iPixels] Number of pixels to increase the first and decrease the second content
-	 * @param {boolean} [bFinal] Whether this is the final position (sets the size in the layoutData of the content areas)
 	 * @override
+	 * If there is single "%"-sized area after pagination, let it take the remaining size
 	 */
-	AssociativeSplitter.prototype._resizeContents = function (iLeftContent, iPixels, bFinal) {
-		var aContentAreas, oLd1, oLd2, sSize1,
-			sSize2, $Cnt1, $Cnt2, iNewSize1, iNewSize2,
-			iMinSize1, iMinSize2, sOrientation, iSplitterSize,
-			sFinalSize1, sFinalSize2, iDiff,
-			sMoveContentSize1 = parseFloat(this._move.c1Size).toFixed(5),
-			sMoveContentSize2 = parseFloat(this._move.c2Size).toFixed(5),
-			fMoveC1Size = parseFloat(sMoveContentSize1),
-			fMoveC2Size = parseFloat(sMoveContentSize2);
+	AssociativeSplitter.prototype._calcPercentBasedSizes = function (aPercentSizeIdx, iRemainingSize) {
+		var aContentAreas = this._getContentAreas(),
+			iAvailableContentSize = this._calcAvailableContentSize();
 
-		if (isNaN(iPixels)) {
-			Log.warning("Splitter: Received invalid resizing values - resize aborted.");
-			return;
-		}
-
-		aContentAreas = this._getContentAreas();
-		oLd1 = aContentAreas[iLeftContent].getLayoutData();
-		oLd2 = aContentAreas[iLeftContent + 1].getLayoutData();
-
-		sSize1 = oLd1.getSize();
-		sSize2 = oLd2.getSize();
-
-		$Cnt1 = this.$("content-" + iLeftContent);
-		$Cnt2 = this.$("content-" + (iLeftContent + 1));
-
-		iNewSize1 = fMoveC1Size + iPixels;
-		iNewSize2 = fMoveC2Size - iPixels;
-		iMinSize1 = parseInt(oLd1.getMinSize());
-		iMinSize2 = parseInt(oLd2.getMinSize());
-
-		sOrientation = this.getOrientation();
-		iSplitterSize = sOrientation === "Horizontal" ? this.$().width() : this.$().height();
-
-		// Adhere to size constraints
-		if (iNewSize1 < iMinSize1) {
-			iDiff = iMinSize1 - iNewSize1;
-			iPixels += iDiff;
-			iNewSize1 = iMinSize1;
-			iNewSize2 -= iDiff;
-		} else if (iNewSize2 < iMinSize2) {
-			iDiff = iMinSize2 - iNewSize2;
-			iPixels -= iDiff;
-			iNewSize2 = iMinSize2;
-			iNewSize1 -= iDiff;
-		}
-
-		if (bFinal) {
-			// Resize finished, set layout data in content areas
-			if (sSize1 === "auto" && sSize2 !== "auto") {
-				// First pane has auto size - only change size of second pane
-				sFinalSize2 = this._pxToPercent(iNewSize2, iSplitterSize);
-				oLd2.setSize(sFinalSize2);
-			} else if (sSize1 !== "auto" && sSize2 === "auto") {
-				// Second pane has auto size - only change size of first pane
-				sFinalSize1 = this._pxToPercent(iNewSize1, iSplitterSize);
-				oLd1.setSize(sFinalSize1);
-			} else {
-				sFinalSize1 = this._pxToPercent(iNewSize1, iSplitterSize);
-				sFinalSize2 = this._pxToPercent(iNewSize2, iSplitterSize);
-
-
-				oLd1.setSize(sFinalSize1);
-				oLd2.setSize(sFinalSize2);
-			}
+		// single area sized with % - let it take the full size
+		if (aPercentSizeIdx.length === 1 && aContentAreas.length === 1) {
+			this._calculatedSizes[aPercentSizeIdx[0]] = iAvailableContentSize;
+			iRemainingSize -= iAvailableContentSize;
 		} else {
-			// Live-Resize, resize contents in Dom
-			sFinalSize1 = this._pxToPercent(iNewSize1, iSplitterSize);
-			sFinalSize2 = this._pxToPercent(iNewSize2, iSplitterSize);
-
-			$Cnt1.css(this._sizeType, sFinalSize1);
-			$Cnt2.css(this._sizeType, sFinalSize2);
+			iRemainingSize = Splitter.prototype._calcPercentBasedSizes.apply(this, arguments);
 		}
-	};
 
-	AssociativeSplitter.prototype._pxToPercent = function (iPx, iFullSize) {
-		return (iPx * 100) / iFullSize + "%";
+		return iRemainingSize;
 	};
 
 	/**
-	 * Recalculates the content sizes in three steps:
-	 *  1. Searches for all absolute values ("px") and deducts them from the available space.
-	 *  2. Searches for all percent values and interprets them as % of the available space after step 1
-	 *  3. Divides the rest of the space uniformly between all contents with "auto" size values
-	 *
-	 * @private
 	 * @override
 	 */
-	AssociativeSplitter.prototype._recalculateSizes = function () {
-		// TODO: (?) Use maxSize value from layoutData
-		var i, sSize, oLayoutData, iColSize, idx, iSize, iMinSize;
-
-		// Read all content sizes from the layout data
-		var aSizes = [];
-		var aContentAreas = this._getContentAreas();
-		var sOrientation = this.getOrientation();
-		var aAutosizeIdx = [];
-		var aAutoMinsizeIdx = [];
-		var aPercentsizeIdx = [];
-
-		for (i = 0; i < aContentAreas.length; ++i) {
-			oLayoutData = aContentAreas[i].getLayoutData();
-			sSize = oLayoutData ? oLayoutData.getSize() : "auto";
-
-			aSizes.push(sSize);
-		}
-
-		var iAvailableSize = this._calculateAvailableContentSize(aSizes) + 1;
-		this._calculatedSizes = [];
-
-		// Remove fixed sizes from available size
-		for (i = 0; i < aSizes.length; ++i) {
-			sSize = aSizes[i];
-
-			if (sSize.indexOf("px") > -1) {
-				// Pixel based Value - deduct it from available size
-				iSize = parseInt(sSize);
-				iAvailableSize -= iSize;
-				this._calculatedSizes[i] = iSize;
-			} else if (sSize.indexOf("%") > -1) {
-				aPercentsizeIdx.push(i);
-			} else if (sSize === "auto") {
-				oLayoutData = aContentAreas[i].getLayoutData();
-				if (oLayoutData && parseInt(oLayoutData.getMinSize()) !== 0) {
-					aAutoMinsizeIdx.push(i);
-				} else {
-					aAutosizeIdx.push(i);
-				}
-			} else {
-				Log.error("Illegal size value: " + aSizes[i]);
-			}
-		}
-
-		var bWarnSize = false; // Warn about sizes being too big for the available space
-
-		// If more than the available size if assigned to fixed width content, the rest will get no
-		// space at all
-		if (iAvailableSize < 0) { bWarnSize = true; iAvailableSize = 0; }
-
-		// Now calculate % of the available space
-		var iRest = iAvailableSize;
-		iAvailableSize = sOrientation === "Horizontal" ? this.$().width() : this.$().height();
-
-		var iPercentSizes = aPercentsizeIdx.length;
-		for (i = 0; i < iPercentSizes; ++i) {
-			idx = aPercentsizeIdx[i];
-			if (iPercentSizes === 1 && aContentAreas.length === 1) {
-				iColSize = iAvailableSize;
-			} else {
-				// Percent based Value - deduct it from available size
-				iColSize = parseFloat(aSizes[idx]) / 100 * iAvailableSize;
-				iMinSize = parseInt(aContentAreas[idx].getLayoutData().getMinSize());
-
-				if (iColSize < iMinSize) {
-					iColSize = iMinSize;
-				}
-			}
-			this._calculatedSizes[idx] = iColSize;
-			iRest -= iColSize;
-		}
-		iAvailableSize = iRest;
-
-		if (iAvailableSize < 0) { bWarnSize = true; iAvailableSize = 0; }
-
-		// Calculate auto sizes
-		iColSize = Math.floor(iAvailableSize / (aAutoMinsizeIdx.length + aAutosizeIdx.length), 0);
-
-		// First calculate auto-sizes with a minSize constraint
-		var iAutoMinSizes = aAutoMinsizeIdx.length;
-		for (i = 0; i < iAutoMinSizes; ++i) {
-			idx = aAutoMinsizeIdx[i];
-			iMinSize = parseInt(aContentAreas[idx].getLayoutData().getMinSize());
-			if (iMinSize > iColSize) {
-				this._calculatedSizes[idx] = iMinSize;
-				iAvailableSize -= iMinSize;
-			} else {
-				this._calculatedSizes[idx] = iColSize;
-				iAvailableSize -= iColSize;
-			}
-		}
-
-		if (iAvailableSize < 0) { bWarnSize = true; iAvailableSize = 0; }
-
-		// Now calculate "auto"-sizes
-		iRest = iAvailableSize;
-		var iAutoSizes = aAutosizeIdx.length;
-		iColSize = Math.floor(iAvailableSize / iAutoSizes, 0);
-		for (i = 0; i < iAutoSizes; ++i) {
-			idx = aAutosizeIdx[i];
-			this._calculatedSizes[idx] = iColSize;
-			iRest -= iColSize;
-		}
-
-		if (bWarnSize) {
-			// TODO: Decide if the warning should be kept - might spam the console but on the other
-			//       hand it might make analyzing of splitter bugs easier, since we can just ask
-			//       developers if there was a [Splitter] output on the console if the splitter looks
-			//       weird in their application.
-			Log.info(
-				"[Splitter] The set sizes and minimal sizes of the splitter contents are bigger " +
-				"than the available space in the UI."
-			);
-		}
-		this._calculatedSizes = this._calculatedSizes;
+	AssociativeSplitter.prototype._logConstraintsViolated = function () {
+		Log.warning(
+			"The set sizes and minimal sizes of the splitter contents are bigger than the available space in the UI. " +
+			"Consider enabling the pagination mechanism by setting the 'requiredParentWidth' property of the panes",
+			null,
+			"sap.ui.layout.ResponsiveSplitter"
+		);
 	};
 
-	AssociativeSplitter.prototype._ensureAllSplittersCollapsed = function (iBar) {
-		var aAreas = this._getContentAreas();
-		var bAllCollapsed = false;
-		for (var i = 0; i < aAreas.length; i++) {
-			var sSize = aAreas[i].getLayoutData().getSize().slice(0, -2);
+	AssociativeSplitter.prototype.containsControl = function (sControlId) {
+		var aContentAreas = this._getContentAreas(),
+			oContentArea,
+			i;
 
-			if (sSize === "0" || sSize === "au") {
-				bAllCollapsed = true;
-				continue;
-			} else if (i === (aAreas.length - 1) && bAllCollapsed) {
-				this._getContentAreas()[iBar + 1].setLayoutData(new SplitterLayoutData({ size: "100%" }));
+		for (i = 0; i < aContentAreas.length; i++) {
+
+			oContentArea = aContentAreas[i];
+
+			if (oContentArea.isA("sap.ui.layout.AssociativeSplitter")) {
+				if (oContentArea.containsControl(sControlId)) {
+					return true;
+				}
+			} else {
+				if (oContentArea.getId() === sControlId) {
+					return true;
+				}
 			}
 		}
 	};

@@ -1,12 +1,12 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2024 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 // Provides default renderer for control sap.ui.unified.Menu
-sap.ui.define([],
-	function() {
+sap.ui.define(["sap/ui/core/Configuration"],
+	function(Configuration) {
 	"use strict";
 
 
@@ -15,7 +15,7 @@ sap.ui.define([],
 	 * Menu renderer.
 	 * @author SAP - TD Core UI&AM UI Infra
 	 *
-	 * @version 1.79.0
+	 * @version 1.120.6
 	 * @namespace
 	 */
 	var MenuRenderer = {
@@ -28,11 +28,11 @@ sap.ui.define([],
 	 *
 	 * @param {sap.ui.core.RenderManager}
 	 *            oRm The RenderManager that can be used for writing to the render-output-buffer.
-	 * @param {sap.ui.core.Control}
+	 * @param {sap.ui.unified.Menu}
 	 *            oMenu An object representation of the control that should be rendered
 	 */
 	MenuRenderer.render = function(oRm, oMenu) {
-		var bAccessible = sap.ui.getCore().getConfiguration().getAccessibility(),
+		var bAccessible = Configuration.getAccessibility(),
 			oRootMenu = oMenu.getRootMenu();
 
 		if (oMenu.oHoveredItem && oMenu.indexOfItem(oMenu.oHoveredItem) < 0) {
@@ -51,12 +51,16 @@ sap.ui.define([],
 		// ARIA
 		if (bAccessible) {
 			oRm.accessibilityState(oMenu, {
-				disabled: null,
-				labelledby: {value: oMenu.getId() + "-label", append: true}
+				disabled: null
 			});
 		}
 
 		oRm.class("sapUiMnu");
+
+		//do not remove - the class is only to distinguish between menu and submenu
+		if (oMenu.isSubMenu()) {
+			oRm.class("sapUiSubmenu");
+		}
 
 		if (oRootMenu.bUseTopStyle) {
 			oRm.class("sapUiMnuTop");
@@ -72,28 +76,12 @@ sap.ui.define([],
 
 		oRm.openEnd();
 		MenuRenderer.renderItems(oRm, oMenu);
-		if (bAccessible) {
-			/*var _getText = function(sKey, aArgs) {
-				var rb = sap.ui.getCore().getLibraryResourceBundle("sap.ui.unified");
-				if (rb) {
-					return rb.getText(sKey, aArgs);
-				}
-				return sKey;
-			};*/
-
-			oRm.openStart("span", oMenu.getId() + "-label");
-			oRm.class("sapUiInvisibleText");
-			oRm.attr("aria-hidden", true);
-			oRm.openEnd();
-			oRm.text(oMenu.getAriaDescription() ? oMenu.getAriaDescription() : ""/*_getText("MNU_ARIA_NAME")*/);
-			oRm.close("span");
-		}
 		oRm.close("div");
 	};
 
 	MenuRenderer.renderItems = function(oRm, oMenu) {
 		var aItems = oMenu.getItems(),
-			bAccessible = sap.ui.getCore().getConfiguration().getAccessibility(),
+			bAccessible = Configuration.getAccessibility(),
 			bHasIcons = false,
 			bHasSubMenus = false,
 			iNumberOfVisibleItems = 0,

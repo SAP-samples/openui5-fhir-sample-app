@@ -1,21 +1,21 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2024 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
-sap.ui.define(["sap/m/library", "sap/ui/Device", "sap/ui/core/InvisibleText", "./ListItemBaseRenderer"],
-	function(library, Device, InvisibleText, ListItemBaseRenderer) {
+sap.ui.define(["sap/m/library", "sap/ui/core/library", "sap/ui/Device", "sap/ui/core/InvisibleText", "./ListItemBaseRenderer"],
+	function(library, coreLibrary, Device, InvisibleText, ListItemBaseRenderer) {
 	"use strict";
 
 
 	// shortcut for sap.m.ListGrowingDirection
 	var ListGrowingDirection = library.ListGrowingDirection;
 
-	// shortcut for sap.m.ListKeyboardMode
-	var ListKeyboardMode = library.ListKeyboardMode;
-
 	// shortcut for sap.m.ToolbarDesign
 	var ToolbarDesign = library.ToolbarDesign;
+
+	// shortcut for sap.ui.core.TitleLevel
+	var TitleLevel = coreLibrary.TitleLevel;
 
 
 	/**
@@ -46,12 +46,10 @@ sap.ui.define(["sap/m/library", "sap/ui/Device", "sap/ui/core/InvisibleText", ".
 	 * Renders the HTML for the given control, using the provided
 	 * {@link sap.ui.core.RenderManager}.
 	 *
-	 * @param {sap.ui.core.RenderManager}
-	 *          oRenderManager the RenderManager that can be used for writing to the
-	 *          Render-Output-Buffer
-	 * @param {sap.ui.core.Control}
-	 *          oControl an object representation of the control that should be
-	 *          rendered
+	 * @param {sap.ui.core.RenderManager} rm
+	 *          RenderManager that can be used to render the control's DOM
+	 * @param {sap.m.ListBase} oControl
+	 *          The list to be rendered
 	 */
 	ListBaseRenderer.render = function(rm, oControl) {
 		// container
@@ -103,10 +101,15 @@ sap.ui.define(["sap/m/library", "sap/ui/Device", "sap/ui/core/InvisibleText", ".
 			oHeaderTBar.addStyleClass("sapMTBHeader-CTX");
 			rm.renderControl(oHeaderTBar);
 		} else if (sHeaderText) {
-			rm.openStart("header", oControl.getId("header"));
+			rm.openStart("div", oControl.getId("header"));
+			rm.attr("role", "heading");
+			var sHeaderLevel = oControl.getHeaderLevel();
+			if (sHeaderLevel != TitleLevel.Auto) {
+				rm.attr("aria-level", sHeaderLevel[sHeaderLevel.length - 1]);
+			}
 			rm.class("sapMListHdr").class("sapMListHdrText").openEnd();
 			rm.text(sHeaderText);
-			rm.close("header");
+			rm.close("div");
 		}
 
 		// render info bar
@@ -123,7 +126,6 @@ sap.ui.define(["sap/m/library", "sap/ui/Device", "sap/ui/core/InvisibleText", ".
 		var aItems = oControl.getItems(),
 			bShowNoData = oControl.getShowNoData(),
 			bRenderItems = oControl.shouldRenderItems() && aItems.length,
-			iTabIndex = oControl.getKeyboardMode() == ListKeyboardMode.Edit ? -1 : 0,
 			bUpwardGrowing = oControl.getGrowingDirection() == ListGrowingDirection.Upwards && oControl.getGrowing();
 
 		// render top growing
@@ -132,7 +134,7 @@ sap.ui.define(["sap/m/library", "sap/ui/Device", "sap/ui/core/InvisibleText", ".
 		}
 
 		// dummy keyboard handling area
-		this.renderDummyArea(rm, oControl, "before", -1);
+		this.renderDummyArea(rm, oControl, "before", "-1");
 
 		// run hook method to start building list
 		this.renderListStartAttributes(rm, oControl);
@@ -144,7 +146,7 @@ sap.ui.define(["sap/m/library", "sap/ui/Device", "sap/ui/core/InvisibleText", ".
 		}
 
 		if (bRenderItems || bShowNoData) {
-			rm.attr("tabindex", iTabIndex);
+			rm.attr("tabindex", "0");
 		}
 
 		// separators
@@ -176,7 +178,10 @@ sap.ui.define(["sap/m/library", "sap/ui/Device", "sap/ui/core/InvisibleText", ".
 		}
 
 		// render no-data if needed
-		if (!bRenderItems && bShowNoData) {
+		// when all the items in the List are hidden via visible="false", then show the noDataText?
+		var bVisibleItems = oControl.getVisibleItems().length > 0;
+
+		if (bShowNoData && (!bRenderItems || !bVisibleItems)) {
 			this.renderNoData(rm, oControl);
 		}
 
@@ -184,7 +189,7 @@ sap.ui.define(["sap/m/library", "sap/ui/Device", "sap/ui/core/InvisibleText", ".
 		this.renderListEndAttributes(rm, oControl);
 
 		// dummy keyboard handling area
-		this.renderDummyArea(rm, oControl, "after", iTabIndex);
+		this.renderDummyArea(rm, oControl, "after", "0");
 
 		// render bottom growing
 		if (!bUpwardGrowing) {
@@ -206,7 +211,7 @@ sap.ui.define(["sap/m/library", "sap/ui/Device", "sap/ui/core/InvisibleText", ".
 	 * This hook method is called to render container attributes
 	 *
 	 * @param {sap.ui.core.RenderManager} rm the RenderManager that can be used for writing to the render output buffer
-	 * @param {sap.ui.core.Control} oControl an object representation of the control that should be rendered
+	 * @param {sap.m.ListBase} oControl an object representation of the control that should be rendered
 	 */
 	ListBaseRenderer.renderContainerAttributes = function(rm, oControl) {
 	};
@@ -215,7 +220,7 @@ sap.ui.define(["sap/m/library", "sap/ui/Device", "sap/ui/core/InvisibleText", ".
 	 * This hook method is called after <ul> and before first <li>
 	 *
 	 * @param {sap.ui.core.RenderManager} rm the RenderManager that can be used for writing to the render output buffer
-	 * @param {sap.ui.core.Control} oControl an object representation of the control that should be rendered
+	 * @param {sap.m.ListBase} oControl an object representation of the control that should be rendered
 	 */
 	ListBaseRenderer.renderListHeadAttributes = function(rm, oControl) {
 	};
@@ -224,7 +229,7 @@ sap.ui.define(["sap/m/library", "sap/ui/Device", "sap/ui/core/InvisibleText", ".
 	 * This hook method is called to render list tag
 	 *
 	 * @param {sap.ui.core.RenderManager} rm the RenderManager that can be used for writing to the render output buffer
-	 * @param {sap.ui.core.Control} oControl an object representation of the control that should be rendered
+	 * @param {sap.m.ListBase} oControl an object representation of the control that should be rendered
 	 */
 	ListBaseRenderer.renderListStartAttributes = function(rm, oControl) {
 		rm.openStart("ul", oControl.getId("listUl"));
@@ -236,36 +241,30 @@ sap.ui.define(["sap/m/library", "sap/ui/Device", "sap/ui/core/InvisibleText", ".
 	};
 
 	/**
-	 * Returns aria accessibility role
-	 *
-	 * @param {sap.ui.core.Control} oControl an object representation of the control
-	 * @returns {String}
-	 */
-	ListBaseRenderer.getAriaRole = function(oControl) {
-		return "listbox";
-	};
-
-	/**
 	 * Returns aria accessibility role for the no data entry.
+	 * @param {sap.m.ListBase} oControl the control instance
 	 *
-	 * @returns {String}
+	 * @returns {string|null} the no data role attribute
 	 */
-	ListBaseRenderer.getNoDataAriaRole = function() {
+	ListBaseRenderer.getNoDataAriaRole = function(oControl) {
 		return null;
 	};
 
 	/**
 	 * Returns the inner aria labelledby ids for the accessibility
 	 *
-	 * @param {sap.ui.core.Control} oControl an object representation of the control
-	 * @returns {String|undefined}
+	 * @param {sap.m.ListBase} oControl an object representation of the control
+	 * @returns {string|undefined} header id
 	 */
 	ListBaseRenderer.getAriaLabelledBy = function(oControl) {
 		var oHeaderTBar = oControl.getHeaderToolbar();
 		if (oHeaderTBar) {
 			var oTitle = oHeaderTBar.getTitleControl();
 			if (oTitle) {
-				return oTitle.getId();
+				var sTitleId = oTitle.getId();
+				if (oControl.getAriaLabelledBy().indexOf(sTitleId) === -1) {
+					return sTitleId;
+				}
 			}
 		} else if (oControl.getHeaderText()) {
 			return oControl.getId("header");
@@ -275,8 +274,8 @@ sap.ui.define(["sap/m/library", "sap/ui/Device", "sap/ui/core/InvisibleText", ".
 	/**
 	 * Returns the inner aria describedby ids for the accessibility
 	 *
-	 * @param {sap.ui.core.Control} oControl an object representation of the control
-	 * @returns {String|undefined}
+	 * @param {sap.m.ListBase} oControl an object representation of the control
+	 * @returns {string|undefined}
 	 */
 	ListBaseRenderer.getAriaDescribedBy = function(oControl) {
 		if (oControl.getFooterText()) {
@@ -287,13 +286,14 @@ sap.ui.define(["sap/m/library", "sap/ui/Device", "sap/ui/core/InvisibleText", ".
 	/**
 	 * Returns the accessibility state of the control
 	 *
-	 * @param {sap.ui.core.Control} oControl an object representation of the control
+	 * @param {sap.m.ListBase} oControl an object representation of the control
+	 * @returns {object} the accessibility state object
 	 */
 	ListBaseRenderer.getAccessibilityState = function(oControl) {
-		var sRole = this.getAriaRole(oControl);
+		var sRole = oControl.getAriaRole();
 		return {
 			role : sRole,
-			multiselectable : (sRole && oControl._bSelectionMode) ? oControl.getMode() == "MultiSelect" : undefined,
+			multiselectable : (sRole != "list" && oControl._bSelectionMode) ? oControl.getMode() == "MultiSelect" : undefined,
 			labelledby : {
 				value : this.getAriaLabelledBy(oControl),
 				append : true
@@ -309,7 +309,7 @@ sap.ui.define(["sap/m/library", "sap/ui/Device", "sap/ui/core/InvisibleText", ".
 	 * This hook method is called to finish list rendering
 	 *
 	 * @param {sap.ui.core.RenderManager} rm the RenderManager that can be used for writing to the render output buffer
-	 * @param {sap.ui.core.Control} oControl an object representation of the control that should be rendered
+	 * @param {sap.m.ListBase} oControl an object representation of the control that should be rendered
 	 */
 	ListBaseRenderer.renderListEndAttributes = function(rm, oControl) {
 		rm.close("ul");
@@ -319,12 +319,12 @@ sap.ui.define(["sap/m/library", "sap/ui/Device", "sap/ui/core/InvisibleText", ".
 	 * This hook method is called to render no data field
 	 *
 	 * @param {sap.ui.core.RenderManager} rm the RenderManager that can be used for writing to the render output buffer
-	 * @param {sap.ui.core.Control} oControl an object representation of the control that should be rendered
+	 * @param {sap.m.ListBase} oControl an object representation of the control that should be rendered
 	 */
 	ListBaseRenderer.renderNoData = function(rm, oControl) {
 		rm.openStart("li", oControl.getId("nodata"));
-		rm.attr("tabindex", oControl.getKeyboardMode() == ListKeyboardMode.Navigation ? -1 : 0);
-		var sAriaRole = this.getNoDataAriaRole();
+		rm.attr("tabindex", "-1");
+		var sAriaRole = this.getNoDataAriaRole(oControl);
 		if (sAriaRole) {
 			rm.attr("role", sAriaRole);
 		}
@@ -332,18 +332,37 @@ sap.ui.define(["sap/m/library", "sap/ui/Device", "sap/ui/core/InvisibleText", ".
 		ListItemBaseRenderer.addFocusableClasses.call(ListItemBaseRenderer, rm);
 		rm.openEnd();
 
-		rm.openStart("div", oControl.getId("nodata-text")).class("sapMListNoDataText").openEnd();
-		rm.text(oControl.getNoDataText(true));
-		rm.close("div");
+		rm.openStart("div", oControl.getId("nodata-text")).class("sapMListNoDataText");
 
+		var vNoData = oControl.getNoData();
+		if (vNoData && typeof vNoData !== "string") {
+			rm.class("sapMListNoDataContent");
+		}
+		rm.openEnd();
+
+		this.renderNoDataArea(rm, oControl);
+
+		rm.close("div");
 		rm.close("li");
 	};
 
+	ListBaseRenderer.renderNoDataArea = function (rm, oControl) {
+		var vNoData = oControl.getNoData() || oControl.getNoDataText();
+		if (typeof vNoData === "string") {
+			rm.text(vNoData);
+		} else {
+			rm.renderControl(vNoData);
+		}
+	};
+
 	ListBaseRenderer.renderDummyArea = function(rm, oControl, sAreaId, iTabIndex) {
-		rm.openStart("div", oControl.getId(sAreaId)).attr("tabindex", iTabIndex);
+		rm.openStart("div", oControl.getId(sAreaId)).attr("role", "none").attr("tabindex", iTabIndex); // role = none because focusable elements must have a role
 
 		if (Device.system.desktop) {
 			rm.class("sapMListDummyArea");
+			if (sAreaId == "after") {
+				rm.class("sapMListDummyAreaSticky");
+			}
 		}
 
 		rm.openEnd().close("div");
@@ -362,8 +381,8 @@ sap.ui.define(["sap/m/library", "sap/ui/Device", "sap/ui/core/InvisibleText", ".
 	 *
 	 * This method should be used when text is used frequently.
 	 *
-	 * @param {String} sBundleText bundle key of the announcement
-	 * @returns {String} id of the generated invisible ARIA node
+	 * @param {string} sBundleText bundle key of the announcement
+	 * @returns {string} id of the generated invisible ARIA node
 	 * @protected
 	 */
 	ListBaseRenderer.getAriaAnnouncement = function(sBundleText) {

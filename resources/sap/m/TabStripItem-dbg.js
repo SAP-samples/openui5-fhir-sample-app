@@ -1,18 +1,15 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2024 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 // Provides control sap.m.TabStripItem.
-sap.ui.define(["./library", "sap/ui/core/Item", "sap/ui/base/ManagedObject", "sap/ui/core/IconPool", "./AccButton"],
-	function(library, Item, ManagedObject, IconPool, AccButton) {
+sap.ui.define(["./library", "sap/ui/core/Item", "sap/ui/base/ManagedObject", "sap/ui/core/IconPool", "./AccButton", "sap/m/ImageHelper"],
+	function(library, Item, ManagedObject, IconPool, AccButton, ImageHelper) {
 		"use strict";
 
 		// shortcut for sap.m.ButtonType
 		var ButtonType = library.ButtonType;
-
-		// shortcut for sap.m.ImageHelper
-		var ImageHelper = library.ImageHelper;
 
 		/**
 		 * Constructor for a new <code>TabStripItem</code>.
@@ -25,7 +22,7 @@ sap.ui.define(["./library", "sap/ui/core/Item", "sap/ui/base/ManagedObject", "sa
 		 * @extends sap.ui.core.Item
 		 *
 		 * @author SAP SE
-		 * @version 1.79.0
+		 * @version 1.120.6
 		 *
 		 * @constructor
 		 * @private
@@ -234,6 +231,12 @@ sap.ui.define(["./library", "sap/ui/core/Item", "sap/ui/base/ManagedObject", "sa
 			}
 			ManagedObject.prototype.setProperty.call(this, sName, vValue, bSupressInvalidation);
 
+			if ((sName === "text" && this.getAdditionalText() !== "" && this.getAggregation("_image")) ||
+				(sName === "additionalText" && this.getText() !== "" && this.getAggregation("_image"))) {
+					// update the decorative state of the icon if the text or additional text is changed
+					this.getAggregation("_image").setDecorative(vValue !== "");
+			}
+
 			// optimisation to not invalidate and rerender the whole parent DOM, but only manipulate the CSS class
 			// for invisibility on the concrete DOM element that needs to change
 			if (this.getParent() && this.getParent().changeItemState) {
@@ -249,23 +252,12 @@ sap.ui.define(["./library", "sap/ui/core/Item", "sap/ui/base/ManagedObject", "sa
 			return this;
 		};
 
-
-		/**
-		 * Property setter for the icon
-		 *
-		 * @param {sap.ui.core.URI} sIcon - new value of the Icon property
-		 * @return {sap.m.TabStripItem} this to allow method chaining
-		 * @public
-		 */
-		TabStripItem.prototype.setIcon = function(sIcon) {
-			return this._setIcon(sIcon);
-		};
-
-		TabStripItem.prototype._setIcon = function(sIcon, bSuppressRendering) {
+		TabStripItem.prototype.setIcon = function(sIcon, bSuppressRendering) {
 			var mProperties,
 				aCssClasses = ['sapMTabContIcon'],
 				oImage = this.getAggregation("_image"),
-				sImgId = this.getId() + "-img";
+				sImgId = this.getId() + "-img",
+				bDecorative = !!(this.getText() || this.getAdditionalText());
 
 			if (!sIcon) {
 				this.setProperty("icon", sIcon, bSuppressRendering);
@@ -281,6 +273,7 @@ sap.ui.define(["./library", "sap/ui/core/Item", "sap/ui/base/ManagedObject", "sa
 				mProperties = {
 					src : sIcon,
 					id: sImgId,
+					decorative: bDecorative,
 					tooltip: this.getIconTooltip()
 				};
 
@@ -293,7 +286,7 @@ sap.ui.define(["./library", "sap/ui/core/Item", "sap/ui/base/ManagedObject", "sa
 		/**
 		 * Function is called when image control needs to be loaded.
 		 *
-		 * @return {sap.m.TabStripItem} this to allow method chaining
+		 * @returns {sap.ui.core.Control} the aggregated image
 		 * @private
 		 */
 		TabStripItem.prototype._getImage = function () {

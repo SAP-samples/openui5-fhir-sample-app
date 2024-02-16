@@ -1,32 +1,46 @@
 /******************************************************************
 	Style of the DT Contextmenu - sap_fiori_3_hcw Theme
 *******************************************************************/
-@_sap_ui_dt_ContextMenu_BorderColor: @sapUiBlackBG; //#000000
+@_sap_ui_dt_ContextMenu_Border_Radius: @sapUiButtonBorderCornerRadius; // 0.25rem
+@_sap_ui_dt_ContextMenu_OpenSubMenuBG: @sapUiSelected; //#fff
+@_sap_ui_dt_ContextMenu_OpenSubMenuBorder: @sapUiNeutralBG; //fff
 
 .sapUiDtContextMenu {
+	.sapUiMnuLst {
+		.sapUiMnuItm {
 
-	&.sapMPopoverArr, .sapMPopoverArr {
-		&:after {
-			box-shadow: 0 0 0 0.0625rem @_sap_ui_dt_ContextMenu_BorderColor; //1px
-			border: none;
-			margin: -0.375rem 0 0 0.125rem; //6px 2px
+			&:focus {
+				border-radius: @_sap_ui_dt_ContextMenu_Border_Radius;
+			}
+
+			&.sapUiMnuItmSubMnuOpen {
+				background-color: @_sap_ui_dt_ContextMenu_OpenSubMenuBG;
+				border-bottom: 0.0625rem solid @_sap_ui_dt_ContextMenu_OpenSubMenuBorder !important; //1px
+				border-radius: @_sap_ui_dt_ContextMenu_Border_Radius;
+
+				&.sapUiMnuItmHov {
+					background-color: @_sap_ui_dt_ContextMenu_OpenSubMenuBG;
+				}
+			}
 		}
 	}
 }
 
-.sapUiSizeCompact {
-	.sapUiDtContextMenu {
-		.sapMBtnIcon {
-			margin-left: 0.4375rem; //7px
-			margin-right: 0.4375rem; //7px
-			padding-left: 0;
+.sapUiDtContextMiniMenu:not(.sapUiSubmenu) {
+	.sapUiMnuLst {
+
+		.sapUiMnuItmHov {
+			.sapUiIcon {
+				border-radius: @_sap_ui_dt_ContextMenu_Border_Radius;
+			}
+		}
+
+		.sapUiMnuItm.sapUiMnuItmSubMnuOpen {
+			background-color: @_sap_ui_dt_ContextMenu_OpenSubMenuBorder;
+
+			.sapUiIcon {
+				border-radius: @_sap_ui_dt_ContextMenu_Border_Radius;
+			}
 		}
 	}
-}
-
-html .sapUiDtContextMenu .sapMBtn:focus > .sapMFocusable,
-html .sapUiDtContextMenu.sapMBtn:focus > .sapMFocusable {
-	border-color: transparent;
-	outline: 0.125rem dotted @_sap_ui_dt_ContextMenu_BorderColor; //2px
-	outline-offset: -0.125rem; //2px
 }

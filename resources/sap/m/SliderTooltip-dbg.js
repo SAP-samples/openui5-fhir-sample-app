@@ -1,6 +1,6 @@
 /*!
 * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2024 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
 */
 
@@ -8,24 +8,28 @@ sap.ui.define([
 	'./library',
 	'./SliderUtilities',
 	'./SliderTooltipBase',
-	'sap/ui/core/Control',
 	'sap/ui/core/library',
+	'sap/ui/core/Core',
 	'./delegate/ValueStateMessage',
+	'sap/ui/core/ValueStateSupport',
+	"sap/ui/core/InvisibleMessage",
 	'./SliderTooltipRenderer'
 ],
 function(
 	Library,
 	SliderUtilities,
 	SliderTooltipBase,
-	Control,
 	coreLibrary,
+	Core,
 	ValueStateMessage,
+	ValueStateSupport,
+	InvisibleMessage,
 	SliderTooltipRenderer
 ) {
 		"use strict";
 
 		var ValueState = coreLibrary.ValueState;
-
+		var InvisibleMessageMode = coreLibrary.InvisibleMessageMode;
 		/**
 		 * Constructor for a new SliderTooltip.
 		 *
@@ -38,13 +42,12 @@ function(
 		 * @extends sap.m.SliderTooltipBase
 		 *
 		 * @author SAP SE
-		 * @version 1.79.0
+		 * @version 1.120.6
 		 *
 		 * @constructor
 		 * @private
 		 * @since 1.54
 		 * @alias sap.m.SliderTooltip
-		 * @ui5-metamodel This control/element also will be described in the UI5 (legacy) designtime metamodel
 		 */
 		var SliderTooltip = SliderTooltipBase.extend("sap.m.SliderTooltip", /** @lends sap.m.SliderTooltip.prototype */ {
 			metadata: {
@@ -101,22 +104,36 @@ function(
 						}
 					}
 				}
-			}
+			},
+
+			renderer: SliderTooltipRenderer
 		});
 
 		SliderTooltip.prototype.init = function () {
+			SliderTooltipBase.prototype.init.apply(this, arguments);
 			this._oValueStateMessage = new ValueStateMessage(this);
 
 			this._fLastValidValue = 0;
 		};
 
+		SliderTooltip.prototype.exit = function () {
+			if (this.oInvisibleMessage) {
+				this.oInvisibleMessage.destroy();
+				this.oInvisibleMessage = null;
+			}
+		};
+
 		SliderTooltip.prototype.onBeforeRendering = function () {
-			SliderTooltipBase.prototype.setValue.call(this, this.getValue());
+			if (!this.oInvisibleMessage) {
+				this.oInvisibleMessage = InvisibleMessage.getInstance();
+			}
 		};
 
 		SliderTooltip.prototype.onAfterRendering = function () {
+			var sAddRemoveClass = !this.getEditable() ? "add" : "remove";
+
 			if (this.getDomRef()) {
-				this.getFocusDomRef().toggleClass(SliderUtilities.CONSTANTS.TOOLTIP_CLASS + "NotEditable", !this.getEditable());
+				this.getFocusDomRef().classList[sAddRemoveClass](SliderUtilities.CONSTANTS.TOOLTIP_CLASS + "NotEditable");
 			}
 		};
 
@@ -125,7 +142,7 @@ function(
 		};
 
 		SliderTooltip.prototype.getFocusDomRef = function () {
-			return this.$("input");
+			return this.getDomRef("input");
 		};
 
 		SliderTooltip.prototype.getDomRefForValueStateMessage = function () {
@@ -143,7 +160,7 @@ function(
 		SliderTooltip.prototype.sliderValueChanged = function (fValue) {
 
 			if (this.getDomRef()) {
-				this.getFocusDomRef().val(fValue);
+				this.getFocusDomRef().value = fValue;
 			}
 
 			// remember last valid value of the input
@@ -158,32 +175,67 @@ function(
 		 * Default value is <code>None</code>.
 		 *
 		 * @param {sap.ui.core.ValueState} sValueState New value for property <code>valueState</code>.
-		 * @return {sap.m.SliderTooltip} <code>this</code> to allow method chaining.
+		 * @return {this} <code>this</code> to allow method chaining.
 		 * @public
 		 */
 		SliderTooltip.prototype.setValueState = function (sValueState) {
-			var bErrorState, bOpenValueStateMessage;
-			// validate given value
+			var oDomRef = this.getDomRef(),
+				oInputDomRef = this.getFocusDomRef(),
+				bErrorState, bOpenValueStateMessage;
+
 			sValueState = this.validateProperty("valueState", sValueState);
+			bErrorState = oDomRef && (sValueState === ValueState.Error);
+			bOpenValueStateMessage = oDomRef && bErrorState;
 
 			this.setProperty("valueState", sValueState, true);
-
-			bErrorState = (sValueState === ValueState.Error);
-			bOpenValueStateMessage = this.getDomRef() && bErrorState;
-
 			this._oValueStateMessage[bOpenValueStateMessage ? "open" : "close"]();
-			this.$().toggleClass(SliderUtilities.CONSTANTS.TOOLTIP_CLASS + "ErrorState", bErrorState);
+
+			if (oInputDomRef) {
+				oDomRef.classList[bErrorState ? "add" : "remove"](SliderUtilities.CONSTANTS.TOOLTIP_CLASS + "ErrorState");
+				oInputDomRef[bErrorState ? "setAttribute" : "removeAttribute"]("aria-invalid", bErrorState);
+				oInputDomRef[bOpenValueStateMessage ? "setAttribute" : "removeAttribute"]("aria-errormessage", this.getId() + "-message");
+				this._invisibleMessageAnnouncement(sValueState);
+			}
 
 			return this;
 		};
 
+		/**
+		 * Adds the generated value state message to the <code>sap.ui.core.InvisibleMessage</code>
+		 * instance to be announced by screen readers because the value state
+		 * popup and the aria-errormessage attribute is added on the fly and not announced otherwise
+		 *
+		 * @param {string} sValueStateType The value state type to be announced by screen readers
+		 *
+		 * @private
+		 */
+		SliderTooltip.prototype._invisibleMessageAnnouncement = function (sValueStateType) {
+			if (sValueStateType !== ValueState.Error) {
+				return;
+			}
+
+			var oRB = Core.getLibraryResourceBundle("sap.m"),
+			sValueStateTypeText, sInvisibleMessageAnnounce;
+
+			sValueStateTypeText = oRB.getText("INPUTBASE_VALUE_STATE_" + sValueStateType.toUpperCase());
+			sInvisibleMessageAnnounce = sValueStateTypeText + " " +  ValueStateSupport.getAdditionalText(this);
+			this.oInvisibleMessage.announce(sInvisibleMessageAnnounce, InvisibleMessageMode.Assertive);
+			this._bInvisibleMessageUpdated = true;
+		};
+
 		SliderTooltip.prototype.onfocusout = function (oEvent) {
-			var fValue = parseFloat(this.getFocusDomRef().val());
+			var fValue = parseFloat(this.getFocusDomRef().value);
 			this._validateValue(fValue);
+
+			// Clean live region on close if used
+			if (this._bInvisibleMessageUpdated) {
+				document.getElementById(this.oInvisibleMessage.getId() + "-assertive").textContent = "";
+				this._bInvisibleMessageUpdated = false;
+			}
 		};
 
 		SliderTooltip.prototype.onsapenter = function (oEvent) {
-			var fValue = parseFloat(this.getFocusDomRef().val());
+			var fValue = parseFloat(this.getFocusDomRef().value);
 			this._validateValue(fValue);
 		};
 

@@ -1,13 +1,8 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2024 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
-
-// Ensure that sap.ui.unified is loaded before the module dependencies will be required.
-// Loading it synchronously is the only compatible option and doesn't harm when sap.ui.unified
-// already has been loaded asynchronously (e.g. via a dependency declared in the manifest)
-sap.ui.getCore().loadLibrary("sap.ui.unified");
 
 // Provides control sap.m.SinglePlanningCalendar.
 sap.ui.define([
@@ -25,8 +20,12 @@ sap.ui.define([
 	'sap/ui/core/format/DateFormat',
 	'sap/ui/unified/calendar/CalendarDate',
 	'sap/ui/unified/DateRange',
+	'sap/ui/unified/DateTypeRange',
+	'sap/ui/unified/library',
 	'sap/ui/base/ManagedObjectObserver',
-	"sap/ui/thirdparty/jquery"
+	"sap/ui/core/date/UI5Date",
+	"sap/ui/thirdparty/jquery",
+	"sap/ui/core/date/CalendarWeekNumbering"
 ],
 function(
 	library,
@@ -43,12 +42,17 @@ function(
 	DateFormat,
 	CalendarDate,
 	DateRange,
+	DateTypeRange,
+	unifiedLibrary,
 	ManagedObjectObserver,
-	jQuery
+	UI5Date,
+	jQuery,
+	CalendarWeekNumbering
 ) {
 	"use strict";
 
 	var PlanningCalendarStickyMode = library.PlanningCalendarStickyMode;
+	var SinglePlanningCalendarSelectionMode = library.SinglePlanningCalendarSelectionMode;
 	var HEADER_RESIZE_HANDLER_ID = "_sHeaderResizeHandlerId";
 	var MAX_NUMBER_OF_VIEWS_IN_SEGMENTED_BUTTON = 4;
 	var SEGMENTEDBUTTONITEM__SUFFIX = "--item";
@@ -65,11 +69,13 @@ function(
 	 *
 	 * <h3>Overview</h3>
 	 *
-	 * <b>Note:</b> The <code>SinglePlanningCalendar</code> uses parts of the <code>sap.ui.unified</code> library.
+	 * <b>Note:</b> The application developer should add dependency to <code>sap.ui.unified</code> library on application level
+	 * to ensure that the library is loaded before the module dependencies will be required.
+	 * The <code>SinglePlanningCalendar</code> uses parts of the <code>sap.ui.unified</code> library.
 	 * This library will be loaded after the <code>SinglePlanningCalendar</code>, if it wasn't previously loaded.
-	 * This could lead to a waiting time when a <code>SinglePlanningCalendar</code> is used for the first time.
+	 * This could lead to CSP compliance issues and adds an additional waiting time when a <code>SinglePlanningCalendar</code> is used for the first time.
 	 * To prevent this, apps using the <code>SinglePlanningCalendar</code> must also load the
-	 * <code>sap.ui.unified</code> library.
+	 * <code>sap.ui.unified</code> library in advance.
 	 *
 	 * The <code>SinglePlanningCalendar</code> has the following structure:
 	 *
@@ -101,7 +107,7 @@ function(
 	 * @extends sap.ui.core.Control
 	 *
 	 * @author SAP SE
-	 * @version 1.79.0
+	 * @version 1.120.6
 	 *
 	 * @constructor
 	 * @public
@@ -109,342 +115,400 @@ function(
 	 * @alias sap.m.SinglePlanningCalendar
 	 */
 
-	var SinglePlanningCalendar = Control.extend("sap.m.SinglePlanningCalendar", /** @lends sap.m.SinglePlanningCalendar.prototype */ { metadata : {
+	var SinglePlanningCalendar = Control.extend("sap.m.SinglePlanningCalendar", /** @lends sap.m.SinglePlanningCalendar.prototype */ {
+		metadata : {
 
-		library : "sap.m",
+			library : "sap.m",
 
-		properties : {
+			properties : {
 
-			/**
-			 * Determines the title of the <code>SinglePlanningCalendar</code>.
-			 */
-			title: { type : "string", group : "Appearance", defaultValue : "" },
+				/**
+				 * Determines the title of the <code>SinglePlanningCalendar</code>.
+				 */
+				title: { type : "string", group : "Appearance", defaultValue : "" },
 
-			/**
-			 * Determines the start date of the grid, as a JavaScript date object. It is considered as a local date.
-			 * The time part will be ignored. The current date is used as default.
-			 */
-			startDate: { type : "object", group : "Data" },
+				/**
+				 * Determines the start date of the grid, as a UI5Date or JavaScript Date object. It is considered as a local date.
+				 * The time part will be ignored. The current date is used as default.
+				 */
+				startDate: { type : "object", group : "Data" },
 
-			/**
-			 * Determines the start hour of the grid to be shown if the <code>fullDay</code> property is set to
-			 * <code>false</code>. Otherwise the previous hours are displayed as non-working. The passed hour is
-			 * considered as 24-hour based.
-			 */
-			startHour: {type: "int", group: "Data", defaultValue: 0},
+				/**
+				 * Determines the start hour of the grid to be shown if the <code>fullDay</code> property is set to
+				 * <code>false</code>. Otherwise the previous hours are displayed as non-working. The passed hour is
+				 * considered as 24-hour based.
+				 */
+				startHour: {type: "int", group: "Data", defaultValue: 0},
 
-			/**
-			 * Determines the end hour of the grid to be shown if the <code>fullDay</code> property is set to
-			 * <code>false</code>. Otherwise the next hours are displayed as non-working. The passed hour is
-			 * considered as 24-hour based.
-			 */
-			endHour: {type: "int", group: "Data", defaultValue: 24},
+				/**
+				 * Determines the end hour of the grid to be shown if the <code>fullDay</code> property is set to
+				 * <code>false</code>. Otherwise the next hours are displayed as non-working. The passed hour is
+				 * considered as 24-hour based.
+				 */
+				endHour: {type: "int", group: "Data", defaultValue: 24},
 
-			/**
-			 * Determines if all of the hours in a day are displayed. If set to <code>false</code>, the hours shown are
-			 * between the <code>startHour</code> and <code>endHour</code>.
-			 */
-			fullDay: {type: "boolean", group: "Data", defaultValue: true},
+				/**
+				 * Determines if all of the hours in a day are displayed. If set to <code>false</code>, the hours shown are
+				 * between the <code>startHour</code> and <code>endHour</code>.
+				 */
+				fullDay: {type: "boolean", group: "Data", defaultValue: true},
 
-			/**
-			 * Determines which part of the control will remain fixed at the top of the page during vertical scrolling
-			 * as long as the control is in the viewport.
-			 *
-			 * <b>Note:</b> Limited browser support. Browsers which do not support this feature:
-			 * <ul>
-			 * 	<li>Microsoft Internet Explorer</li>
-			 * 	<li>Microsoft Edge lower than version 41 (EdgeHTML 16)</li>
-			 * 	<li>Mozilla Firefox lower than version 59</li>
-			 * </ul>
-			 *
-			 * @since 1.62
-			 */
-			stickyMode: {type: "sap.m.PlanningCalendarStickyMode", group: "Behavior", defaultValue: PlanningCalendarStickyMode.None},
+				/**
+				 * Determines which part of the control will remain fixed at the top of the page during vertical scrolling
+				 * as long as the control is in the viewport.
+				 *
+				 * <b>Note:</b> Limited browser support. Browsers which do not support this feature:
+				 * <ul>
+				 * 	<li>Microsoft Internet Explorer</li>
+				 * 	<li>Microsoft Edge lower than version 41 (EdgeHTML 16)</li>
+				 * 	<li>Mozilla Firefox lower than version 59</li>
+				 * </ul>
+				 *
+				 * @since 1.62
+				 */
+				stickyMode: {type: "sap.m.PlanningCalendarStickyMode", group: "Behavior", defaultValue: PlanningCalendarStickyMode.None},
 
-			/**
-			 * Determines whether the appointments in the grid are draggable.
-			 *
-			 * The drag and drop interaction is visualized by a placeholder highlighting the area where the
-			 * appointment can be dropped by the user.
-			 *
-			 * @since 1.64
-			 */
-			enableAppointmentsDragAndDrop: { type: "boolean", group: "Misc", defaultValue: false },
+				/**
+				 * Determines scale factor for the appointments.
+				 *
+				 * Acceptable range is from 1 to 6.
+				 * @since 1.99
+				 */
+				scaleFactor: {type: "float", group: "Data", defaultValue: 1},
 
-			/**
-			 * Determines whether the appointments are resizable.
-			 *
-			 * The resize interaction is visualized by making the appointment transparent.
-			 *
-			 * The appointment snaps on every interval
-			 * of 30 minutes. After the resize is finished, the {@link #event:appointmentResize appointmentResize} event is fired, containing
-			 * the new start and end JavaScript date objects.
-			 *
-			 * @since 1.65
-			 */
-			enableAppointmentsResize: { type: "boolean", group: "Misc", defaultValue: false },
 
-			/**
-			 * Determines whether the appointments can be created by dragging on empty cells.
-			 *
-			 * See {@link #property:enableAppointmentsResize enableAppointmentsResize} for the specific points for events snapping
-			 *
-			 * @since 1.65
-			 */
-			enableAppointmentsCreate: { type: "boolean", group: "Misc", defaultValue: false }
+				 /**
+				 * Determines whether the appointments in the grid are draggable.
+				 *
+				 * The drag and drop interaction is visualized by a placeholder highlighting the area where the
+				 * appointment can be dropped by the user.
+				 *
+				 * @since 1.64
+				 */
+				enableAppointmentsDragAndDrop: { type: "boolean", group: "Misc", defaultValue: false },
+
+				/**
+				 * Determines whether the appointments are resizable.
+				 *
+				 * The resize interaction is visualized by making the appointment transparent.
+				 *
+				 * The appointment snaps on every interval
+				 * of 30 minutes. After the resize is finished, the {@link #event:appointmentResize appointmentResize} event is fired, containing
+				 * the new start and end UI5Date or JavaScript Date objects.
+				 *
+				 * @since 1.65
+				 */
+				enableAppointmentsResize: { type: "boolean", group: "Misc", defaultValue: false },
+
+				/**
+				 * Determines whether the appointments can be created by dragging on empty cells.
+				 *
+				 * See {@link #property:enableAppointmentsResize enableAppointmentsResize} for the specific points for events snapping
+				 *
+				 * @since 1.65
+				 */
+				enableAppointmentsCreate: { type: "boolean", group: "Misc", defaultValue: false },
+
+				/**
+				 * If set, the first day of the displayed week is this day. Valid values are 0 to 6 starting on Sunday.
+				 * If there is no valid value set, the default of the used locale is used.
+				 *
+				 * Note: This property will only have effect in Week view and Month view of the SinglePlanningCalendar,
+				 * but it wouldn't have effect in WorkWeek view.
+				 * This property should not be used with the calendarWeekNumbering property.
+				 *
+				 * @since 1.98
+				 */
+				firstDayOfWeek : {type : "int", group : "Appearance", defaultValue : -1},
+
+				/**
+			 	 * If set, the calendar week numbering is used for display.
+				 * If not set, the calendar week numbering of the global configuration is used.
+				 * Note: This property should not be used with firstDayOfWeek property.
+				 * @since 1.110.0
+				 */
+				calendarWeekNumbering : { type : "sap.ui.core.date.CalendarWeekNumbering", group : "Appearance", defaultValue: null},
+
+				/**
+				 * Determines whether more than one day will be selectable.
+				 * <b>Note:</b> selecting more than one day is possible with a combination of <code>Ctrl + mouse click</code>
+				 */
+				 dateSelectionMode: { type: "sap.m.SinglePlanningCalendarSelectionMode", group: "Behavior", defaultValue: SinglePlanningCalendarSelectionMode.SingleSelect }
+			},
+
+			aggregations : {
+
+				/**
+				 * The controls to be passed to the toolbar.
+				 */
+				actions : {
+					type : "sap.ui.core.Control",
+					multiple: true,
+					singularName: "action",
+					forwarding: {
+						getter: "_getHeader",
+						aggregation: "actions"
+					}
+				},
+
+				/**
+				 * The appointments to be displayed in the grid. Appointments outside the visible time frame are not rendered.
+				 * Appointments, longer than a day, will be displayed in all of the affected days.
+				 * To display an all-day appointment, the appointment must start at 00:00 and end on any day in the future in 00:00h.
+				 *
+				 * Note: The <code>customContent</code> functionality of the <code>CalendarAppointment</code> is not available
+				 * in the <code>SinglePlanningCalendar</code>. If set, it will not make any effect.
+				 */
+				appointments : {
+					type: "sap.ui.unified.CalendarAppointment",
+					multiple: true,
+					singularName: "appointment",
+					forwarding: {
+						getter: "_getCurrentGrid",
+						aggregation: "appointments"
+					}
+				},
+
+				/**
+				 * Views of the <code>SinglePlanningCalendar</code>.
+				 *
+				 * <b>Note:</b> If not set, the Week view is available.
+				 */
+				views : {type : "sap.m.SinglePlanningCalendarView", multiple : true, singularName : "view"},
+
+				/**
+				 * Special days in the header visualized as a date range with type.
+				 *
+				 * <b>Note:</b> If one day is assigned to more than one type, only the first type is used.
+				 * @since 1.66
+				 */
+				specialDates : {type : "sap.ui.unified.DateTypeRange",
+								multiple : true,
+								singularName : "specialDate",
+								forwarding: {
+									getter: "_getCurrentGrid",
+									aggregation: "specialDates"
+								}
+				},
+
+				/**
+				 * The header part of the <code>SinglePlanningCalendar</code>.
+				 *
+				 * @private
+				 */
+				_header : { type : "sap.m.PlanningCalendarHeader", multiple : false, visibility : "hidden" },
+
+				/**
+				 * The grid part of the <code>SinglePlanningCalendar</code>.
+				 *
+				 * @private
+				 */
+				_grid: { type: "sap.ui.core.Control", multiple: false, visibility: "hidden" },
+
+				/**
+				 * The grid part of the <code>SinglePlanningCalendar</code>.
+				 *
+				 * @private
+				 */
+				_mvgrid: { type: "sap.ui.core.Control", multiple: false, visibility: "hidden" },
+
+				/**
+				 * Dates or date ranges for selected dates.
+				 *
+				 * To set a single date (instead of a range), set only the <code>startDate</code> property
+				 * of the {@link sap.ui.unified.DateRange} class.
+				 */
+				selectedDates : {
+					type : "sap.ui.unified.DateRange",
+					multiple : true,
+					singularName : "selectedDate",
+					forwarding: {
+						getter: "_getCurrentGrid",
+						aggregation: "selectedDates"
+					}
+				}
+
+			},
+
+			associations: {
+
+				/**
+				 * Corresponds to the currently selected view.
+				 */
+				selectedView: { type: "sap.m.SinglePlanningCalendarView", multiple: false },
+
+				/**
+				 * Association to the <code>PlanningCalendarLegend</code> explaining the colors of the <code>Appointments</code>.
+				 *
+				 * <b>Note:</b> The legend does not have to be rendered but must exist and all required types must be assigned.
+				 * @since 1.65.0
+				 */
+				legend: { type: "sap.m.PlanningCalendarLegend", multiple: false}
+
+			},
+
+			events: {
+
+				/**
+				 * Fired when the selected state of an appointment is changed.
+				 */
+				appointmentSelect: {
+					parameters: {
+
+						/**
+						 * The appointment on which the event was triggered.
+						 */
+						appointment: {type: "sap.ui.unified.CalendarAppointment"},
+						/**
+						 * All appointments with changed selected state.
+						 * @since 1.67.0
+						 */
+						appointments : {type : "sap.ui.unified.CalendarAppointment[]"}
+
+					}
+				},
+
+				/**
+				 * Fired if an appointment is dropped.
+				 * @since 1.64
+				 */
+				appointmentDrop : {
+					parameters : {
+						/**
+						 * The dropped appointment.
+						 */
+						appointment : {type : "sap.ui.unified.CalendarAppointment"},
+
+						/**
+						 * Start date of the dropped appointment, as a UI5Date or JavaScript Date object.
+						 */
+						startDate : {type : "object"},
+
+						/**
+						 * Dropped appointment end date as a UI5Date or JavaScript Date object.
+						 */
+						endDate : {type : "object"},
+
+						/**
+						 * The drop type. If true - it's "Copy", if false - it's "Move".
+						 */
+						copy : {type : "boolean"}
+					}
+				},
+
+				/**
+				 * Fired when an appointment is resized.
+				 * @since 1.65
+				 */
+				appointmentResize: {
+					parameters: {
+						/**
+						 * The resized appointment.
+						 */
+						appointment: { type: "sap.ui.unified.CalendarAppointment" },
+
+						/**
+						 * Start date of the resized appointment, as a UI5Date or JavaScript Date object.
+						 */
+						startDate: { type: "object" },
+
+						/**
+						 * End date of the resized appointment, as a UI5Date or JavaScript Date object.
+						 */
+						endDate: { type: "object" }
+					}
+				},
+
+				/**
+				 * Fired if an appointment is created.
+				 * @since 1.65
+				 */
+				appointmentCreate: {
+					parameters: {
+						/**
+						 * Start date of the created appointment, as a UI5Date or JavaScript Date object.
+						 */
+						startDate: {type: "object"},
+
+						/**
+						 * End date of the created appointment, as a UI5Date or JavaScript Date object.
+						 */
+						endDate: {type: "object"}
+					}
+				},
+
+				/**
+				 * Fired if a date is selected in the calendar header.
+				 */
+				headerDateSelect: {
+					parameters: {
+
+						/**
+						 * Date of the selected header, as a UI5Date or JavaScript Date object. It is considered as a local date.
+						 */
+						date: {type: "object"}
+
+					}
+				},
+
+				/**
+				 * <code>startDate</code> is changed while navigating in the <code>SinglePlanningCalendar</code>.
+				 */
+				startDateChange: {
+					parameters: {
+
+						/**
+						 * The new start date, as a UI5Date or JavaScript Date object. It is considered as a local date.
+						 */
+						date: {type: "object"}
+
+					}
+				},
+
+				/**
+				 * Fired when a grid cell is pressed.
+				 * @since 1.65
+				 */
+				cellPress: {
+					parameters: {
+						/**
+						 * The start date as a UI5Date or JavaScript Date object of the focused grid cell.
+						 */
+						startDate: {type: "object"},
+						/**
+						 * The end date as a UI5Date or JavaScript Date object of the focused grid cell.
+						 */
+						endDate: {type: "object"}
+					}
+				},
+
+				/**
+				 * Fired when a 'more' button is pressed.
+				 * <b>Note:</b> The 'more' button appears in a month view cell
+				 * when multiple appointments exist and the available space
+				 * is not sufficient to display all of them.
+				 */
+				moreLinkPress: {
+					parameters: {
+						/**
+						 * The date as a UI5Date or JavaScript Date object of the cell with the
+						 * pressed more link.
+						 */
+						date: { type: "object" }
+					}
+				},
+
+				/**
+				 * The view was changed by user interaction.
+				 * @since 1.71.0
+				 */
+				viewChange : {}
+			}
+
 		},
 
-		aggregations : {
-
-			/**
-			 * The controls to be passed to the toolbar.
-			 */
-			actions : {
-				type : "sap.ui.core.Control",
-				multiple: true,
-				singularName: "action",
-				forwarding: {
-					getter: "_getHeader",
-					aggregation: "actions"
-				}
-			},
-
-			/**
-			 * The appointments to be displayed in the grid. Appointments outside the visible time frame are not rendered.
-			 * Appointments, longer than a day, will be displayed in all of the affected days.
-			 * To display an all-day appointment, the appointment must start at 00:00 and end on any day in the future in 00:00h.
-			 */
-			appointments : {
-				type: "sap.ui.unified.CalendarAppointment",
-				multiple: true,
-				singularName: "appointment",
-				forwarding: {
-					getter: "_getCurrentGrid",
-					aggregation: "appointments"
-				}
-			},
-
-			/**
-			 * Views of the <code>SinglePlanningCalendar</code>.
-			 *
-			 * <b>Note:</b> If not set, the Week view is available.
-			 */
-			views : {type : "sap.m.SinglePlanningCalendarView", multiple : true, singularName : "view"},
-
-			/**
-			 * Special days in the header visualized as a date range with type.
-			 *
-			 * <b>Note:</b> If one day is assigned to more than one type, only the first type is used.
-			 * @since 1.66
-			 */
-			specialDates : {type : "sap.ui.unified.DateTypeRange",
-							multiple : true,
-							singularName : "specialDate",
-							forwarding: {
-								getter: "_getCurrentGrid",
-								aggregation: "specialDates"
-							}
-			},
-
-			/**
-			 * The header part of the <code>SinglePlanningCalendar</code>.
-			 *
-			 * @private
-			 */
-			_header : { type : "sap.m.PlanningCalendarHeader", multiple : false, visibility : "hidden" },
-
-			/**
-			 * The grid part of the <code>SinglePlanningCalendar</code>.
-			 *
-			 * @private
-			 */
-			_grid: { type: "sap.ui.core.Control", multiple: false, visibility: "hidden" },
-
-			/**
-			 * The grid part of the <code>SinglePlanningCalendar</code>.
-			 *
-			 * @private
-			 */
-			_mvgrid: { type: "sap.ui.core.Control", multiple: false, visibility: "hidden" }
-
-		},
-
-		associations: {
-
-			/**
-			 * Corresponds to the currently selected view.
-			 */
-			selectedView: { type: "sap.m.SinglePlanningCalendarView", multiple: false },
-
-			/**
-			 * Association to the <code>PlanningCalendarLegend</code> explaining the colors of the <code>Appointments</code>.
-			 *
-			 * <b>Note:</b> The legend does not have to be rendered but must exist and all required types must be assigned.
-			 * @since 1.65.0
-			 */
-			legend: { type: "sap.m.PlanningCalendarLegend", multiple: false}
-
-		},
-
-		events: {
-
-			/**
-			 * Fired when the selected state of an appointment is changed.
-			 */
-			appointmentSelect: {
-				parameters: {
-
-					/**
-					 * The appointment on which the event was triggered.
-					 */
-					appointment: {type: "sap.ui.unified.CalendarAppointment"},
-					/**
-					 * All appointments with changed selected state.
-					 * @since 1.67.0
-					 */
-					appointments : {type : "sap.ui.unified.CalendarAppointment[]"}
-
-				}
-			},
-
-			/**
-			 * Fired if an appointment is dropped.
-			 * @since 1.64
-			 */
-			appointmentDrop : {
-				parameters : {
-					/**
-					 * The dropped appointment.
-					 */
-					appointment : {type : "sap.ui.unified.CalendarAppointment"},
-
-					/**
-					 * Start date of the dropped appointment, as a JavaScript date object.
-					 */
-					startDate : {type : "object"},
-
-					/**
-					 * Dropped appointment end date as a JavaScript date object.
-					 */
-					endDate : {type : "object"},
-
-					/**
-					 * The drop type. If true - it's "Copy", if false - it's "Move".
-					 */
-					copy : {type : "boolean"}
-				}
-			},
-
-			/**
-			 * Fired when an appointment is resized.
-			 * @since 1.65
-			 */
-			appointmentResize: {
-				parameters: {
-					/**
-					 * The resized appointment.
-					 */
-					appointment: { type: "sap.ui.unified.CalendarAppointment" },
-
-					/**
-					 * Start date of the resized appointment, as a JavaScript date object.
-					 */
-					startDate: { type: "object" },
-
-					/**
-					 * End date of the resized appointment, as a JavaScript date object.
-					 */
-					endDate: { type: "object" }
-				}
-			},
-
-			/**
-			 * Fired if an appointment is created.
-			 * @since 1.65
-			 */
-			appointmentCreate: {
-				parameters: {
-					/**
-					 * Start date of the created appointment, as a JavaScript date object.
-					 */
-					startDate: {type: "object"},
-
-					/**
-					 * End date of the created appointment, as a JavaScript date object.
-					 */
-					endDate: {type: "object"}
-				}
-			},
-
-			/**
-			 * Fired if a date is selected in the calendar header.
-			 */
-			headerDateSelect: {
-				parameters: {
-
-					/**
-					 * Date of the selected header, as a JavaScript date object. It is considered as a local date.
-					 */
-					date: {type: "object"}
-
-				}
-			},
-
-			/**
-			 * <code>startDate</code> is changed while navigating in the <code>SinglePlanningCalendar</code>.
-			 */
-			startDateChange: {
-				parameters: {
-
-					/**
-					 * The new start date, as a JavaScript date object. It is considered as a local date.
-					 */
-					date: {type: "object"}
-
-				}
-			},
-
-			/**
-			 * Fired when a grid cell is focused.
-			 * @since 1.65
-			 */
-			cellPress: {
-				parameters: {
-					/**
-					 * The start date as a JavaScript date object of the focused grid cell.
-					 */
-					startDate: {type: "object"},
-					/**
-					 * The end date as a JavaScript date object of the focused grid cell.
-					 */
-					endDate: {type: "object"}
-				}
-			},
-
-			/**
-			 * Fired when a 'more' button is pressed.
-			 * <b>Note:</b> The 'more' button appears in a month view cell
-			 * when multiple appointments exist and the available space
-			 * is not sufficient to display all of them.
-			 */
-			moreLinkPress: {
-				parameters: {
-					/**
-					 * The date as a JavaScript date object of the cell with the
-					 * pressed more link.
-					 */
-					date: { type: "object" }
-				}
-			},
-
-			/**
-			 * The view was changed by user interaction.
-			 * @since 1.71.0
-			 */
-			viewChange : {}
-		}
-
-	}});
+		renderer: SinglePlanningCalendarRenderer
+	});
 
 	SinglePlanningCalendar.prototype.init = function() {
 		var sOPCId = this.getId();
@@ -464,7 +528,7 @@ function(
 		this._attachHeaderEvents();
 		this._attachGridEvents();
 		this._attachDelegates();
-		this.setStartDate(new Date());
+		this.setStartDate(UI5Date.getInstance());
 	};
 
 	/**
@@ -475,6 +539,11 @@ function(
 	SinglePlanningCalendar.prototype.onBeforeRendering = function () {
 		// We can apply/remove sticky classes even before the control is rendered.
 		this._toggleStickyClasses();
+
+		if (this.getFirstDayOfWeek() !== -1 && this.getCalendarWeekNumbering()) {
+			Log.warning("Both properties firstDayOfWeek and calendarWeekNumbering should not be used at the same time!");
+		}
+
 	};
 
 	/**
@@ -513,7 +582,7 @@ function(
 	 * Called when the navigation toolbar changes its width or height.
 	 *
 	 * @param oEvent The resize event
-	 * @returns {sap.m.SinglePlanningCalendar} <code>this</code> for chaining
+	 * @returns {this} Reference to <code>this</code> for method chaining
 	 * @private
 	 */
 	SinglePlanningCalendar.prototype._onHeaderResize = function (oEvent) {
@@ -543,6 +612,22 @@ function(
 		return this.setProperty("title", sTitle);
 	};
 
+	SinglePlanningCalendar.prototype.setScaleFactor = function(iScaleFactor) {
+		if (iScaleFactor <  1 || iScaleFactor > 6) {
+			return;
+		}
+
+		this.setProperty("scaleFactor", parseInt(iScaleFactor));
+		this.getAggregation("_grid").setProperty("scaleFactor", parseInt(iScaleFactor));
+		return this;
+	};
+
+	/**
+	 * Sets the start date of the grid.
+	 * @param {Date|module:sap/ui/core/date/UI5Date} oDate A date instance
+	 * @returns {this} Reference to <code>this</code> for method chaining
+	 * @public
+	 */
 	SinglePlanningCalendar.prototype.setStartDate = function (oDate) {
 		this.setProperty("startDate", oDate);
 		this._alignColumns();
@@ -590,10 +675,17 @@ function(
 		return this.setProperty("enableAppointmentsCreate", bEnabled, true);
 	};
 
+	SinglePlanningCalendar.prototype.setDateSelectionMode = function (sDateSelectionMode) {
+		this.getAggregation("_mvgrid").setDateSelectionMode(sDateSelectionMode);
+		this.getAggregation("_grid").setDateSelectionMode(sDateSelectionMode);
+
+		return this.setProperty("dateSelectionMode", sDateSelectionMode);
+	};
+
 	/**
 	 * Applies or removes sticky classes based on <code>stickyMode</code>'s value.
 	 *
-	 * @returns {sap.m.SinglePlanningCalendar} <code>this</code> for chaining
+	 * @returns {this} Reference to <code>this</code> for method chaining
 	 * @private
 	 */
 	SinglePlanningCalendar.prototype._toggleStickyClasses = function () {
@@ -606,10 +698,39 @@ function(
 	};
 
 	/**
+	 * Removes the selected dates of the grid.
+	 * @returns {object} An array of the removed DateRange objects
+	 * @public
+	 */
+	SinglePlanningCalendar.prototype.removeAllSelectedDates = function () {
+		return this._getCurrentGrid().removeAllSelectedDates();
+	};
+
+	/**
+	 * Gets the selected dates of the grid.
+	 * @returns {object} An array of DateRange objects
+	 * @public
+	 */
+	SinglePlanningCalendar.prototype.getSelectedDates = function () {
+		return this._getCurrentGrid().getAggregation("selectedDates");
+	};
+
+	/**
+	 * Adds a selected date to the grid.
+	 * @param {object} oSelectedDate A DateRange object
+	 * @returns {this} Reference to <code>this</code> for method chaining
+	 * @public
+	 */
+	SinglePlanningCalendar.prototype.addSelectedDate = function (oSelectedDate) {
+		this._getCurrentGrid().addAggregation("selectedDates", oSelectedDate);
+		return this;
+	};
+
+	/**
 	 * Makes sure that the column headers are offset in such a way, that they are positioned right
 	 * after the navigation toolbar.
 	 *
-	 * @returns {sap.m.SinglePlanningCalendar} <code>this</code> for chaining
+	 * @returns {this} Reference to <code>this</code> for method chaining
 	 * @private
 	 */
 	SinglePlanningCalendar.prototype._adjustColumnHeadersTopOffset = function () {
@@ -804,7 +925,7 @@ function(
 	/**
 	 * Returns the ManagedObjectObserver for the views
 	 *
-	 * @return {sap.ui.base.ManagedObjectObserver} the views observer object
+	 * @returns {sap.ui.base.ManagedObjectObserver} the views observer object
 	 * @private
 	 */
 	SinglePlanningCalendar.prototype._getViewsObserver = function () {
@@ -901,11 +1022,52 @@ function(
 		return this;
 	};
 
+	SinglePlanningCalendar.prototype.setFirstDayOfWeek = function (iFirstDayOfWeek) {
+		if (iFirstDayOfWeek < -1 || iFirstDayOfWeek > 6) {
+			Log.error("" + iFirstDayOfWeek + " is not a valid value to the property firstDayOfWeek. Valid values are from -1 to 6.");
+			return;
+		}
+		this.setProperty("firstDayOfWeek", iFirstDayOfWeek);
+		this.getViews().forEach(function (oView) {
+			oView.setFirstDayOfWeek(iFirstDayOfWeek);
+		});
+
+		var oHeader = this._getHeader(),
+			oPicker = oHeader.getAggregation("_calendarPicker") ? oHeader.getAggregation("_calendarPicker") : oHeader._oPopup.getContent()[0],
+			oSelectedView = this._getSelectedView(),
+			oStartDate = this.getStartDate() || UI5Date.getInstance(),
+			oSPCStart = oSelectedView.calculateStartDate(UI5Date.getInstance(oStartDate.getTime())),
+			oMonthGrid = this.getAggregation("_mvgrid");
+
+		this.setStartDate(oSPCStart);
+		oMonthGrid.setFirstDayOfWeek(iFirstDayOfWeek);
+		oPicker.setFirstDayOfWeek(iFirstDayOfWeek);
+
+		return this;
+	};
+
+	SinglePlanningCalendar.prototype.setCalendarWeekNumbering = function(sCalendarWeekNumbering) {
+		this.setProperty("calendarWeekNumbering", sCalendarWeekNumbering);
+		this.getViews().forEach(function (oView) {
+			oView.setCalendarWeekNumbering(sCalendarWeekNumbering);
+		});
+		var oHeader = this._getHeader(),
+			oPicker = oHeader.getAggregation("_calendarPicker") ? oHeader.getAggregation("_calendarPicker") : oHeader._oPopup.getContent()[0],
+			oMonthGrid = this.getAggregation("_mvgrid");
+
+		oMonthGrid.setCalendarWeekNumbering(this.getCalendarWeekNumbering());
+		oPicker.setCalendarWeekNumbering(this.getCalendarWeekNumbering());
+
+		this._alignColumns();
+
+		return this;
+	};
+
 	/**
 	 * Switches the visibility of the SegmentedButton in the _header and aligns the columns in the grid after an
 	 * operation (add, insert, remove, removeAll, destroy) with the views is performed.
 	 *
-	 * @returns {object} this for method chaining
+	 * @returns {this} Reference to <code>this</code> for method chaining
 	 * @private
 	 */
 	SinglePlanningCalendar.prototype._alignView = function () {
@@ -946,11 +1108,11 @@ function(
 	};
 
 	/**
-	 * Finds the view object by given key
-	 * @param {String} sKey The key of the view
+	 * Finds the view object by given key.
+	 * @param {string} sKey The key of the view
 	 * @public
 	 * @since 1.75
-	 * @returns {sap.m.SinglePlanningCalendarView} the view object matched the given sKey, of null if there is no such view
+	 * @returns {sap.m.SinglePlanningCalendarView|null} the view object which matched the given <code>sKey</code>, or <code>null</code> if there is no such view
 	 */
 	SinglePlanningCalendar.prototype.getViewByKey = function (sKey) {
 		var aViews = this.getViews(),
@@ -965,9 +1127,9 @@ function(
 
 	/**
 	 * Finds the view object by given ID
-	 * @param {String} sId The ID of the view
+	 * @param {string} sId The ID of the view
 	 * @private
-	 * @returns {sap.m.SinglePlanningCalendarView} the view object matched the given sId, of null if there is no such view
+	 * @returns {sap.m.SinglePlanningCalendarView} the view object which matched the given <code>sId</code>, or null if there is no such view
 	 */
 	SinglePlanningCalendar.prototype._getViewById = function (sId) {
 		var aViews = this.getViews(),
@@ -1005,7 +1167,7 @@ function(
 	 * If the SinglePlanningCalendar has only one view added to its view aggregation, the button is not visible.
 	 * Otherwise, it is displayed in the _header.
 	 *
-	 * @returns {object} this for method chaining
+	 * @returns {this} Reference to <code>this</code> for method chaining
 	 * @private
 	 */
 	SinglePlanningCalendar.prototype._switchViewButtonVisibility = function () {
@@ -1020,7 +1182,7 @@ function(
 	/**
 	 * Attaches handlers to the events in the _header aggregation.
 	 *
-	 * @returns {object} this for method chaining
+	 * @returns {this} Reference to <code>this</code> for method chaining
 	 * @private
 	 */
 	SinglePlanningCalendar.prototype._attachHeaderEvents = function () {
@@ -1057,7 +1219,7 @@ function(
 	/**
 	 * Attaches handlers to the events in the _grid aggregation.
 	 *
-	 * @returns {object} this for method chaining
+	 * @returns {this} Reference to <code>this</code> for method chaining
 	 * @private
 	 */
 	SinglePlanningCalendar.prototype._attachGridEvents = function () {
@@ -1066,7 +1228,7 @@ function(
 
 		var fnHandleHeadersSelect = function(oEvent) {
 			this.fireHeaderDateSelect({
-				date: oEvent.getSource().getDate()
+				date: oEvent.getSource()._oDate.toLocalJSDate()
 			});
 		};
 		var fnHandleAppointmentSelect = function(oEvent) {
@@ -1111,17 +1273,17 @@ function(
 			var oGrid = this.getAggregation("_grid"),
 				oFormat = oGrid._getDateFormatter(),
 				iNavDelta = this._getSelectedView().getScrollEntityCount() - oGrid._getColumns() + 1,
-				oCellStartDate = new Date(oEvent.getParameter("startDate")),
+				oCellStartDate = UI5Date.getInstance(oEvent.getParameter("startDate")),
 				bFullDay = oEvent.getParameter("fullDay"),
 				oNavDate = this.getStartDate();
 
 			if (oEvent.getParameter("next")) {
 				oCellStartDate.setDate(oCellStartDate.getDate() + iNavDelta);
-				oNavDate = new Date(oNavDate.setDate(oNavDate.getDate() + this._getSelectedView().getScrollEntityCount()));
+				oNavDate = UI5Date.getInstance(oNavDate.setDate(oNavDate.getDate() + this._getSelectedView().getScrollEntityCount()));
 				this.setStartDate(oNavDate);
 			} else {
 				oCellStartDate.setDate(oCellStartDate.getDate() - iNavDelta);
-				oNavDate = new Date(oNavDate.setDate(oNavDate.getDate() - this._getSelectedView().getScrollEntityCount()));
+				oNavDate = UI5Date.getInstance(oNavDate.setDate(oNavDate.getDate() - this._getSelectedView().getScrollEntityCount()));
 				this.setStartDate(oNavDate);
 			}
 
@@ -1130,7 +1292,7 @@ function(
 				"[data-sap-start-date='" + oFormat.format(oCellStartDate) + "'].sapMSinglePCRow";
 		};
 		var fnHandleBorderReachedMonthView = function(oEvent) {
-			var oDate = new Date(oEvent.getParameter("startDate")),
+			var oDate = UI5Date.getInstance(oEvent.getParameter("startDate")),
 				oCalNextDate = CalendarDate.fromLocalJSDate(oDate),
 				oNextDate;
 
@@ -1191,7 +1353,7 @@ function(
 	 * @private
 	 */
 	SinglePlanningCalendar.prototype._handlePressToday = function () {
-		var oStartDate = this._getSelectedView().calculateStartDate(new Date());
+		var oStartDate = this._getSelectedView().calculateStartDate(UI5Date.getInstance());
 
 		this.setStartDate(oStartDate);
 		this.fireStartDateChange({
@@ -1203,7 +1365,7 @@ function(
 	/**
 	 * Sets given view in the selectedView association and then prepares the calendar
 	 * for the new view.
-	 * @param {Object | String} vView The new view
+	 * @param {Object | string} vView The new view
 	 * @private
 	 */
 	SinglePlanningCalendar.prototype._setupNewView = function(vView) {
@@ -1218,6 +1380,7 @@ function(
 		var oNextGrid = this._getCurrentGrid(),
 			aApps,
 			aSpecialDates,
+			aSelectedDates,
 			i;
 
 		if (oPreviousGrid.getId() !== oNextGrid.getId()) {
@@ -1232,6 +1395,12 @@ function(
 			for (i = 0; i < aSpecialDates.length; i++) {
 				oNextGrid.addAggregation("specialDates", aSpecialDates[i], true);
 			}
+
+			aSelectedDates = oPreviousGrid.removeAllAggregation("selectedDates", true);
+
+			for (i = 0; i < aSelectedDates.length; i++) {
+				oNextGrid.addAggregation("selectedDates", aSelectedDates[i], true);
+			}
 		}
 	};
 
@@ -1243,7 +1412,7 @@ function(
 		var oStartDate = this._getHeader().getStartDate(),
 			oSPCStartDate;
 
-		oSPCStartDate = this._getSelectedView().calculateStartDate(new Date(oStartDate.getTime()));
+		oSPCStartDate = this._getSelectedView().calculateStartDate(UI5Date.getInstance(oStartDate.getTime()));
 		this.setStartDate(oSPCStartDate);
 		if (!this._getSelectedView().isA("sap.m.SinglePlanningCalendarMonthView")) {
 			this.getAggregation("_grid")._getColumnHeaders().setDate(oStartDate);
@@ -1260,6 +1429,8 @@ function(
 	 */
 	SinglePlanningCalendar.prototype._updateCalendarPickerSelection = function() {
 		var oRangeDates = this._getFirstAndLastRangeDate(),
+			oHeader = this._getHeader(),
+			oCalPicker = oHeader.getAggregation("_calendarPicker") ? oHeader.getAggregation("_calendarPicker") : oHeader._oPopup.getContent()[0],
 			oSelectedRange;
 
 		oSelectedRange = new DateRange({
@@ -1267,8 +1438,8 @@ function(
 			endDate: oRangeDates.oEndDate.toLocalJSDate()
 		});
 
-		this._getHeader().getAggregation("_calendarPicker").removeAllSelectedDates();
-		this._getHeader().getAggregation("_calendarPicker").addSelectedDate(oSelectedRange);
+		oCalPicker.destroySelectedDates();
+		oCalPicker.addSelectedDate(oSelectedRange);
 	};
 
 	/**
@@ -1282,11 +1453,18 @@ function(
 		var oRangeDates = this._getFirstAndLastRangeDate(),
 			oStartDate = oRangeDates.oStartDate.toLocalJSDate(),
 			oEndDate = oRangeDates.oEndDate.toLocalJSDate(),
-			oLongDateFormat = DateFormat.getDateInstance({format: "yMMMMd"}),
-			oResult = oLongDateFormat.format(oStartDate);
+			oFormat,
+			oResult;
 
-		if (oStartDate.getTime() !== oEndDate.getTime()) {
-			oResult += " - " + oLongDateFormat.format(oEndDate);
+		if (this._getSelectedView().isA("sap.m.SinglePlanningCalendarMonthView")) {
+			oFormat = DateFormat.getDateInstance({format: "yMMMM"});
+			oResult = oFormat.format(oStartDate);
+		} else {
+			oFormat = DateFormat.getDateInstance({format: "yMMMMd"});
+			oResult = oFormat.format(oStartDate);
+			if (oStartDate.getTime() !== oEndDate.getTime()) {
+				oResult += " - " + oFormat.format(oEndDate);
+			}
 		}
 
 		return oResult;
@@ -1298,7 +1476,7 @@ function(
 	 * @private
 	 */
 	SinglePlanningCalendar.prototype._applyArrowsLogic = function (bBackwards) {
-		var oCalStartDate = CalendarDate.fromLocalJSDate(this.getStartDate() || new Date()),
+		var oCalStartDate = CalendarDate.fromLocalJSDate(this.getStartDate() || UI5Date.getInstance()),
 			iOffset = bBackwards ? -1 : 1,
 			iNumberToAdd = this._getSelectedView().getScrollEntityCount(this.getStartDate(), iOffset),
 			oStartDate;
@@ -1324,12 +1502,12 @@ function(
 	 */
 	SinglePlanningCalendar.prototype._getFirstAndLastRangeDate = function () {
 		var oSelectedView = this._getSelectedView(),
-			oStartDate = this._getHeader().getStartDate() || new Date(),
+			oStartDate = this._getHeader().getStartDate() || UI5Date.getInstance(),
 			iDaysToAdd = oSelectedView.getEntityCount() - 1,
 			oCalViewStartDate,
 			oCalViewEndDate;
 
-		oCalViewStartDate = CalendarDate.fromLocalJSDate(oSelectedView.calculateStartDate(new Date(oStartDate.getTime())));
+		oCalViewStartDate = CalendarDate.fromLocalJSDate(oSelectedView.calculateStartDate(UI5Date.getInstance(oStartDate.getTime())));
 		oCalViewEndDate = new CalendarDate(oCalViewStartDate);
 		oCalViewEndDate.setDate(oCalViewStartDate.getDate() + iDaysToAdd);
 
@@ -1348,8 +1526,8 @@ function(
 			oGrid = this.getAggregation("_grid"),
 			oGridMV = this.getAggregation("_mvgrid"),
 			oView = this._getSelectedView(),
-			oDate = this.getStartDate() || new Date(),
-			oViewStartDate = oView.calculateStartDate(new Date(oDate.getTime())),
+			oDate = this.getStartDate() || UI5Date.getInstance(),
+			oViewStartDate = oView.calculateStartDate(UI5Date.getInstance(oDate.getTime())),
 			oCalViewDate = CalendarDate.fromLocalJSDate(oViewStartDate);
 
 		oHeader.setStartDate(oViewStartDate);
@@ -1408,7 +1586,7 @@ function(
 	 * @param {string} sHandler the handler ID
 	 * @param {Object} oObject
 	 * @param {Function} fnHandler
-	 * @returns {sap.m.SinglePlanningCalendar} <code>this</code> for chaining
+	 * @returns {this} Reference to <code>this</code> for method chaining
 	 * @private
 	 */
 	SinglePlanningCalendar.prototype._registerResizeHandler = function (sHandler, oObject, fnHandler) {
@@ -1422,7 +1600,7 @@ function(
 	/**
 	 * De-registers resize handler.
 	 * @param {string} sHandler the handler ID
-	 * @returns {sap.m.SinglePlanningCalendar} <code>this</code> for chaining
+	 * @returns {this} Reference to <code>this</code> for method chaining
 	 * @private
 	 */
 	SinglePlanningCalendar.prototype._deRegisterResizeHandler = function (sHandler) {
@@ -1432,6 +1610,24 @@ function(
 		}
 
 		return this;
+	};
+
+	SinglePlanningCalendar.prototype._getSpecialDates = function(){
+		var specialDates = this.getSpecialDates();
+		for (var i = 0; i < specialDates.length; i++) {
+			var bNeedsSecondTypeAdding = specialDates[i].getSecondaryType() === unifiedLibrary.CalendarDayType.NonWorking
+					&& specialDates[i].getType() !== unifiedLibrary.CalendarDayType.NonWorking;
+			if (bNeedsSecondTypeAdding) {
+				var newSpecialDate = new DateTypeRange();
+				newSpecialDate.setType(unifiedLibrary.CalendarDayType.NonWorking);
+				newSpecialDate.setStartDate(specialDates[i].getStartDate());
+				if (specialDates[i].getEndDate()) {
+					newSpecialDate.setEndDate(specialDates[i].getEndDate());
+				}
+				specialDates.push(newSpecialDate);
+			}
+		}
+		return specialDates;
 	};
 
 	return SinglePlanningCalendar;

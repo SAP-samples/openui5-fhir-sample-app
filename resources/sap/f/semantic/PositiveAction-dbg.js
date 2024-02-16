@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2024 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -10,7 +10,7 @@ sap.ui.define(['sap/f/semantic/SemanticButton'], function(SemanticButton) {
 	/**
 	* Constructor for a new <code>PositiveAction</code>.
 	* @param {string} [sId] ID for the new control, generated automatically if no ID is given
-	* @param {object} [mSettings] Custom initial settings for the new control
+	* @param {object} [mSettings] Optional initial settings for the new control:  a map/JSON-object with initial property values, event listeners etc. for the new object
 	*
 	* @class
 	* A semantic-specific button, eligible for the <code>positiveAction</code> aggregation of the
@@ -19,13 +19,12 @@ sap.ui.define(['sap/f/semantic/SemanticButton'], function(SemanticButton) {
 	* @extends sap.f.semantic.SemanticButton
 	*
 	* @author SAP SE
-	* @version 1.79.0
+	* @version 1.120.6
 	*
 	* @constructor
 	* @public
 	* @since 1.46.0
 	* @alias sap.f.semantic.PositiveAction
-	* @ui5-metamodel This control/element also will be described in the UI5 (legacy) designtime metamodel
 	*/
 	var PositiveAction = SemanticButton.extend("sap.f.semantic.PositiveAction", /** @lends sap.f.semantic.PositiveAction.prototype */ {
 		metadata: {

@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2024 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -27,7 +27,7 @@ sap.ui.define(['sap/ui/base/EventProvider', "sap/base/util/uid"],
 	 * @extends sap.ui.base.EventProvider
 	 *
 	 * @author SAP SE
-	 * @version 1.79.0
+	 * @version 1.120.6
 	 *
 	 * @public
 	 * @alias sap.ui.core.message.MessageProcessor
@@ -39,20 +39,15 @@ sap.ui.define(['sap/ui/base/EventProvider', "sap/base/util/uid"],
 
 			this.mMessages = null;
 			this.id = uid();
-			sap.ui.getCore().getMessageManager().registerMessageProcessor(this);
 		},
 
 		metadata : {
-
 			"abstract" : true,
 			publicMethods : [
-				// methods
 				"getId", "setMessages", "attachMessageChange", "detachMessageChange"
-		  ]
+			]
 		}
-
 	});
-
 
 	/**
 	 * Map of event names, that are provided by the MessageProcessor.
@@ -66,11 +61,20 @@ sap.ui.define(['sap/ui/base/EventProvider', "sap/base/util/uid"],
 	};
 
 	/**
-	 * The <code>messageChange</code> event is fired when the messages are changed.
+	 * The inheriting class is responsible to fire a <code>messageChange</code> event when
+	 * {@link sap.ui.core.message.Message} instances are changed. For more information, see
+	 * {@link topic:62b1481d3e084cb49dd30956d183c6a0 Error, Warning, and Info Messages} or check
+	 * the implementing subclasses.
 	 *
 	 * @name sap.ui.core.message.MessageProcessor#messageChange
 	 * @event
 	 * @param {sap.ui.base.Event} oEvent
+	 * @param {sap.ui.base.EventProvider} oEvent.getSource
+	 * @param {object} oEvent.getParameters
+	 * @param {sap.ui.core.message.Message} oEvent.getParameters.oldMessages
+	 *            Messages already existing before the <code>messageChange</code> event was fired.
+	 * @param {sap.ui.core.message.Message} oEvent.getParameters.newMessages
+	 *            New messages added by the trigger of the <code>messageChange</code> event.
 	 * @public
 	 */
 
@@ -90,7 +94,7 @@ sap.ui.define(['sap/ui/base/EventProvider', "sap/base/util/uid"],
 	 *            [oListener] Context object to call the event handler with,
 	 *            defaults to this <code>MessageProcessor</code> itself
 	 *
-	 * @returns {sap.ui.core.message.MessageProcessor} Reference to <code>this</code> in order to allow method chaining
+	 * @returns {this} Reference to <code>this</code> in order to allow method chaining
 	 * @public
 	 */
 	MessageProcessor.prototype.attachMessageChange = function(oData, fnFunction, oListener) {
@@ -108,7 +112,7 @@ sap.ui.define(['sap/ui/base/EventProvider', "sap/base/util/uid"],
 	 *            fnFunction The function to be called, when the event occurs
 	 * @param {object}
 	 *            [oListener] Context object on which the given function had to be called
-	 * @returns {sap.ui.core.message.MessageProcessor} Reference to <code>this</code> in order to allow method chaining
+	 * @returns {this} Reference to <code>this</code> in order to allow method chaining
 	 * @public
 	 */
 	MessageProcessor.prototype.detachMessageChange = function(fnFunction, oListener) {
@@ -119,13 +123,30 @@ sap.ui.define(['sap/ui/base/EventProvider', "sap/base/util/uid"],
 	/**
 	 * Fires event {@link #event:messageChange messageChange} to attached listeners.
 	 *
-	 * @param {object} [oParameters] Parameters to pass along with the event
+	 * @param {object} mParameters
+	 *            Parameters to pass along with the event
+	 * @param {sap.ui.core.message.Message} mParameters.oldMessages
+	 *            Messages already existing before the <code>messageChange</code> event was fired.
+	 * @param {sap.ui.core.message.Message} mParameters.newMessages
+	 *            New messages added by the trigger of the <code>messageChange</code> event.
 	 *
-	 * @returns {sap.ui.core.message.MessageProcessor} Reference to <code>this</code> in order to allow method chaining
+	 * @returns {this} Reference to <code>this</code> in order to allow method chaining
 	 * @protected
+	 * @deprecated As of version 1.115. Use {@link module:sap/ui/core/Messaging.updateMessages} instead
 	 */
-	MessageProcessor.prototype.fireMessageChange = function(oParameters) {
-		this.fireEvent("messageChange", oParameters);
+	MessageProcessor.prototype.fireMessageChange = function(mParameters) {
+		var Messaging =  sap.ui.require("sap/ui/core/Messaging");
+		if (Messaging) {
+			Messaging.registerMessageProcessor(this);
+			Messaging.updateMessages(mParameters.oldMessages, mParameters.newMessages);
+			this.fireEvent("messageChange", mParameters);
+		} else  {
+			sap.ui.require(["sap/ui/core/Messaging"], function(Messaging)  {
+				Messaging.registerMessageProcessor(this);
+				Messaging.updateMessages(mParameters.oldMessages, mParameters.newMessages);
+				this.fireEvent("messageChange", mParameters);
+			}.bind(this));
+		}
 		return this;
 	};
 	// the 'abstract methods' to be implemented by child classes
@@ -145,8 +166,8 @@ sap.ui.define(['sap/ui/base/EventProvider', "sap/base/util/uid"],
 	 *
 	 * @name sap.ui.core.message.MessageProcessor.prototype.setMessages
 	 * @function
-	 * @param {Object<string,array>}
-	 *         vMessages map of messages: {'target': [array of messages],...}
+	 * @param {Object<string,sap.ui.core.message.Message[]>}
+	 *         mMessages map of messages: {'target': [sap.ui.core.message.Message],...}
 	 * @public
 	 */
 
@@ -158,15 +179,6 @@ sap.ui.define(['sap/ui/base/EventProvider', "sap/base/util/uid"],
 	 */
 	MessageProcessor.prototype.getId = function() {
 		return this.id;
-	};
-
-	/**
-	 * Destroys the MessageProcessor Instance
-	 * @public
-	 */
-	MessageProcessor.prototype.destroy = function() {
-		sap.ui.getCore().getMessageManager().unregisterMessageProcessor(this);
-		EventProvider.prototype.destroy.apply(this, arguments);
 	};
 
 	return MessageProcessor;

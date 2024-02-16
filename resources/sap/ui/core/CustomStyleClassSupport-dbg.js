@@ -1,37 +1,17 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2024 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 // Provides helper sap.ui.core.CustomStyleClassSupport
-sap.ui.define(['./Element', "sap/base/assert", "sap/base/Log", "sap/ui/Device"],
-	function(Element, assert, Log, Device) {
+sap.ui.define(['./Element', "sap/ui/core/Theming", "sap/base/assert", "sap/base/Log"],
+	function(Element, Theming, assert, Log) {
 	"use strict";
 
-	/*global DOMTokenList */
 
 	var rAnyWhiteSpace = /\s/;
 	var rNonWhiteSpace = /\S+/g;
-
-	// Workaround for functionality that is missing in IE11
-	var addAll = DOMTokenList.prototype.add,
-		removeAll = DOMTokenList.prototype.remove;
-
-	if ( Device.browser.msie ) {
-		/* polyfill, to be called with a DOMTokenlist as this and the class names as individual arguments */
-		addAll = function() {
-			for (var i = 0; i < arguments.length; i++) {
-				this.add(arguments[i]);
-			}
-		};
-		/* polyfill, to be called with a DOMTokenlist as this and the class names as individual arguments */
-		removeAll = function() {
-			for (var i = 0; i < arguments.length; i++) {
-				this.remove(arguments[i]);
-			}
-		};
-	}
 
 	/**
 	 * Applies the support for custom style classes on the prototype of a <code>sap.ui.core.Element</code>.
@@ -60,8 +40,11 @@ sap.ui.define(['./Element', "sap/base/assert", "sap/base/Log", "sap/ui/Device"],
 	 * }, true);
 	 * </pre>
 	 *
-	 * Furthermore, the function <code>oRenderManager.writeClasses(oElement);</code> ({@link sap.ui.core.RenderManager#writeClasses}) must be called within
-	 * the renderer of the control to which the element belongs, when writing the root tag of the element. This ensures the classes are written to the HTML.
+	 * The classes are written to the HTML automatically when using the {@link sap.ui.core.RenderManager
+	 * Semantic Rendering API}. To ensure that the classes are written to the HTML with the traditional
+	 * string-based rendering, when writing the root tag of the element you must call the function
+	 * <code>oRenderManager.writeClasses(oElement);</code> ({@link sap.ui.core.RenderManager#writeClasses})
+	 * within the renderer of the control to which the element belongs.
 	 *
 	 * This function adds the following functions to the elements prototype:
 	 * <ul>
@@ -150,7 +133,7 @@ sap.ui.define(['./Element', "sap/base/assert", "sap/base/Log", "sap/ui/Device"],
 			var oRoot = this.getDomRef();
 			if (oRoot) { // non-rerendering shortcut
 				if ( aClasses ) {
-					addAll.apply(oRoot.classList, aClasses);
+					oRoot.classList.add.apply(oRoot.classList, aClasses);
 				} else {
 					oRoot.classList.add(sStyleClass);
 				}
@@ -210,7 +193,7 @@ sap.ui.define(['./Element', "sap/base/assert", "sap/base/Log", "sap/ui/Device"],
 				var oRoot = this.getDomRef();
 				if (oRoot) { // non-rerendering shortcut
 					if ( aClasses ) {
-						removeAll.apply(oRoot.classList, aClasses);
+						oRoot.classList.remove.apply(oRoot.classList, aClasses);
 					} else {
 						oRoot.classList.remove(sStyleClass);
 					}
@@ -278,7 +261,7 @@ sap.ui.define(['./Element', "sap/base/assert", "sap/base/Log", "sap/ui/Device"],
 	}
 
 	function fireThemeScopingChangedEvent(oElement, aScopeClasses, bIsAdded) {
-		sap.ui.getCore().fireThemeScopingChanged({
+		Theming.fireThemeScopingChanged({
 			scopes: aScopeClasses,
 			added: bIsAdded,
 			element: oElement

@@ -1,17 +1,17 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2024 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 sap.ui.define([
+	"sap/ui/core/StaticArea",
 	"sap/ui/core/util/ShortcutHelper",
-	'sap/base/assert',
-	'sap/ui/dom/jquery/control'
+	'sap/base/assert'
 ], function(
+		StaticArea,
 		ShortcutHelper,
-		assert,
-		jQuery
+		assert
 	) {
 	"use strict";
 
@@ -96,7 +96,8 @@ sap.ui.define([
 			function wrapCallback() {
 				var oFocusedElement = document.activeElement,
 					oSpan = document.createElement("span"),
-					oStaticUiAreaDomRef = sap.ui.getCore().getStaticAreaRef();
+					oStaticAreaDomRef = StaticArea.getDomRef(),
+					args = arguments;
 
 				oSpan.setAttribute("tabindex", 0);
 				oSpan.setAttribute("id", "sap-ui-shortcut-focus");
@@ -107,20 +108,27 @@ sap.ui.define([
 				oSpan.style.right = "50%";
 
 				// add span to static-ui-area
-				oStaticUiAreaDomRef.appendChild(oSpan);
+				oStaticAreaDomRef.appendChild(oSpan);
 
-				// set focus on span to enforce blur - e.g. data of input field needs to get peristed
-				oSpan.focus();
+				// switch the focus after the current call stack because some input device (e.g. Barcode scanner) fires
+				// the "keyup" event in a 0 timeout after the 'keydown' event. We need to make sure that the element can
+				// receive both of the events before we switch the focus to the "span"
+				setTimeout(function() {
+					// set focus on span to enforce blur - e.g. data of input field needs to get persisted
+					oSpan.focus();
 
-				// restore old focus
-				oFocusedElement.focus();
+					// setting back the focus async ensures that also a fieldGroupChange happens
+					setTimeout(function() {
+						// restore old focus
+						oFocusedElement.focus();
 
-				// cleanup DOM
-				oStaticUiAreaDomRef.removeChild(oSpan);
+						// cleanup DOM
+						oStaticAreaDomRef.removeChild(oSpan);
 
-				// trigger callback
-				fnCallback.apply(null, arguments);
-
+						// trigger callback
+						fnCallback.apply(null, args);
+					});
+				});
 			}
 
 			var oDelegate = {};

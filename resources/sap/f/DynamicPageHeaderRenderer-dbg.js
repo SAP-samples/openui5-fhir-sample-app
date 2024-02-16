@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2024 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -20,7 +20,7 @@ sap.ui.define([], function () {
 	 * Renders the HTML for the given control, using the provided {@link sap.ui.core.RenderManager}.
 	 *
 	 * @param {sap.ui.core.RenderManager} oRm The RenderManager that can be used for writing to the Render-Output-Buffer
-	 * @param {sap.ui.core.Control} oDynamicPageHeader An object representation of the control that should be rendered
+	 * @param {sap.f.DynamicPageHeader} oDynamicPageHeader An object representation of the control that should be rendered
 	 */
 	DynamicPageHeaderRenderer.render = function (oRm, oDynamicPageHeader) {
 		var oDynamicPageHeaderState = oDynamicPageHeader._getState(),
@@ -28,7 +28,7 @@ sap.ui.define([], function () {
 			sBackgroundDesign = oDynamicPageHeader.getBackgroundDesign();
 
 		// Dynamic Page Layout Header Root DOM Element.
-		oRm.openStart("header", oDynamicPageHeader);
+		oRm.openStart("section", oDynamicPageHeader);
 		oRm.accessibilityState({
 			role: "region"
 		});
@@ -58,7 +58,7 @@ sap.ui.define([], function () {
 			oRm.renderControl(oDynamicPageHeaderState.pinButton);
 		}
 
-		oRm.close("header");
+		oRm.close("section");
 	};
 
 	DynamicPageHeaderRenderer._renderHeaderContent = function (oRm, oDynamicPageHeaderState) {

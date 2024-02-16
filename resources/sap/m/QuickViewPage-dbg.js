@@ -1,6 +1,6 @@
-/*
- * ! OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+/*!
+ * OpenUI5
+ * (c) Copyright 2009-2024 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -13,11 +13,12 @@ sap.ui.define([
 	"sap/ui/layout/form/SimpleForm",
 	"sap/ui/layout/VerticalLayout",
 	"sap/ui/layout/HorizontalLayout",
+	"sap/m/library",
+	"sap/m/Avatar",
 	"sap/m/Page",
 	"sap/m/Button",
 	"sap/m/Bar",
 	"sap/m/Title",
-	"sap/m/Image",
 	"sap/m/Link",
 	"sap/m/Text",
 	"sap/m/Label",
@@ -30,6 +31,7 @@ sap.ui.define([
 	"sap/ui/Device",
 	"sap/ui/layout/form/ResponsiveGridLayout",
 	"./QuickViewPageRenderer",
+	"sap/base/Log",
 	"sap/base/security/encodeURL",
 	"sap/ui/dom/jquery/Focusable" // jQuery Plugin "firstFocusableDomRef"
 ], function (
@@ -40,11 +42,12 @@ sap.ui.define([
 	SimpleForm,
 	VerticalLayout,
 	HorizontalLayout,
+	mLibrary,
+	Avatar,
 	Page,
 	Button,
 	Bar,
 	Title,
-	Image,
 	Link,
 	Text,
 	Label,
@@ -58,6 +61,7 @@ sap.ui.define([
 	Device,
 	ResponsiveGridLayout,
 	QuickViewPageRenderer,
+	Log,
 	encodeURL
 ) {
 	"use strict";
@@ -77,30 +81,37 @@ sap.ui.define([
 	// shortcut for sap.m.ButtonType
 	var ButtonType = library.ButtonType;
 
+	// shortcut for sap.m.AvatarShape
+	var AvatarShape = library.AvatarShape;
+
+	// shortcut for sap.m.EmptyIndicator
+	var EmptyIndicatorMode = library.EmptyIndicatorMode;
+
 	var oRB = Core.getLibraryResourceBundle('sap.m');
 
+	// shortcut for sap.m.PageBackgroundDesign
+	var PageBackgroundDesign = mLibrary.PageBackgroundDesign;
 
 	/**
-	* Constructor for a new QuickViewPage.
-	*
-	* @param {string} [sId] ID for the new control, generated automatically if no ID is given
-	* @param {object} [mSettings] Initial settings for the new control
-	*
-	* @class QuickViewPage consists of  a page header, an object icon or image,
-	* an object name with short description, and an object information divided in groups.
-	* The control uses the sap.m.SimpleForm control to display information.
-	*
-	* @extends sap.ui.core.Control
-	*
-	* @author SAP SE
-	* @version 1.79.0
-	*
-	* @constructor
-	* @public
-	* @since 1.28.11
-	* @alias sap.m.QuickViewPage
-	* @ui5-metamodel This control/element also will be described in the UI5 (legacy) designtime metamodel
-	*/
+	 * Constructor for a new QuickViewPage.
+	 *
+	 * @param {string} [sId] ID for the new control, generated automatically if no ID is given
+	 * @param {object} [mSettings] Initial settings for the new control
+	 *
+	 * @class QuickViewPage consists of a page header, an avatar,
+	 * an object name with short description, and an object information divided in groups.
+	 * The control uses the sap.m.SimpleForm control to display information.
+	 *
+	 * @extends sap.ui.core.Control
+	 *
+	 * @author SAP SE
+	 * @version 1.120.6
+	 *
+	 * @constructor
+	 * @public
+	 * @since 1.28.11
+	 * @alias sap.m.QuickViewPage
+	 */
 	var QuickViewPage = Control.extend("sap.m.QuickViewPage", /** @lends sap.m.QuickViewPage.prototype */ {
 		metadata: {
 
@@ -123,33 +134,36 @@ sap.ui.define([
 				title: { type: "string", group: "Misc", defaultValue: "" },
 
 				/**
-				 * Specifies the URL which opens when the title or the thumbnail is clicked.
+				 * Specifies the URL which opens when the title or the avatar is clicked.
+				 * <b>Note:</b> If the avatar has <code>press</code> listeners this URL is not opened automatically.
 				 */
 				titleUrl: { type: "string", group: "Misc", defaultValue: "" },
 
 				/**
-				 * Specifies the application which provides target and param configuration  for cross-application navigation from the 'page header'.
+				 * Specifies the application which provides target and param configuration for cross-application navigation from the 'page header'.
+				 * @deprecated As of version 1.111. Attach avatar <code>press</code> event instead.
 				 */
-				crossAppNavCallback : { type: "object", group: "Misc" },
+				crossAppNavCallback: { type: "object", group: "Misc", deprecated: true },
 
 				/**
-				 * Specifies the text displayed under the header of the content section
+				 * Specifies the text displayed under the header of the content section.
 				 */
 				description: { type: "string", group: "Misc", defaultValue: "" },
 
 				/**
-				 * Specifies the URL of the icon displayed under the header of the page
+				 * Specifies the URL of the icon or image displayed under the header of the page.
+				 * @deprecated As of version 1.92. Use the <code>avatar</code> aggregation instead.
 				 */
-				icon: { type: "string", group: "Misc", defaultValue: "" },
+				icon: { type: "string", group: "Misc", defaultValue: "", deprecated: true },
 
 				/**
 				 * Defines the fallback icon displayed in case of wrong image src or loading issues.
 				 *
-				 * <b>Note</b> Accepted values are only icons from the SAP icon font.
-				 *
+				 * <b>Note:</b> Accepted values are only icons from the SAP icon font.
+				 * @deprecated As of version 1.92. Use the <code>avatar</code> aggregation and use its property <code>fallbackIcon</code> instead.
 				 * @since 1.69
 				 */
-				fallbackIcon: { type: "sap.ui.core.URI", group: "Appearance", defaultValue: null }
+				fallbackIcon: { type: "sap.ui.core.URI", group: "Appearance", defaultValue: null, deprecated: true }
 			},
 			defaultAggregation: "groups",
 			aggregations: {
@@ -157,17 +171,72 @@ sap.ui.define([
 				/**
 				 * QuickViewGroup consists of a title (optional) and an entity of group elements.
 				 */
-				groups: { type: "sap.m.QuickViewGroup", multiple: true, singularName: "group", bindable: "bindable" }
+				groups: { type: "sap.m.QuickViewGroup", multiple: true, singularName: "group", bindable: "bindable" },
+
+				/**
+				 * Specifies the avatar displayed under the header of the page.
+				 * <b>Note:</b> To achieve the recommended design and behavior don't use the
+				 * <code>displaySize</code>, <code>customDisplaySize</code>, <code>customFontSize</code> properties
+				 * and <code>detailBox</code> aggregation of <code>sap.m.Avatar</code>.
+				 * @since 1.92
+				 */
+				avatar: { type: "sap.m.Avatar", multiple: false, bindable: "bindable" }
 			}
-		}
+		},
+		renderer: QuickViewPageRenderer
 	});
 
+	/**
+	 * Sets a new value for property {@link #setCrossAppNavCallback crossAppNavCallback}.
+	 *
+	 * Specifies the application which provides target and param configuration for cross-application navigation from the 'page header'.
+	 *
+	 * When called with a value of <code>null</code> or <code>undefined</code>, the default value of the property will be restored.
+	 * @deprecated As of version 1.111.
+	 * @method
+	 * @param {function(): {target: object, params: object}} [oCrossAppNavCallback] New value for property <code>crossAppNavCallback</code>
+	 * @public
+	 * @name sap.m.QuickViewPage#setCrossAppNavCallback
+	 * @returns {this} Reference to <code>this</code> in order to allow method chaining
+	 */
+
+	/**
+	 * Gets current value of property {@link #getCrossAppNavCallback crossAppNavCallback}.
+	 *
+	 * Specifies the application which provides target and param configuration for cross-application navigation from the 'page header'.
+	 * @deprecated As of version 1.111.
+	 * @method
+	 * @returns {function(): {target: object, params: object}} Value of property <code>crossAppNavCallback</code>
+	 * @public
+	 * @name sap.m.QuickViewPage#getCrossAppNavCallback
+	 */
+
 	QuickViewPage.prototype.init =  function() {
+		if (this._initCrossAppNavigationService) {
+			this._initCrossAppNavigationService();
+		}
+	};
+
+	/**
+	* @deprecated As of version 1.111.
+	*/
+	QuickViewPage.prototype._initCrossAppNavigationService =  function() {
 		//see API docu for sap.ushell.services.CrossApplicationNavigation
 		var fGetService =  sap.ushell && sap.ushell.Container && sap.ushell.Container.getService;
 		if (fGetService) {
 			this.oCrossAppNavigator = fGetService("CrossApplicationNavigation");
 		}
+	};
+
+	QuickViewPage.prototype.exit = function() {
+		if (this._oPage) {
+			this._oPage.destroy();
+			this._oPage = null;
+		} else {
+			this._destroyPageContent();
+		}
+
+		this._mNavContext = null;
 	};
 
 	/**
@@ -242,7 +311,8 @@ sap.ui.define([
 			oPage.setCustomHeader(new Bar());
 		} else {
 			oPage = this._oPage = new Page(mNavContext.quickViewId + '-' + this.getPageId(), {
-				customHeader : new Bar()
+				customHeader : new Bar(),
+				backgroundDesign: PageBackgroundDesign.Transparent
 			});
 
 			oPage.addEventDelegate({
@@ -373,103 +443,69 @@ sap.ui.define([
 
 	/**
 	 * Helper function that creates the header of the QuickViewPage.
-	 * @returns {sap.ui.layout.HorizontalLayout} The header of the QuickViewPage
+	 * @returns {sap.ui.layout.HorizontalLayout|null} The header of the QuickViewPage
 	 * @private
 	 */
 	QuickViewPage.prototype._getPageHeaderContent = function() {
-		var oIcon,
-			oFallbackIcon,
-			sFallbackIcon = this.getFallbackIcon(),
+		var oAvatar = this._getAvatar(),
 			oVLayout = new VerticalLayout(),
 			oHLayout = new HorizontalLayout(),
-			sIcon = this.getIcon(),
 			sTitle = this.getTitle(),
 			sDescription = this.getDescription(),
-			sTitleUrl = this.getTitleUrl();
+			sTitleUrl = this.getTitleUrl(),
+			oTitle,
+			oDescription;
 
-		if (!sIcon && !sTitle && !sDescription) {
-			return null;
+		if (oAvatar && oAvatar.getVisible()) {
+			oHLayout.addContent(oAvatar);
 		}
 
-		if (sIcon) {
-			if (this.getIcon().indexOf("sap-icon") == 0) {
-				oIcon = this._createIcon(sIcon, !sTitleUrl, sTitle);
-			} else {
-				oIcon = new Image({
-					src: sIcon,
-					decorative: false,
-					tooltip: sTitle
-				}).addStyleClass("sapUiIcon sapMQuickViewPageImage");
-
-				if (IconPool.isIconURI(sFallbackIcon)) {
-					oFallbackIcon = this._createIcon(sFallbackIcon, !sTitleUrl, sTitle);
-					oFallbackIcon.addStyleClass("sapMQuickViewThumbnail sapMQuickViewPageFallbackIconHidden");
-					oIcon.attachError(this._onImageLoadError.bind(this));
-					oHLayout.addContent(oFallbackIcon);
-				}
-			}
-
-			oIcon.addStyleClass("sapMQuickViewThumbnail");
-
-			if (sTitleUrl) {
-				oIcon.attachPress(this._crossApplicationNavigation(this));
-
-				if (oFallbackIcon) {
-					oFallbackIcon.attachPress(this._crossApplicationNavigation(this));
-				}
-			}
-
-			oHLayout.addContent(oIcon);
-		}
-
-		var oTitle;
-
-		if (sTitleUrl) {
+		if (sTitleUrl && sTitle) {
 			oTitle = new Link({
-				text	: sTitle,
-				href	: sTitleUrl,
-				target	: "_blank"
+				text: sTitle,
+				href: sTitleUrl,
+				target: "_blank"
 			});
-		} else if (this.getCrossAppNavCallback()) {
+		} else if (this.getCrossAppNavCallback && this.getCrossAppNavCallback() && sTitle) {
 			oTitle = new Link({
-				text	: sTitle
+				text: sTitle
 			});
-			oTitle.attachPress(this._crossApplicationNavigation(this));
-		} else {
+			oTitle.attachPress(this._crossApplicationNavigation.bind(this));
+		} else if (sTitle) {
 			oTitle = new Title({
-				text	: sTitle,
-				level	: CoreTitleLevel.H1
+				text: sTitle,
+				level: CoreTitleLevel.H3
 			});
 		}
 
 		this.setPageTitleControl(oTitle);
 
-		var oDescription = new Text({
-			text	: sDescription
-		});
+		if (sDescription) {
+			oDescription = new Text({
+				text: sDescription
+			});
+		}
 
-		oVLayout.addContent(oTitle);
-		oVLayout.addContent(oDescription);
-		oHLayout.addContent(oVLayout);
+		if (oTitle) {
+			oVLayout.addContent(oTitle);
+		}
+		if (oDescription) {
+			oVLayout.addContent(oDescription);
+		}
 
-		return oHLayout;
-	};
+		if (oVLayout.getContent().length) {
+			oHLayout.addContent(oVLayout);
+		} else {
+			oVLayout.destroy();
+		}
 
-	/**
-	 * @param {string} sIconSrc The source of the icon.
-	 * @param {boolean} bDecorative Whether the icon is decorative or not.
-	 * @param {string} sTooltip The tooltip of the icon.
-	 *
-	 * @returns {sap.ui.core.Icon} New Icon instance.
-	 * @private
-	 */
-	QuickViewPage.prototype._createIcon = function (sIconSrc, bDecorative, sTooltip) {
-		return new Icon({
-			src: sIconSrc,
-			decorative: bDecorative,
-			useIconTooltip: false,
-			tooltip: sTooltip
-		});
+		if (oHLayout.getContent().length) {
+			return oHLayout;
+		}
+
+		oHLayout.destroy();
+
+		return null;
 	};
 
 	/**
@@ -487,8 +523,8 @@ sap.ui.define([
 
 		if (oGroup.getHeading()) {
 			oForm.addContent(new CoreTitle({
-				text : oGroup.getHeading(),
-				level : CoreTitleLevel.H2
+				text: oGroup.getHeading(),
+				level: CoreTitleLevel.H4
 			}));
 		}
 
@@ -520,7 +556,7 @@ sap.ui.define([
 
 			if (!oCurrentGroupElementValue) {
 				// Add dummy text element so that the form renders the oLabel
-				oForm.addContent(new Text({text : ""}));
+				oForm.addContent(new Text({text : "", emptyIndicatorMode: EmptyIndicatorMode.On}));
 				continue;
 			}
 
@@ -557,32 +593,28 @@ sap.ui.define([
 	 * Helper function used to navigate to another Fiori application (intent based navigation) or
 	 * to an external link.
 	 * This will be applicable only for the header link.
-	 * @param {sap.m.QuickViewPage} that - The page from which the navigation starts
-	 * @returns {Function} A function that executes the navigation
 	 * @private
 	 */
-	QuickViewPage.prototype._crossApplicationNavigation = function (that) {
-		return function () {
-			if (that.getCrossAppNavCallback() && that.oCrossAppNavigator) {
-				var targetConfigCallback = that.getCrossAppNavCallback();
-				if (typeof targetConfigCallback == "function") {
-					var targetConfig = targetConfigCallback();
-					var href = that.oCrossAppNavigator.hrefForExternal(
-						{
-							target : {
-								semanticObject : targetConfig.target.semanticObject,
-								action : targetConfig.target.action
-							},
-							params : targetConfig.params
-						}
-					);
+	QuickViewPage.prototype._crossApplicationNavigation = function () {
+		if (this.getCrossAppNavCallback && this.getCrossAppNavCallback() && this.oCrossAppNavigator) {
+			var targetConfigCallback = this.getCrossAppNavCallback();
+			if (typeof targetConfigCallback == "function") {
+				var targetConfig = targetConfigCallback();
+				var href = this.oCrossAppNavigator.hrefForExternal(
+					{
+						target : {
+							semanticObject : targetConfig.target.semanticObject,
+							action : targetConfig.target.action
+						},
+						params : targetConfig.params
+					}
+				);
 
-					URLHelper.redirect(href);
-				}
-			} else  if (that.getTitleUrl()) {
-				window.open(that.getTitleUrl(), "_blank");
+				URLHelper.redirect(href);
 			}
-		};
+		} else if (this.getTitleUrl()) {
+			URLHelper.redirect(this.getTitleUrl(), true);
+		}
 	};
 
 	QuickViewPage.prototype._destroyPageContent = function() {
@@ -600,17 +632,6 @@ sap.ui.define([
 
 		this._mPageContent = null;
 
-	};
-
-	QuickViewPage.prototype.exit = function() {
-		if (this._oPage) {
-			this._oPage.destroy();
-			this._oPage = null;
-		} else {
-			this._destroyPageContent();
-		}
-
-		this._mNavContext = null;
 	};
 
 	/**
@@ -673,9 +694,8 @@ sap.ui.define([
 
 	["setModel", "bindAggregation", "setAggregation", "insertAggregation", "addAggregation",
 		"removeAggregation", "removeAllAggregation", "destroyAggregation"].forEach(function (sFuncName) {
-			QuickViewPage.prototype["_" + sFuncName + "Old"] = QuickViewPage.prototype[sFuncName];
 			QuickViewPage.prototype[sFuncName] = function () {
-				var result = QuickViewPage.prototype["_" + sFuncName + "Old"].apply(this, arguments);
+				var result = Control.prototype[sFuncName].apply(this, arguments);
 
 				this._updatePage();
 
@@ -703,25 +723,51 @@ sap.ui.define([
 		return null;
 	};
 
-	/**
-	 * Handler for loading failures of the icon.
-	 * In such cases show the fallback icon, if given.
-	 *
-	 * @param {jQuery.Event} oEvent The event object.
-	 * @private
-	 */
-	QuickViewPage.prototype._onImageLoadError = function (oEvent) {
-		var FALLBACK_ICON_INDEX = 0,
-			oFallbackIcon = this._mPageContent.header.getContent()[FALLBACK_ICON_INDEX],
-			oFailedImage = oEvent.getSource(),
-			bRestoreFocus = document.activeElement === oFailedImage.getDomRef();
+	QuickViewPage.prototype._getAvatar = function () {
+		var oAvatar = null,
+			sIcon = this.getIcon && this.getIcon();
 
-		oFallbackIcon.removeStyleClass("sapMQuickViewPageFallbackIconHidden");
-		oFailedImage.addStyleClass("sapMQuickViewPageFailedImage");
+		if (this.getAvatar()) {
+			// Copy the values of properties directly, don't clone bindings,
+			// as this avatar and the whole NavContainer are not aggregated by the real QuickViewPage
+			oAvatar = this.getAvatar().clone(null, null, { cloneBindings: false, cloneChildren: true });
+			this._checkAvatarProperties(oAvatar);
+		} else if (sIcon && this.getFallbackIcon) {
+			oAvatar = new Avatar({
+				displayShape: AvatarShape.Square,
+				fallbackIcon: this.getFallbackIcon(),
+				src: sIcon
+			});
+		}
 
-		// if before hiding the image it was the activeElement move the focus to the fallback icon
-		if (bRestoreFocus) {
-			oFallbackIcon.focus();
+		if (oAvatar) {
+			if (this.getTitleUrl() && !oAvatar.hasListeners("press")) {
+				oAvatar.attachPress(this._crossApplicationNavigation.bind(this));
+			}
+
+			oAvatar.addStyleClass("sapMQuickViewThumbnail");
+		}
+
+		return oAvatar;
+	};
+
+	QuickViewPage.prototype._checkAvatarProperties = function (oAvatar) {
+		var mDefaults = oAvatar.getMetadata().getPropertyDefaults();
+
+		if (oAvatar.getDisplaySize() !== mDefaults["displaySize"]) {
+			Log.warning("'displaySize' property of avatar shouldn't be used in sap.m.QuickViewPage");
+		}
+
+		if (oAvatar.getCustomDisplaySize() !== mDefaults["customDisplaySize"]) {
+			Log.warning("'customDisplaySize' property of avatar shouldn't be used in sap.m.QuickViewPage");
+		}
+
+		if (oAvatar.getCustomFontSize() !== mDefaults["customFontSize"]) {
+			Log.warning("'customFontSize' property of avatar shouldn't be used in sap.m.QuickViewPage");
+		}
+
+		if (oAvatar.getDetailBox()) {
+			Log.warning("'detailBox' aggregation of avatar shouldn't be used in sap.m.QuickViewPage");
 		}
 	};
 

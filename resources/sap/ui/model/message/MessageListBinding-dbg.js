@@ -1,21 +1,19 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2024 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
-
+/*eslint-disable max-len */
 // Provides the JSON model implementation of a list binding
 sap.ui.define([
-	'sap/ui/model/ChangeReason',
-	'sap/ui/model/ClientListBinding',
 	"sap/base/strings/hash",
 	"sap/base/util/deepEqual",
-	"sap/ui/thirdparty/jquery"
-],
-	function(ChangeReason, ClientListBinding, hash, deepEqual, jQuery) {
+	"sap/base/util/deepExtend",
+	"sap/base/util/each",
+	"sap/ui/model/ChangeReason",
+	"sap/ui/model/ClientListBinding"
+], function(hash, deepEqual, deepExtend, each, ChangeReason, ClientListBinding) {
 	"use strict";
-
-
 
 	/**
 	 *
@@ -28,13 +26,16 @@ sap.ui.define([
 	 * @param {sap.ui.model.Sorter|sap.ui.model.Sorter[]} [aSorters] initial sort order (can be either a sorter or an array of sorters).
 	 * @param {sap.ui.model.Filter|sap.ui.model.Filter[]} [aFilters] predefined filter/s (can be either a filter or an array of filters).
 	 * @param {object} [mParameters]
+	 * @throws {Error} If one of the filters uses an operator that is not supported by the underlying model
+	 *   implementation or if the {@link sap.ui.model.Filter.NONE} filter instance is contained in <code>aFilters</code>
+	 *   together with other filters
 	 * @alias sap.ui.model.message.MessageListBinding
 	 * @extends sap.ui.model.ClientListBinding
 	 */
 	var MessageListBinding = ClientListBinding.extend("sap.ui.model.message.MessageListBinding");
 
-	/**
-	 * Define the symbol function when extended change detection is enabled
+	/*
+	 * Define the symbol function when extended change detection is enabled.
 	 * @override
 	 */
 	MessageListBinding.prototype.enableExtendedChangeDetection = function() {
@@ -46,46 +47,6 @@ sap.ui.define([
 			}
 			return hash(vContext); // string use hash codes
 		}.bind(this);
-	};
-
-	/**
-	 * Return contexts for the list or a specified subset of contexts.
-	 * @param {int} [iStartIndex=0] the startIndex where to start the retrieval of contexts.
-	 * @param {int} [iLength=length of the list] determines how many contexts to retrieve beginning from the start index.
-	 * Default is the whole list length.
-	 *
-	 * @return {Array} the contexts array
-	 * @protected
-	 */
-	MessageListBinding.prototype.getContexts = function(iStartIndex, iLength) {
-		this.iLastStartIndex = iStartIndex;
-		this.iLastLength = iLength;
-
-		if (!iStartIndex) {
-			iStartIndex = 0;
-		}
-		if (!iLength) {
-			iLength = Math.min(this.iLength, this.oModel.iSizeLimit);
-		}
-
-		var aContexts = this._getContexts(iStartIndex, iLength), aContextData = [];
-
-		if (this.bUseExtendedChangeDetection) {
-
-			for (var i = 0; i < aContexts.length; i++) {
-				aContextData.push(this.getContextData(aContexts[i]));
-			}
-
-			//Check diff
-			if (this.aLastContexts && iStartIndex < this.iLastEndIndex) {
-				aContexts.diff = this.diffData(this.aLastContextData, aContexts);
-			}
-			this.iLastEndIndex = iStartIndex + iLength;
-			this.aLastContexts = aContexts.slice(0);
-			this.aLastContextData = aContextData.slice(0);
-		}
-
-		return aContexts;
 	};
 
 	/**
@@ -117,7 +78,7 @@ sap.ui.define([
 		var oList = this.oModel._getObject(this.sPath, this.oContext);
 		if (Array.isArray(oList)) {
 			if (this.bUseExtendedChangeDetection) {
-				this.oList = jQuery.extend(true, [], oList);
+				this.oList = deepExtend([], oList);
 			} else {
 				this.oList = oList.slice(0);
 			}
@@ -136,17 +97,19 @@ sap.ui.define([
 	 * Check whether this Binding would provide new values and in case it changed,
 	 * inform interested parties about this.
 	 *
-	 * @param {boolean} bForceupdate
+	 * @param {boolean} [bForceupdate]
+	 *   Whether interested parties should be informed regardless of the bindings state
 	 *
 	 */
 	MessageListBinding.prototype.checkUpdate = function(bForceupdate){
+		var oList;
 
 		if (this.bSuspended && !this.bIgnoreSuspend) {
 			return;
 		}
 
 		if (!this.bUseExtendedChangeDetection) {
-			var oList = this.oModel._getObject(this.sPath, this.oContext);
+			oList = this.oModel._getObject(this.sPath, this.oContext);
 			if (!deepEqual(this.oList, oList) || bForceupdate) {
 				this.update();
 				this._fireChange({reason: ChangeReason.Change});
@@ -156,7 +119,7 @@ sap.ui.define([
 			var that = this;
 
 			//If the list has changed we need to update the indices first.
-			var oList = this.oModel._getObject(this.sPath, this.oContext);
+			oList = this.oModel._getObject(this.sPath, this.oContext);
 			if (!deepEqual(this.oList, oList)) {
 				this.update();
 			}
@@ -167,11 +130,12 @@ sap.ui.define([
 				if (this.aLastContexts.length != aContexts.length) {
 					bChangeDetected = true;
 				} else {
-					jQuery.each(this.aLastContextData, function(iIndex, oLastData) {
+					each(this.aLastContextData, function(iIndex, oLastData) {
 						if (that.getContextData(aContexts[iIndex]) !== oLastData) {
 							bChangeDetected = true;
 							return false;
 						}
+						return true;
 					});
 				}
 			} else {
@@ -183,7 +147,5 @@ sap.ui.define([
 		}
 	};
 
-
 	return MessageListBinding;
-
 });

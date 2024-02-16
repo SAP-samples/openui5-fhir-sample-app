@@ -70,6 +70,22 @@
 .sapMPopoverHeader, .sapMPopoverSubHeader {
 	position: relative;
 	z-index: 2;
+
+	.sapMBar {
+		.sapMBarContainer {
+			padding-left: 0;
+			padding-right: 0;
+		}
+		.sapMBarLeft {
+			padding-left: 1rem;
+		}
+		.sapMBarMiddle .sapMBarContainer {
+			padding: 0 1rem;
+		}
+		.sapMBarRight {
+			padding-right: 1rem;
+		}
+	}
 }
 
 .sapMPopoverWithoutSubHeader .sapMPopoverHeader, .sapMPopoverSubHeader {
@@ -90,4 +106,19 @@
 
 .sapMPopoverWithSubHeader .sapMPopoverHeader .sapMIBar-CTX {
 	box-shadow: none;
+}
+
+/* pointing downward arrow */
+.sapMPopoverArrDown:after {
+	margin: -0.625rem 0 0 0.125rem;
+}
+
+/* pointing right arrow */
+.sapMPopoverArrRight:after {
+	margin: 0.1875rem 0 0 -0.625rem;
+}
+
+/* pointing left arrow */
+.sapMPopoverArrLeft:after {
+	margin: 0.125rem 0 0 0.1875rem;
 }

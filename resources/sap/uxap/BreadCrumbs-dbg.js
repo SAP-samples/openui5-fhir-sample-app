@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2024 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -16,6 +16,7 @@ sap.ui.define([
     "sap/ui/Device",
     "./library",
     "sap/ui/core/InvisibleText",
+    "sap/ui/util/openWindow",
     "./BreadCrumbsRenderer",
     "sap/ui/thirdparty/jquery"
 ], function(
@@ -29,6 +30,7 @@ sap.ui.define([
 	Device,
 	library,
 	InvisibleText,
+	openWindow,
 	BreadCrumbsRenderer,
 	jQuery
 ) {
@@ -62,7 +64,6 @@ sap.ui.define([
 	 * @public
 	 * @since 1.30
 	 * @alias sap.uxap.BreadCrumbs
-	 * @ui5-metamodel This control/element also will be described in the UI5 (legacy) designtime metamodel
 	 */
 	var BreadCrumbs = Control.extend("sap.uxap.BreadCrumbs", /** @lends sap.uxap.BreadCrumbs.prototype */ {
 		metadata: {
@@ -100,7 +101,9 @@ sap.ui.define([
 				 */
 				_overflowSelect: {type: "sap.m.Select", multiple: false, visibility: "hidden"}
 			}
-		}
+		},
+
+		renderer: BreadCrumbsRenderer
 	});
 
 	BreadCrumbs.PAGEUP_AND_PAGEDOWN_JUMP_SIZE = 5;
@@ -243,7 +246,7 @@ sap.ui.define([
 			if (sLinkHref) {
 				sLinkTarget = oControl.getTarget();
 				if (sLinkTarget) {
-					window.open(sLinkHref, sLinkTarget);
+					openWindow(sLinkHref, sLinkTarget);
 				} else {
 					window.location.href = sLinkHref;
 				}

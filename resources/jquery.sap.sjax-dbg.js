@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2024 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -54,6 +54,8 @@ sap.ui.define(['jquery.sap.global'],
 	 */
 	jQuery.sap.sjax = function sjax(oOrigSettings) {
 
+		var oResult;
+
 		var s = jQuery.extend(true, {}, jQuery.sap.sjaxSettings, oOrigSettings,
 
 			// the following settings are enforced as this is the rightmost object in the extend call
@@ -67,8 +69,6 @@ sap.ui.define(['jquery.sap.global'],
 					oResult = { success : false, data : undefined, status : textStatus, error : error, statusCode : xhr.status, errorResponse :  xhr.responseText};
 				}
 			});
-
-		var oResult;
 
 		jQuery.ajax(s);
 

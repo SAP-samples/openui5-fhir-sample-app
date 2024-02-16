@@ -1,13 +1,9 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2024 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
- /**
-  * @typedef {Object} sap.ui.layout.BlockRowColorSets
-  * @typedef {Object} sap.ui.layout.BlockLayoutRow
-  */
 sap.ui.define([
     'sap/ui/core/Control',
     './library',
@@ -36,13 +32,12 @@ sap.ui.define([
 		 * @extends sap.ui.core.Control
 		 *
 		 * @author SAP SE
-		 * @version 1.79.0
+		 * @version 1.120.6
 		 *
 		 * @constructor
 		 * @public
 		 * @since 1.34
 		 * @alias sap.ui.layout.BlockLayoutRow
-		 * @ui5-metamodel This control/element also will be described in the UI5 (legacy) designtime metamodel
 		 */
 		var BlockLayoutRow = Control.extend("sap.ui.layout.BlockLayoutRow", {
 			metadata: {
@@ -84,7 +79,9 @@ sap.ui.define([
 					accentCells: {type: "sap.ui.layout.BlockLayoutCell", multiple: true, singularName: "accentCell"}
 				},
 				designtime: "sap/ui/layout/designtime/BlockLayoutRow.designtime"
-			}
+			},
+
+			renderer: BlockLayoutRowRenderer
 		});
 
 		BlockLayoutRow.prototype.init = function () {
@@ -123,7 +120,7 @@ sap.ui.define([
 		 * @method
 		 * @param {sap.ui.layout.BlockRowColorSets} sType
 		 * @since 1.42
-		 * @returns {sap.ui.layout.BlockLayoutRow}
+		 * @returns {this}
 		 */
 		BlockLayoutRow.prototype.setRowColorSet = function (sType) {
 			// Apply here so if there's an exception the code bellow won't be executed
@@ -302,7 +299,8 @@ sap.ui.define([
 		 * @method
 		 * @param {string} sId The ID of the row that will be processed
 		 * @param {Array} aCells Cells in the current row
-		 * @returns {sap.ui.layout.BlockLayoutRow}
+		 * @returns {this}
+		 * @deprecated since 1.50, together with BlockBackgroundType.Mixed
 		 */
 		BlockLayoutRow.prototype._processMixedCellStyles = function (sId, aCells) {
 			var oBlockLayout, bProcessAccentCells;
@@ -346,7 +344,7 @@ sap.ui.define([
 		 * @method
 		 * @param {Array} aAccentCells Cells with accent contrast
 		 * @param {Array} aRowCells All cells in the row
-		 * @returns {sap.ui.layout.BlockLayoutRow}
+		 * @returns {this}
 		 */
 		BlockLayoutRow.prototype._processAccentCellStyles = function (aAccentCells, aRowCells) {
 			var oCell, sCellId, sCalculatedStyleClass,

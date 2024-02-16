@@ -1,12 +1,12 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2024 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 // Provides default renderer for control sap.ui.layout.DynamicSideContent
-sap.ui.define(["sap/ui/layout/library", "sap/ui/Device"],
-	function(library, Device) {
+sap.ui.define(["sap/ui/layout/library", "sap/ui/Device", "sap/ui/core/Configuration"],
+	function(library, Device, Configuration) {
 		"use strict";
 
 		// shortcut for sap.ui.layout.SideContentPosition
@@ -38,7 +38,7 @@ sap.ui.define(["sap/ui/layout/library", "sap/ui/Device"],
 		DynamicSideContentRenderer.renderSubControls = function (oRm, oSideControl) {
 			var iSideContentId = oSideControl.getId(),
 				bShouldSetHeight = oSideControl._shouldSetHeight(),
-				bPageRTL = sap.ui.getCore().getConfiguration().getRTL(),
+				bPageRTL = Configuration.getRTL(),
 				position = oSideControl.getSideContentPosition();
 
 			if ((position === SideContentPosition.Begin && !bPageRTL) || (bPageRTL && position === SideContentPosition.End)) {
@@ -64,11 +64,12 @@ sap.ui.define(["sap/ui/layout/library", "sap/ui/Device"],
 
 			oRm.class("sapUiDSCM");
 
-			if (oSideControl._iMcSpan) {
+			if (oSideControl.getProperty("mcSpan")) {
 				if (oSideControl.getShowSideContent() && oSideControl._SCVisible) {
-					oRm.class("sapUiDSCSpan" + oSideControl._iMcSpan);
+					oRm.class("sapUiDSCSpan" + oSideControl.getProperty("mcSpan"));
 				} else {
 					oRm.class("sapUiDSCSpan12");
+					bShouldSetHeight = true;
 				}
 			}
 			if (bShouldSetHeight) {
@@ -95,11 +96,12 @@ sap.ui.define(["sap/ui/layout/library", "sap/ui/Device"],
 				role: "complementary"
 			});
 
-			if (oSideControl._iScSpan) {
+			if (oSideControl.getProperty("scSpan")) {
 				if (oSideControl.getShowMainContent() && oSideControl._MCVisible) {
-					oRm.class("sapUiDSCSpan" + oSideControl._iScSpan);
+					oRm.class("sapUiDSCSpan" + oSideControl.getProperty("scSpan"));
 				} else {
 					oRm.class("sapUiDSCSpan12");
+					bShouldSetHeight = true;
 				}
 			}
 			if (bShouldSetHeight) {

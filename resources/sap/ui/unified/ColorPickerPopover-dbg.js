@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2024 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -47,13 +47,12 @@ sap.ui.define([
 		 * A thin wrapper over {@link sap.ui.unified.ColorPicker} allowing the latter to be used in a popover.
 		 *
 		 * @extends sap.ui.core.Control
-		 * @version 1.79.0
+		 * @version 1.120.6
 		 *
 		 * @constructor
 		 * @public
 		 * @since 1.60
 		 * @alias sap.ui.unified.ColorPickerPopover
-		 * @ui5-metamodel This control/element also will be described in the UI5 (legacy) designtime metamodel
 		 */
 		var ColorPickerPopover = Control.extend("sap.ui.unified.ColorPickerPopover", /** @lends sap.ui.unified.ColorPickerPopover.prototype */ {
 			metadata: {
@@ -141,6 +140,61 @@ sap.ui.define([
 							 */
 							alpha : {type : "string"}
 						}
+					},
+					/**
+					 * Fired when the value is changed by user interaction in the internal ColorPicker
+					 *
+					 * @since 1.85
+					 */
+					liveChange : {
+						parameters : {
+
+							/**
+							 * Parameter containing the RED value (0-255).
+							 */
+							r : {type: "int"},
+
+							/**
+							 * Parameter containing the GREEN value (0-255).
+							 */
+							g : {type: "int"},
+
+							/**
+							 * Parameter containing the BLUE value (0-255).
+							 */
+							b : {type: "int"},
+
+							/**
+							 * Parameter containing the HUE value (0-360).
+							 */
+							h : {type: "int"},
+
+							/**
+							 * Parameter containing the SATURATION value (0-100).
+							 */
+							s : {type: "int"},
+
+							/**
+							 * Parameter containing the VALUE value (0-100).
+							 */
+							v : {type: "int"},
+
+							/**
+							 * Parameter containing the LIGHTNESS value (0-100).
+							 */
+							l : {type: "int"},
+
+							/**
+							 * Parameter containing the Hexadecimal string (#FFFFFF).
+							 */
+							hex : {type: "string"},
+
+							/**
+							 * Parameter containing the alpha value (transparency).
+							 */
+							alpha : {type: "string"}
+						}
+
 					}
 				}
 			},
@@ -192,11 +246,10 @@ sap.ui.define([
 		 * The popover is positioned relative to the control parameter on tablet or desktop and is full screen on phone.
 		 * Therefore the openBy parameter is only used on tablet or desktop and is ignored on phone.
 		 *
-		 * @param {Object} openBy When this control is displayed on tablet or desktop, the <code>ColorPickerPopover</code>
+		 * @param {sap.ui.core.Control|HTMLElement} openBy When this control is displayed on tablet or desktop, the <code>ColorPickerPopover</code>
 		 * is positioned relative to this control
-		 * @returns {Object} Reference to the opening control
+		 * @returns {sap.m.Popover|sap.m.Dialog} Reference to the opening control
 		 * @public
-		 * @ui5-metamodel This method also will be described in the UI5 (legacy) designtime metamodel
 		 */
 		ColorPickerPopover.prototype.openBy = function (openBy) {
 			return ResponsivePopover.prototype.openBy.apply(this._ensurePopover(), arguments);
@@ -209,7 +262,6 @@ sap.ui.define([
 		 * @function
 		 * @type sap.ui.core.Control
 		 * @public
-		 * @ui5-metamodel This method also will be described in the UI5 (legacy) designtime metamodel
 		 */
 
 
@@ -262,10 +314,13 @@ sap.ui.define([
 				content: oColorPicker
 			});
 
-			oColorPicker.attachEvent("change", function (oEvent) {
+			oColorPicker.attachChange(function (oEvent) {
 				this._handleChange(oEvent);
 			}.bind(this));
 
+			oColorPicker.attachLiveChange(function (oEvent) {
+				this.fireLiveChange(oEvent.getParameters());
+			}.bind(this));
 
 			// aria requirements for the popover implemented as delegate
 			oDelegate = {
@@ -285,7 +340,7 @@ sap.ui.define([
 		/**
 		 * On submit fires change event of the control with parameters
 		 * taken from the event fired from the ColorPicker control.
-		 * @return {sap.ui.unified.ColorPickerPopover} <code>this</code> for method chaining.
+		 * @return {this} <code>this</code> for method chaining.
 		 * @private
 		 */
 		ColorPickerPopover.prototype._handleChange = function (oEvent) {
@@ -301,7 +356,6 @@ sap.ui.define([
 		 * @return {sap.ui.unified.ColorPicker} the ColorPicker.
 		 * @private
 		 */
-
 		ColorPickerPopover.prototype._createColorPicker = function () {
 			var oColorPicker = new ColorPicker(this.getId() + "-color_picker");
 

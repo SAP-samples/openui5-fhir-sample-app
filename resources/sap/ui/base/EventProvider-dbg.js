@@ -1,12 +1,12 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2024 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 // Provides class sap.ui.base.EventProvider
-sap.ui.define(['./Event', './Object', './ObjectPool', "sap/base/assert"],
-	function(Event, BaseObject, ObjectPool, assert) {
+sap.ui.define(['./Event', './Object', "sap/base/assert"],
+	function(Event, BaseObject, assert) {
 	"use strict";
 
 
@@ -18,11 +18,11 @@ sap.ui.define(['./Event', './Object', './ObjectPool', "sap/base/assert"],
 	 * @abstract
 	 * @extends sap.ui.base.Object
 	 * @author SAP SE
-	 * @version 1.79.0
+	 * @version 1.120.6
 	 * @public
 	 * @alias sap.ui.base.EventProvider
 	 */
-	var EventProvider = BaseObject.extend("sap.ui.base.EventProvider", /* @lends sap.ui.base.EventProvider */ {
+	var EventProvider = BaseObject.extend("sap.ui.base.EventProvider", /** @lends sap.ui.base.EventProvider.prototype */ {
 
 		constructor : function() {
 
@@ -48,12 +48,6 @@ sap.ui.define(['./Event', './Object', './ObjectPool', "sap/base/assert"],
 	EventProvider.M_EVENTS = {EventHandlerChange:EVENT__LISTENERS_CHANGED};
 
 	/**
-	 * Pool is defined on the prototype to be shared among all EventProviders
-	 * @private
-	 */
-	EventProvider.prototype.oEventPool = new ObjectPool(Event);
-
-	/**
 	 * Attaches an event handler to the event with the given identifier.
 	 *
 	 * @param {string}
@@ -68,7 +62,7 @@ sap.ui.define(['./Event', './Object', './ObjectPool', "sap/base/assert"],
 	 * @param {object}
 	 *            [oListener] The object that wants to be notified when the event occurs (<code>this</code> context within the
 	 *                        handler function). If it is not specified, the handler function is called in the context of the event provider.
-	 * @return {sap.ui.base.EventProvider} Returns <code>this</code> to allow method chaining
+	 * @returns {this} Returns <code>this</code> to allow method chaining
 	 * @public
 	 */
 	EventProvider.prototype.attachEvent = function(sEventId, oData, fnFunction, oListener) {
@@ -118,7 +112,7 @@ sap.ui.define(['./Event', './Object', './ObjectPool', "sap/base/assert"],
 	 * @param {object}
 	 *            [oListener] The object that wants to be notified when the event occurs (<code>this</code> context within the
 	 *                        handler function). If it is not specified, the handler function is called in the context of the event provider.
-	 * @return {sap.ui.base.EventProvider} Returns <code>this</code> to allow method chaining
+	 * @returns {this} Returns <code>this</code> to allow method chaining
 	 * @public
 	 */
 	EventProvider.prototype.attachEventOnce = function(sEventId, oData, fnFunction, oListener) {
@@ -152,7 +146,7 @@ sap.ui.define(['./Event', './Object', './ObjectPool', "sap/base/assert"],
 	 *            fnFunction The handler function to detach from the event
 	 * @param {object}
 	 *            [oListener] The object that wanted to be notified when the event occurred
-	 * @return {sap.ui.base.EventProvider} Returns <code>this</code> to allow method chaining
+	 * @returns {this} Returns <code>this</code> to allow method chaining
 	 * @public
 	 */
 	EventProvider.prototype.detachEvent = function(sEventId, fnFunction, oListener) {
@@ -215,7 +209,7 @@ sap.ui.define(['./Event', './Object', './ObjectPool', "sap/base/assert"],
 	 * @param {boolean}
 	 *            [bEnableEventBubbling] Defines whether event bubbling is enabled on the fired event. Set to <code>true</code> the event is also forwarded to the parent(s)
 	 *                                   of the event provider ({@link #getEventingParent}) until the bubbling of the event is stopped or no parent is available anymore.
-	 * @return {sap.ui.base.EventProvider|boolean} Returns <code>this</code> to allow method chaining. When <code>preventDefault</code> is supported on the fired event
+	 * @return {this|boolean} Returns <code>this</code> to allow method chaining. When <code>preventDefault</code> is supported on the fired event
 	 *                                             the function returns <code>true</code> if the default action should be executed, <code>false</code> otherwise.
 	 * @protected
 	 */
@@ -240,7 +234,7 @@ sap.ui.define(['./Event', './Object', './ObjectPool', "sap/base/assert"],
 
 				// avoid issues with 'concurrent modification' (e.g. if an event listener unregisters itself).
 				aEventListeners = aEventListeners.slice();
-				oEvent = oEvent || this.oEventPool.borrowObject(sEventId, this, oParameters); // borrow event lazily
+				oEvent = new Event(sEventId, this, oParameters);
 
 				for (i = 0, iL = aEventListeners.length; i < iL; i++) {
 					oInfo = aEventListeners[i];
@@ -257,7 +251,6 @@ sap.ui.define(['./Event', './Object', './ObjectPool', "sap/base/assert"],
 		if ( oEvent ) {
 			// remember 'prevent default' state before returning event to the pool
 			bPreventDefault = oEvent.bPreventDefault;
-			this.oEventPool.returnObject(oEvent);
 		}
 
 		// return 'execute default' flag only when 'prevent default' has been enabled, otherwise return 'this' (for compatibility)
@@ -335,7 +328,7 @@ sap.ui.define(['./Event', './Object', './ObjectPool', "sap/base/assert"],
 	 * structured, this can be overwritten to make the object hierarchy visible to the eventing and
 	 * enables the use of event bubbling within this object hierarchy.
 	 *
-	 * @return {sap.ui.base.EventProvider} The parent event provider
+	 * @return {sap.ui.base.EventProvider|null} The parent event provider
 	 * @protected
 	 */
 	EventProvider.prototype.getEventingParent = function() {
@@ -375,5 +368,4 @@ sap.ui.define(['./Event', './Object', './ObjectPool', "sap/base/assert"],
 
 
 	return EventProvider;
-
 });

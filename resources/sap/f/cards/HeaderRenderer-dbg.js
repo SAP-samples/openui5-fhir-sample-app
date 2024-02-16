@@ -1,119 +1,162 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2024 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
-sap.ui.define([], function () {
+sap.ui.define([
+	"sap/f/cards/BaseHeaderRenderer",
+	"sap/ui/core/Renderer"
+], function (BaseHeaderRenderer, Renderer) {
 	"use strict";
 
-	var HeaderRenderer = {};
+	var HeaderRenderer = Renderer.extend(BaseHeaderRenderer);
+	HeaderRenderer.apiVersion = 2;
 
 	/**
 	 * Render a header.
 	 *
 	 * @param {sap.ui.core.RenderManager} oRm The RenderManager that can be used for writing to the render output buffer
-	 * @param {sap.f.cards.Header} oControl An object representation of the control that should be rendered
+	 * @param {sap.f.cards.Header} oHeader An object representation of the control that should be rendered
 	 */
-	HeaderRenderer.render = function (oRm, oControl) {
+	HeaderRenderer.render = function (oRm, oHeader) {
+		var sId = oHeader.getId(),
+			oBindingInfos = oHeader.mBindingInfos,
+			sStatus = oHeader.getStatusText(),
+			oTitle = oHeader.getAggregation("_title"),
+			oSubtitle = oHeader.getAggregation("_subtitle"),
+			bHasSubtitle = oHeader.getSubtitle() || oBindingInfos.subtitle,
+			oDataTimestamp = oHeader.getAggregation("_dataTimestamp"),
+			bHasDataTimestamp = oHeader.getDataTimestamp() || oBindingInfos.dataTimestamp,
+			bLoading = oHeader.isLoading(),
+			oError = oHeader.getAggregation("_error"),
+			oToolbar = oHeader.getToolbar(),
+			bUseTileLayout = oHeader.getProperty("useTileLayout");
 
-		var sStatus = oControl.getStatusText(),
-			oTitle = oControl.getAggregation("_title"),
-			oSubtitle = oControl.getAggregation("_subtitle"),
-			oAvatar = oControl.getAggregation("_avatar"),
-			bLoading = oControl.isLoading(),
-			oBindingInfos = oControl.mBindingInfos,
-			oToolbar = oControl.getToolbar();
-
-		oRm.write("<div");
-		oRm.writeControlData(oControl);
-		oRm.writeAttribute("tabindex", "0");
-		oRm.addClass("sapFCardHeader");
+		oRm.openStart("div", oHeader)
+			.class("sapFCardHeader");
 
 		if (bLoading) {
-			oRm.addClass("sapFCardHeaderLoading");
+			oRm.class("sapFCardHeaderLoading");
 		}
 
-		if (oControl.hasListeners("press")) {
-			oRm.addClass("sapFCardClickable");
+		if (oHeader.isInteractive()) {
+			oRm.class("sapFCardSectionClickable");
 		}
 
-		//Accessibility state
-		oRm.writeAccessibilityState(oControl, {
-			role: oControl._sAriaRole,
-			labelledby: {value: oControl._getHeaderAccessibility(), append: true},
-			roledescription: {value: oControl._sAriaRoleDescritoion, append: true},
-			level: {value: oControl._sAriaHeadingLevel}
-		});
-		oRm.writeClasses();
-		oRm.write(">");
-
-		if (oControl.getIconSrc() || oControl.getIconInitials() || oBindingInfos.iconSrc) {
-			oRm.write("<div");
-			oRm.addClass("sapFCardHeaderImage");
-			oRm.writeClasses();
-			oRm.write(">");
-			if (oBindingInfos.iconSrc) {
-				oAvatar.addStyleClass("sapFCardHeaderItemBinded");
-			}
-			oRm.renderControl(oAvatar);
-			oRm.write("</div>");
+		if (oHeader.getIconSrc() && oHeader.getIconVisible()) {
+			oRm.class("sapFCardHeaderHasIcon");
 		}
 
-		oRm.write("<div");
-		oRm.addClass("sapFCardHeaderText");
-		oRm.writeClasses();
-		oRm.write(">");
+		oRm.openEnd();
 
-		if (oControl.getTitle() || oBindingInfos.title) {
-			oRm.write("<div");
-			oRm.addClass("sapFCardHeaderTextFirstLine");
-			oRm.writeClasses();
-			oRm.write(">");
+		oRm.openStart("div")
+			.attr("id", sId + "-focusable")
+			.class("sapFCardHeaderWrapper");
+
+		if (oHeader.getProperty("focusable") && !oHeader._isInsideGridContainer()) {
+			oRm.attr("tabindex", "0");
+		}
+
+		if (!oHeader._isInsideGridContainer()) {
+			oRm.accessibilityState({
+				labelledby: {value: oHeader._getAriaLabelledBy(), append: true},
+				role: oHeader.getFocusableElementAriaRole(),
+				roledescription: oHeader.getAriaRoleDescription()
+			});
+		}
+
+		oRm.openEnd();
+
+		if (oError) {
+			oRm.renderControl(oError);
+
+			oRm.close("div");
+			oRm.close("div");
+			return;
+		}
+
+		if (!bUseTileLayout) {
+			BaseHeaderRenderer.renderAvatar(oRm, oHeader);
+		}
+
+		oRm.openStart("div")
+			.class("sapFCardHeaderText")
+			.openEnd();
+
+		if (oHeader.getTitle() || oBindingInfos.title) {
+			oRm.openStart("div")
+				.class("sapFCardHeaderTextFirstLine")
+				.openEnd();
 
 			if (oBindingInfos.title) {
 				oTitle.addStyleClass("sapFCardHeaderItemBinded");
 			}
-			oRm.writeClasses();
+
 			oRm.renderControl(oTitle);
 
-			if (sStatus !== undefined) {
-				oRm.write("<span");
-				oRm.writeAttribute('id', oControl.getId() + '-status');
-				oRm.addClass("sapFCardStatus");
+			if (sStatus && oHeader.getStatusVisible()) {
+				oRm.openStart("span", sId + "-status")
+					.class("sapFCardStatus");
+
 				if (oBindingInfos.statusText) {
-					oRm.addClass("sapFCardHeaderItemBinded");
+					oRm.class("sapFCardHeaderItemBinded");
 				}
-				oRm.writeClasses();
-				oRm.write(">");
-				oRm.writeEscaped(sStatus);
-				oRm.write("</span>");
+
+				oRm.openEnd()
+					.text(sStatus)
+					.close("span");
 			}
 
-			oRm.write("</div>");
+			oRm.close("div");
 
-			if (oControl.getSubtitle() || oBindingInfos.subtitle) {
-				if (oBindingInfos.subtitle) {
-					oSubtitle.addStyleClass("sapFCardHeaderItemBinded");
+			if (bHasSubtitle || bHasDataTimestamp) {
+				oRm.openStart("div")
+					.class("sapFCardHeaderTextSecondLine");
+
+				if (bHasDataTimestamp) {
+					oRm.class("sapFCardHeaderLineIncludesDataTimestamp");
 				}
-				oRm.renderControl(oSubtitle);
+
+				oRm.openEnd();
+
+				if (bHasSubtitle) {
+
+					if (oBindingInfos.subtitle) {
+						oSubtitle.addStyleClass("sapFCardHeaderItemBinded");
+					}
+
+					oRm.renderControl(oSubtitle);
+				}
+
+				if (bHasDataTimestamp) {
+					oRm.renderControl(oDataTimestamp);
+				}
+
+				oRm.close("div"); //closes sapFCardHeaderTextSecondLine
 			}
 		}
 
-		oRm.write("</div>");
+		oRm.close("div");
+
+		if (bUseTileLayout) {
+			BaseHeaderRenderer.renderAvatar(oRm, oHeader);
+		}
+
+		BaseHeaderRenderer.renderBanner(oRm, oHeader);
+
+		oRm.close("div");
 
 		if (oToolbar) {
-			oRm.write("<div");
-			oRm.addClass("sapFCardHeaderToolbar");
-			oRm.writeClasses();
-			oRm.write(">");
-
+			oRm.openStart("div")
+				.class("sapFCardHeaderToolbarCont")
+				.openEnd();
 			oRm.renderControl(oToolbar);
 
-			oRm.write("</div>");
+			oRm.close("div");
 		}
 
-		oRm.write("</div>");
+		oRm.close("div");
 	};
 
 	return HeaderRenderer;

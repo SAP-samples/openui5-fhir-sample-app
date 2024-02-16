@@ -1,32 +1,37 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2024 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
-
-// Ensure that sap.ui.unified is loaded before the module dependencies will be required.
-// Loading it synchronously is the only compatible option and doesn't harm when sap.ui.unified
-// already has been loaded asynchronously (e.g. via a dependency declared in the manifest)
-sap.ui.getCore().loadLibrary("sap.ui.unified");
 
 sap.ui.define([
 	'sap/ui/unified/calendar/CalendarDate',
 	'sap/ui/unified/calendar/CalendarUtils',
 	'sap/ui/unified/calendar/Month',
-	'sap/ui/core/date/UniversalDate',
+	'sap/ui/core/IconPool',
 	'./PlanningCalendarLegend',
 	'sap/ui/core/InvisibleText',
 	'sap/ui/core/Core',
-	'sap/ui/unified/library'],
+	'sap/ui/unified/library',
+	"sap/ui/core/date/CalendarUtils",
+	'sap/ui/core/Locale',
+	"sap/ui/core/Configuration",
+	"sap/ui/core/date/UI5Date"
+	],
 	function(
 		CalendarDate,
 		CalendarUtils,
 		Month,
-		UniversalDate,
+		IconPool,
 		PlanningCalendarLegend,
 		InvisibleText,
 		Core,
-		unifiedLibrary) {
+		unifiedLibrary,
+		CalendarDateUtils,
+		Locale,
+		Configuration,
+		UI5Date
+		) {
 		"use strict";
 
 		// shortcut for sap.ui.unified.CalendarDayType
@@ -44,7 +49,7 @@ sap.ui.define([
 		 * Renders the HTML for the given control, using the provided {@link sap.ui.core.RenderManager}.
 		 *
 		 * @param {sap.ui.core.RenderManager} oRm The RenderManager that can be used for writing to the render output buffer
-		 * @param {sap.ui.core.Control} oControl An object representation of the control that should be rendered
+		 * @param {sap.m.SinglePlanningCalendarMonthGrid} oControl An object representation of the control that should be rendered
 		 */
 		SinglePlanningCalendarMonthGridRenderer.render = function(oRm, oControl) {
 			var oLocaleData = oControl._getCoreLocaleData();
@@ -135,10 +140,10 @@ sap.ui.define([
 
 					// render appointments which started in previous rows
 					if (j === 0) {
-						this.renderAppointments(oRm, oControl, aPreviousWeekAppsPerDay[iCellIndex], j, aMoreCountPerCell[iCellIndex], oDensitySizes);
+						this.renderAppointments(oRm, oControl, aPreviousWeekAppsPerDay[iCellIndex], j, aMoreCountPerCell[iCellIndex], oDensitySizes, i, oDay);
 					}
 
-					this.renderAppointments(oRm, oControl, aAppsPerDay[iCellIndex], j, aMoreCountPerCell[iCellIndex], oDensitySizes);
+					this.renderAppointments(oRm, oControl, aAppsPerDay[iCellIndex], j, aMoreCountPerCell[iCellIndex], oDensitySizes, i, oDay);
 				}
 
 				oRm.close("div"); // end appointments
@@ -148,17 +153,24 @@ sap.ui.define([
 		};
 
 		SinglePlanningCalendarMonthGridRenderer.renderDay = function(oRm, oControl, oDay, oLocaleData, more, iCellIndex) {
-			var aSpecialDates = oControl.getSpecialDates(),
+			var aSpecialDates = oControl._getSpecialDates(),
 				aDayTypes = Month.prototype._getDateTypes.call(oControl, oDay),
 				oFormat = oControl._getDateFormatter(),
+				bToday = oDay.isSame(CalendarDate.fromLocalJSDate(UI5Date.getInstance())),
 				oType,
 				sLegendItemType;
 
 			oRm.openStart("div");
 			oRm.class("sapMSPCMonthDay");
+			if (oControl._checkDateSelected(oDay)) {
+				oRm.class("sapMSPCMonthDaySelected");
+			}
+			if (bToday) {
+				oRm.class("sapMSPCMonthDayToday");
+			}
 			oRm.attr("role", "gridcell");
 
-			if (CalendarUtils._isWeekend(oDay, oLocaleData)) {
+			if (CalendarUtils._isWeekend(oDay, oLocaleData) || !CalendarUtils._isSameMonthAndYear(oDay, CalendarDate.fromLocalJSDate(oControl.getStartDate())) || oControl._isNonWorkingDay(oDay)) {
 				oRm.class("nonWorkingTimeframe");
 			}
 
@@ -176,6 +188,12 @@ sap.ui.define([
 			oRm.openEnd();
 
 			this.renderDndPlaceholder(oRm, oControl.getAggregation("_appsPlaceholders")[iCellIndex]);
+
+			if (bToday) {
+				oRm.openStart("div");
+				oRm.class("sapMSPCMonthNowMarker");
+				oRm.openEnd();
+			}
 
 			oRm.openStart("div");
 			oRm.class("specialDateIndicator");
@@ -208,21 +226,25 @@ sap.ui.define([
 			}
 			oRm.close("span");
 
+			if (bToday) {
+				oRm.close("div"); // close today wrapper
+			}
+
 			oRm.close("div");
 		};
 
-		SinglePlanningCalendarMonthGridRenderer.renderAppointments = function(oRm, oControl, apps, iColumn, iMore, oDensitySizes) {
+		SinglePlanningCalendarMonthGridRenderer.renderAppointments = function(oRm, oControl, apps, iColumn, iMore, oDensitySizes, iRow, oDay) {
 			var MAX_APPS = oControl._getMaxAppointments(),
 				iMaxLvl = iMore ? MAX_APPS - 2 : MAX_APPS - 1;
 
 			for (var i = 0; i < apps.length; i++) {
 				if (apps[i].level <= iMaxLvl) {
-					this.renderAppointment(oRm, oControl, apps[i], iColumn, oDensitySizes);
+					this.renderAppointment(oRm, oControl, apps[i], iColumn, oDensitySizes, iRow, oDay);
 				}
 			}
 		};
 
-		SinglePlanningCalendarMonthGridRenderer.renderAppointment = function(oRm, oControl, app, iColumn, oDensitySizes) {
+		SinglePlanningCalendarMonthGridRenderer.renderAppointment = function(oRm, oControl, app, iColumn, oDensitySizes, iRow, oDay) {
 			var oAppointment = app.data,
 				iWidth = app.width,
 				iLevel = app.level,
@@ -234,6 +256,8 @@ sap.ui.define([
 				sText = oAppointment.getText(),
 				sIcon = oAppointment.getIcon(),
 				sId = oAppointment.getId(),
+				bDraggable = oAppointment.getParent().getEnableAppointmentsDragAndDrop(),
+				oToday = oDay && oDay.isSame(CalendarDate.fromLocalJSDate(UI5Date.getInstance())),
 				mAccProps = {
 					role: "listitem",
 					labelledby: {
@@ -247,7 +271,22 @@ sap.ui.define([
 				iRight = iColumns - iColumn - iWidth,
 				bIsRTL = Core.getConfiguration().getRTL(),
 				aClasses,
-				iBorderThickness = Core.getConfiguration().getTheme().indexOf("_hc") ? 2 : 1;
+				sThemeName = Core.getConfiguration().getTheme(),
+				iBorderThickness;
+
+				if (sThemeName.includes("horizon")){
+					if (oToday) {
+						iBorderThickness = sThemeName.indexOf("_hc") ? 0.4375 : 0.0625;
+					} else {
+						iBorderThickness = sThemeName.indexOf("_hc") ? 0.1875 : 0.0625;
+					}
+				} else {
+					if (oToday) {
+						iBorderThickness = sThemeName.indexOf("_hc") ? 0.3125 : 0.0625;
+					} else {
+						iBorderThickness = sThemeName.indexOf("_hc") ? 0.125 : 0.0625;
+					}
+				}
 
 			iRight = iRight < 0 ? 0 : iRight;
 
@@ -270,7 +309,10 @@ sap.ui.define([
 				mAccProps["labelledby"].value = mAccProps["labelledby"].value + " " + InvisibleText.getStaticId("sap.ui.unified", "APPOINTMENT_SELECTED");
 			}
 
-			oRm.openStart("div", oAppointment);
+			oRm.openStart("div", oAppointment.getId() + "-" + iColumn + "_" + iRow);
+			oRm.attr("draggable", bDraggable);
+			oRm.attr("data-sap-ui-draggable", bDraggable);
+			oRm.attr("data-sap-ui-related", oAppointment.getId());
 			oRm.attr("data-sap-level", iLevel);
 			oRm.attr("data-sap-width", iWidth);
 			oRm.attr("tabindex", 0);
@@ -291,8 +333,8 @@ sap.ui.define([
 					oRm.style("border-left-color", sColor);
 				}
 			}
-			oRm.style(bIsRTL ? "right" : "left", "calc(" + (iColumn * 100) / iColumns + "% + " + iBorderThickness + "px)");
-			oRm.style(bIsRTL ? "left" : "right", "calc(" + (iRight * 100) / iColumns + "% + " + iBorderThickness + "px)");
+			oRm.style(bIsRTL ? "right" : "left", "calc(" + (iColumn * 100) / iColumns + "% + " + iBorderThickness + "rem)");
+			oRm.style(bIsRTL ? "left" : "right", "calc(" + (iRight * 100) / iColumns + "% + " + iBorderThickness + "rem)");
 			oRm.style("top", (iLevel * oDensitySizes.appHeight + oDensitySizes.cellHeaderHeight) + "rem");
 			oRm.openEnd();
 
@@ -325,7 +367,7 @@ sap.ui.define([
 
 			if (app.hasPrevious < 0) {
 				aClasses = ["sapUiCalendarAppArrowIconLeft", "sapUiCalendarAppArrowIcon"];
-				oRm.icon("sap-icon://arrow-left", aClasses, { title: null });
+				oRm.icon("sap-icon://arrow-left", aClasses, { title: null, role: "img" });
 			}
 
 			if (sIcon) {
@@ -334,6 +376,7 @@ sap.ui.define([
 
 				mAttributes["id"] = sId + "-Icon";
 				mAttributes["title"] = null;
+				mAttributes["role"] = "img";
 				oRm.icon(sIcon, aClasses, mAttributes);
 			}
 
@@ -347,7 +390,7 @@ sap.ui.define([
 
 			if (app.hasNext < 0) {
 				aClasses = ["sapUiCalendarAppArrowIconRight", "sapUiCalendarAppArrowIcon"];
-				oRm.icon("sap-icon://arrow-right", aClasses, { title: null });
+				oRm.icon("sap-icon://arrow-right", aClasses, { title: null, role: "img" });
 			}
 
 			oRm.openStart("span", sId + "-Descr");
@@ -363,14 +406,18 @@ sap.ui.define([
 		};
 
 		SinglePlanningCalendarMonthGridRenderer.renderDayNames = function(oRm, oControl, oLocaleData) {
-			var iFirstDayOfWeek = oLocaleData.getFirstDayOfWeek(),
+			var iFirstDayOfWeek = oControl._getFirstDayOfWeek(),
 				sId = oControl.getId(),
 				sDayId,
 				sCalendarType = Core.getConfiguration().getCalendarType(),
 				aWeekDays = oLocaleData.getDaysStandAlone("abbreviated", sCalendarType),
 				aWeekDaysWide = oLocaleData.getDaysStandAlone("wide", sCalendarType),
+				oStartDate = UI5Date.getInstance(oControl.getStartDate()),
+				oFirstRenderedDate,
 				iDayIndex;
 
+			oStartDate.setDate(oStartDate.getDate() - oStartDate.getDay() + iFirstDayOfWeek);
+			oFirstRenderedDate = CalendarDate.fromLocalJSDate(oStartDate);
 			oRm.openStart("div", sId + "-Names");
 			oRm.class("sapMSPCMonthDayNames");
 			oRm.openEnd(); // span element
@@ -385,6 +432,11 @@ sap.ui.define([
 				if (i === 0) {
 					oRm.class("sapUiCalFirstWDay");
 				}
+
+				if (CalendarUtils._isWeekend(oFirstRenderedDate, oLocaleData)) {
+					oRm.class("sapUiCalItemWeekEnd");
+				}
+				oFirstRenderedDate.setDate(oFirstRenderedDate.getDate() + 1);
 
 				oRm.accessibilityState(null, {
 					role: "columnheader",

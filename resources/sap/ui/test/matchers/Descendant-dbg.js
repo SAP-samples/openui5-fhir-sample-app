@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2024 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -22,6 +22,7 @@ sap.ui.define([
 	 *     descendant: "object" // where "object" is a declarative matcher for the descendant
 	 * }
 	 * </code></pre>
+	 * The declarative matcher for Descendant does not support the <b>bDirect</b> parameter.
 	 *
 	 * @param {object|string} vDescendantControl The descendant control to check. If undefined,
 	 * it validates every control to true. Can be a control or a control ID
@@ -41,7 +42,7 @@ sap.ui.define([
 			var oDescendantControl;
 			if (typeof vDescendantControl === "string") {
 				var oAppWindow = oVisitor._getApplicationWindow();
-				oDescendantControl = oAppWindow.sap.ui.getCore().byId(vDescendantControl);
+				oDescendantControl = oAppWindow.sap.ui.require("sap/ui/core/Element").getElementById(vDescendantControl);
 			} else {
 				oDescendantControl = vDescendantControl;
 			}

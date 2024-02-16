@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2024 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 /*
@@ -46,7 +46,7 @@ sap.ui.define(["sap/ui/thirdparty/jquery", "sap/ui/events/PseudoEvents"
 		/**
 		 * Returns an array of names (as strings) identifying {@link module:sap/ui/events/PseudoEvents} that are fulfilled by this very Event instance.
 		 *
-		 * @returns {String[]} Array of names identifying {@link module:sap/ui/events/PseudoEvents} that are fulfilled by this very Event instance.
+		 * @returns {string[]} Array of names identifying {@link module:sap/ui/events/PseudoEvents} that are fulfilled by this very Event instance.
 		 * @public
 		 */
 		jQuery.Event.prototype.getPseudoTypes = function() {
@@ -92,46 +92,28 @@ sap.ui.define(["sap/ui/thirdparty/jquery", "sap/ui/events/PseudoEvents"
 		};
 
 		/**
-		 * Returns OffsetX of Event. In jQuery there is a bug. In IE the value is in offsetX, in FF in layerX
+		 * Returns OffsetX of Event.
 		 *
 		 * @returns {int} offsetX
 		 * @public
 		 */
 		jQuery.Event.prototype.getOffsetX = function() {
-
-			if (this.type == 'click') {
-				if (this.offsetX) {
-					return this.offsetX;
-				}
-				if (this.layerX) {
-					return this.layerX;
-				}
-				if (this.originalEvent.layerX) {
-					return this.originalEvent.layerX;
-				}
+			if (this.type == 'click' && this.offsetX) {
+				return this.offsetX;
 			}
 			// nothing defined -> offset = 0
 			return 0;
 		};
 
 		/**
-		 * Returns OffsetY of Event. In jQuery there is a bug. in IE the value is in offsetY, in FF in layerY.
+		 * Returns OffsetY of Event.
 		 *
 		 * @returns {int} offsetY
 		 * @public
 		 */
 		jQuery.Event.prototype.getOffsetY = function() {
-
-			if (this.type == 'click') {
-				if (this.offsetY) {
-					return this.offsetY;
-				}
-				if (this.layerY) {
-					return this.layerY;
-				}
-				if (this.originalEvent.layerY) {
-					return this.originalEvent.layerY;
-				}
+			if (this.type == 'click' && this.offsetY) {
+				return this.offsetY;
 			}
 			// nothing defined -> offset = 0
 			return 0;
@@ -215,7 +197,7 @@ sap.ui.define(["sap/ui/thirdparty/jquery", "sap/ui/events/PseudoEvents"
 		 * PRIVATE EXTENSION
 		 *
 		 * @param {string} [sKey="handledByControl"]
-		 * @returns {any} the marked value or undefined
+		 * @returns {any|undefined} the marked value or undefined
 		 */
 		jQuery.Event.prototype.getMark = function(sKey) {
 			sKey = sKey || "handledByControl";

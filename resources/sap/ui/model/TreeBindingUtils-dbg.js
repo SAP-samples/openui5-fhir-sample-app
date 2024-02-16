@@ -1,8 +1,9 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2024 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
+/*eslint-disable max-len */
 sap.ui.define(function() {
 	"use strict";
 
@@ -109,6 +110,8 @@ sap.ui.define(function() {
 		} else if (iNewSectionEndIndex <= oPendingRequest.iSkip || oNewRequest.iSkip >= iPendingSectionEndIndex) {
 			//old and new sections do not overlap, either the new section is completely left or right from the old one
 		}
+
+		return undefined;
 	};
 
 	return TreeBindingUtils;

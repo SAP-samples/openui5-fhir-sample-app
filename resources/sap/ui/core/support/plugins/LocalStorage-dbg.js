@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2024 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -15,15 +15,13 @@ sap.ui.define(['sap/ui/core/support/Plugin', "sap/base/Log"],
 		 * @class This class represents the LocalStorage plugin for the support tool functionality of UI5. This class is internal and all its functions must not be used by an application.
 		 *
 		 * @extends sap.ui.core.support.Plugin
-		 * @version 1.79.0
+		 * @version 1.120.6
 		 * @private
 		 * @alias sap.ui.core.support.plugins.LocalStorage
 		 */
 		var LocalStorage = Plugin.extend("sap.ui.core.support.plugins.LocalStorage", {
 			constructor : function(oSupportStub) {
 				Plugin.apply(this, ["sapUiSupportLocalStorage", "", oSupportStub]);
-
-				this._oStub = oSupportStub;
 				this._aEventIds = [this.getId() + "GetItem", this.getId() + "SetItem"];
 			}
 		});

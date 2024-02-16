@@ -110,10 +110,6 @@ html.sap-desktop .sapMFFScrolling.sapMFFNoScrollForward > .sapMFFArrowScrollRigh
     background-color: @sapUiInfobarHoverBackground;
 }
 
-html.sap-desktop .sapMFFRefresh .sapMBtnTransparent > .sapMBtnIcon, html.sap-phone .sapMFFRefresh .sapMBtnTransparent > .sapMBtnIcon {
-	color: @sapUiContentContrastIconColor;
-}
-
 html.sap-desktop .sapMFFRefresh.sapMBtn:focus > .sapMFocusable {
 	outline-color: @sapUiContentContrastFocusColor;
 }
@@ -151,5 +147,19 @@ html.sap-desktop .sapMFF > .sapMTB-Info-CTX.sapMTB > .sapMFFRefresh.sapMBtn:focu
 	padding-left: 0.75rem;
 	.sapMText {
 		padding: 0.5rem 0.5rem 0.5rem 0;
+	}
+}
+
+.sapMFFDialog,
+.sapMFFPop .sapMPopoverSubHeader {
+	.sapMFFCheckbar .sapMBarLeft {
+		padding-left: 0.1875rem;
+	}
+}
+
+.sapUiSizeCompact {
+	.sapMFFDialog .sapMFFCheckbar .sapMBarLeft,
+	.sapMFFPop .sapMPopoverSubHeader .sapMFFCheckbar .sapMBarLeft {
+		padding-left: 0.5rem;
 	}
 }

@@ -1,18 +1,17 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2024 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
-sap.ui.define(['sap/ui/core/Renderer', './InputBaseRenderer'],
-	function(Renderer, InputBaseRenderer) {
+sap.ui.define(['sap/ui/core/Renderer', './DateTimeFieldRenderer', 'sap/ui/core/library'],
+	function(Renderer, DateTimeFieldRenderer, coreLibrary) {
 	"use strict";
-
 
 	/**
 	 * DatePicker renderer.
 	 * @namespace
 	 */
-	var DatePickerRenderer = Renderer.extend(InputBaseRenderer);
+	var DatePickerRenderer = Renderer.extend(DateTimeFieldRenderer);
 	DatePickerRenderer.apiVersion = 2;
 
 	/**
@@ -22,7 +21,9 @@ sap.ui.define(['sap/ui/core/Renderer', './InputBaseRenderer'],
 	 * @param {sap.m.DatePicker} oDP An object representation of the control that should be rendered.
 	 */
 	DatePickerRenderer.writeInnerValue = function(oRm, oDP) {
-		if (oDP._bValid) {
+		if (oDP._inPreferredUserInteraction()) {
+			oRm.attr("value", oDP._$input.val());
+		} else if (oDP._bValid || oDP._bOutOfAllowedRange) {
 			oRm.attr("value", oDP._formatValue(oDP.getDateValue()));
 		} else {
 			oRm.attr("value", oDP.getValue());
@@ -44,24 +45,13 @@ sap.ui.define(['sap/ui/core/Renderer', './InputBaseRenderer'],
 		}
 	};
 
-	DatePickerRenderer.getAriaRole = function(oDP) {
-		return "combobox";
-	};
-
-	DatePickerRenderer.getDescribedByAnnouncement = function(oDP) {
-
-		var sBaseAnnouncement = InputBaseRenderer.getDescribedByAnnouncement.apply(this, arguments);
-		return sap.ui.getCore().getLibraryResourceBundle("sap.m").getText("DATEPICKER_DATE_TYPE") + " " + sBaseAnnouncement;
-
-	};
-
 	DatePickerRenderer.getAccessibilityState = function(oDP) {
+		var mAccessibilityState = DateTimeFieldRenderer.getAccessibilityState.apply(this, arguments);
 
-		var mAccessibilityState = InputBaseRenderer.getAccessibilityState.apply(this, arguments);
-
-		mAccessibilityState["autocomplete"] = "none";
-		mAccessibilityState["haspopup"] = true;
-		mAccessibilityState["expanded"] = false;
+		mAccessibilityState["roledescription"] = sap.ui.getCore().getLibraryResourceBundle("sap.m").getText("ACC_CTR_TYPE_DATEINPUT");
+		if (oDP.getEditable() && oDP.getEnabled()) {
+			mAccessibilityState["haspopup"] = coreLibrary.aria.HasPopup.Grid.toLowerCase();
+		}
 		// aria-disabled is not necessary if we already have a native 'disabled' attribute
 		mAccessibilityState["disabled"] = null;
 
@@ -71,7 +61,19 @@ sap.ui.define(['sap/ui/core/Renderer', './InputBaseRenderer'],
 		}
 
 		return mAccessibilityState;
+	};
 
+	/**
+	 * Adds specific class to hide the <code>DatePicker</code> input field when the <code>hideInput</code> property is set to <code>true</code>.
+	 * @protected
+	 * @param {sap.ui.core.RenderManager} oRm The RenderManager that can be used for writing to the render output buffer.
+	 * @param {sap.m.DatePicker} oControl An object representation of the control that should be rendered.
+	 */
+	 DatePickerRenderer.addOuterClasses = function(oRm, oControl) {
+		if (oControl.getHideInput()) {
+			oRm.class("sapMDatePickerHiddenInput");
+		}
+		DateTimeFieldRenderer.addOuterClasses.apply(this, arguments);
 	};
 
 	return DatePickerRenderer;

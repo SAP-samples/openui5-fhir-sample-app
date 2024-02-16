@@ -8,35 +8,35 @@
 /* ------------------------------ */
 
 .sapMSltPicker-CTX {
-	max-width: 600px;
-
 	.sapMSelectList {
 		.sapMSelectListRow {
-			max-width: 600px;
 			height: auto;
 			display: flex;
 			box-sizing: border-box;
+			word-break: break-all;
 
 			.sapMSelectListFirstCell {
 				height: auto;
 				overflow: hidden;
 				text-overflow: ellipsis;
 				white-space: nowrap;
-				width: 60%;
 				display: block;
-				box-sizing: border-box
+				box-sizing: border-box;
 			}
 
 			.sapMSelectListLastCell {
-				width: 40%;
 				display: block;
-				box-sizing: border-box
+				box-sizing: border-box;
 			}
 
 			.sapMSelectListFirstCell,
 			.sapMSelectListLastCell {
 				padding-top: 0.75rem;
 				padding-bottom: 0.75rem;
+				word-break: break-word;
+				&:empty {
+					height: 2.5rem;
+				}
 			}
 		}
 
@@ -57,9 +57,13 @@
 				padding-bottom: 0.75rem;
 				line-height: 1rem;
 				height: auto;
+				&:empty {
+					height: 2.5rem;
+				}
 			}
 
 			.sapMSelectListRow {
+				display: table-row;
 				.sapMSelectListFirstCell {
 					white-space: normal;
 				}
@@ -67,7 +71,47 @@
 				.sapMSelectListLastCell {
 					vertical-align: top;
 				}
+
+				.sapMSelectListCell{
+					display: table-cell;
+				}
 			}
+		}
+		.sapMSelectListItem {
+			display: flex;
+			align-items: center;
+		}
+	}
+}
+
+// sets max-width of 600px to selectList, only when wrapItemsText property is false
+.sapMSltPicker-CTX:not(.sapMPickerWrappedItems){
+	max-width: 600px;
+	.sapMSelectList:not(.sapMSelectListWrappedItems) {
+		max-width: 600px;
+			.sapMSelectListRow {
+				max-width: 600px;
+		}
+	}
+}
+
+// defines the ratio of columns inside selectList, when text is truncated
+.sapMSltPicker-CTX .sapMSelectList:not(.sapMSelectListWrappedItems){
+	.sapMSelectListFirstCell {
+		width: 60%;
+	}
+	.sapMSelectListLastCell {
+		width: 40%;
+	}
+}
+
+// sets max-width of 100% to selectList, only when wrapItemsText property is true
+.sapMSltPicker-CTX.sapMDialogPhone {
+	max-width: 100%;
+	.sapMSelectList:not(.sapMSelectListWrappedItems) {
+		max-width: 100%;
+			.sapMSelectListRow {
+				max-width: 100%;
 		}
 	}
 }
@@ -78,18 +122,17 @@
 		.sapMSelectListLastCell {
 			padding-top: 0.5rem;
 			padding-bottom: 0.5rem;
+			&:empty {
+				height: 2rem;
+			}
 		}
 	}
 	&.sapMSelectListWrappedItems .sapMSelectListItem {
 		padding-top: 0.5rem;
 		padding-bottom: 0.5rem;
-	}
-}
-
-html[data-sap-ui-browser^="ie"].sap-desktop,
-html[data-sap-ui-browser^="ed"].sap-desktop {
-	.sapMSltPicker-CTX .sapMSelectList.sapMSelectListWrappedItems .sapMSelectListItemBaseSelected .sapMSelectListCell::before {
-		height: auto;
+		&:empty {
+			height: 2rem;
+		}
 	}
 }
 
@@ -151,6 +194,7 @@ html[data-sap-ui-browser^="ed"].sap-desktop {
 	margin: 0.25rem 0 0.25rem 0;
 	border: 1px solid @sapUiFieldBorderColor;
 	background: @sapUiFieldBackground;
+	line-height: initial;
 }
 
 .sapMSltMinWidth {
@@ -206,11 +250,24 @@ html[data-sap-ui-browser^="ed"].sap-desktop {
 	text-align: start;
 	-webkit-user-select: none;
 	-moz-user-select: none;
-	-ms-user-select: none;
-	line-height: 2.375rem;
 	color: @sapUiFieldTextColor;
 	font-style: normal;
 	font-size: @sapMFontMediumSize;
+	vertical-align: middle;
+	&::after {
+		content: "";
+		height: 100%;
+		display: inline-block;
+		vertical-align: middle;
+		width: 0;
+	}
+	.sapMSelectListItemText {
+		vertical-align: middle;
+	}
+
+	.sapMSelectListItemIcon {
+		vertical-align: middle;
+	}
 }
 
 .sapMSltAutoAdjustedWidth > .sapMSltLabel {
@@ -229,9 +286,6 @@ html[data-sap-ui-browser^="ed"].sap-desktop {
 	line-height: 2.375rem;
 	padding: 0 0.4375rem;
 	color: @sapUiContentIconColor;
-
-	/* prevent IE to focus the icon (non-focusable element) */
-	pointer-events: none;
 }
 
 .sapMSltAutoAdjustedWidth .sapMSltIcon {
@@ -247,16 +301,6 @@ html[data-sap-ui-browser^="ed"].sap-desktop {
 /* ------------------------------ */
 /* arrow                          */
 /* ------------------------------ */
-
-html[data-sap-ui-browser^="ie"] .sapMSltWithArrow .sapMSltLabel {
-	pointer-events: none;
-}
-
-/* TODO remove after the end of support for Internet Explorer */
-html[data-sap-ui-browser^="ie"] .sapMSltWithArrow .sapMSltArrow,
-html[data-sap-ui-browser^="ed"] .sapMSltWithArrow .sapMSltArrow {
-	pointer-events: auto;
-}
 
 .sapMSltArrow {
 	position: absolute;
@@ -309,14 +353,16 @@ html[data-sap-ui-browser^="ed"] .sapMSltWithArrow .sapMSltArrow {
 /* table context                  */
 /* ------------------------------ */
 
-.sapUiTableCell .sapMSlt,
-.sapUiSizeCondensed .sapUiTableCell .sapMSlt,
-.sapUiSizeCompact .sapUiTableCell .sapMSlt {
+.sapUiSizeCondensed .sapUiTableCell .sapMSlt {
 	margin: 0;
 }
 
 .sapUiSizeCondensed .sapUiTableCell .sapMSlt:not(.sapMSltState) {
 	border-color: transparent;
+}
+
+.sapMSelectListTableLayout {
+	border-collapse: collapse;
 }
 
 /* ---------------------------------------- */
@@ -442,6 +488,15 @@ div.sapMSltPicker .sapMDialogScrollCont {
 	padding: 0;
 }
 
+.sap-phone {
+	.sapMSelectListTableLayout {
+		display: inline;
+	}
+	.sapMSelectListWrappedItems.sapMSelectListTableLayout {
+		display: table;
+	}
+}
+
 /* ================================================================================== */
 /* CSS for control sap.m/Select.control Belize theme smaller sizes - common part      */
 /* ================================================================================== */
@@ -458,7 +513,6 @@ div.sapMSltPicker .sapMDialogScrollCont {
 	padding-left: 0.5rem;
 }
 
-.sapUiSizeCompact .sapMSlt > .sapMSltLabel,
 .sapUiSizeCompact .sapMSlt > .sapMSltArrow {
 	line-height: 1.5rem;
 }
@@ -547,4 +601,20 @@ div.sapMSltPicker .sapMDialogScrollCont {
 .sapUiSizeCondensed .sapUiTableCell .sapMSltLabelState,
 .sapUiSizeCondensed .sapUiTableCell .sapMSltArrowState {
 	line-height: 1.25rem;
+}
+
+/* hidden focus element */
+
+.sapMSltHiddenSelect {
+    width: 100%;
+    height: 100%;
+    border: none;
+}
+
+// when the Busy Indicator is inside Select it should be with different positions - BCP 1870362962
+.sapMSlt .sapUiLocalBusyIndicator:focus:after {
+	left: 1px;
+	top: 1px;
+	right: 1px;
+	bottom: 1px;
 }

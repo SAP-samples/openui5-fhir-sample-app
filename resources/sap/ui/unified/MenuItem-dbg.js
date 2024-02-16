@@ -1,12 +1,12 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2024 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 // Provides control sap.ui.unified.MenuItem.
-sap.ui.define(['sap/ui/core/IconPool', './MenuItemBase', './library'],
-	function(IconPool, MenuItemBase, library) {
+sap.ui.define(['sap/ui/core/IconPool', './MenuItemBase', './library', 'sap/ui/core/library'],
+	function(IconPool, MenuItemBase, library, coreLibrary) {
 	"use strict";
 
 
@@ -23,13 +23,12 @@ sap.ui.define(['sap/ui/core/IconPool', './MenuItemBase', './library'],
 	 * @extends sap.ui.unified.MenuItemBase
 	 *
 	 * @author SAP SE
-	 * @version 1.79.0
+	 * @version 1.120.6
 	 * @since 1.21.0
 	 *
 	 * @constructor
 	 * @public
 	 * @alias sap.ui.unified.MenuItem
-	 * @ui5-metamodel This control/element will also be described in the UI5 (legacy) design time meta model
 	 */
 	var MenuItem = MenuItemBase.extend("sap.ui.unified.MenuItem", /** @lends sap.ui.unified.MenuItem.prototype */ { metadata : {
 
@@ -60,11 +59,12 @@ sap.ui.define(['sap/ui/core/IconPool', './MenuItemBase', './library'],
 	MenuItem.prototype.render = function(oRenderManager, oItem, oMenu, oInfo){
 		var rm = oRenderManager,
 			oSubMenu = oItem.getSubmenu(),
-			bIsEnabled = oItem.getEnabled();
+			bIsEnabled = oItem.getEnabled(),
+			oIcon;
 
 		rm.openStart("li", oItem);
 
-		if (oItem.getVisible() && bIsEnabled) {
+		if (oItem.getVisible()) {
 			rm.attr("tabindex", "0");
 		}
 
@@ -81,10 +81,6 @@ sap.ui.define(['sap/ui/core/IconPool', './MenuItemBase', './library'],
 			rm.class("sapUiMnuItmSepBefore");
 		}
 
-		if (!bIsEnabled) {
-			rm.attr("disabled", "disabled");
-		}
-
 		if (oItem.getTooltip_AsString()) {
 			rm.attr("title", oItem.getTooltip_AsString());
 		}
@@ -93,13 +89,13 @@ sap.ui.define(['sap/ui/core/IconPool', './MenuItemBase', './library'],
 		if (oInfo.bAccessible) {
 			rm.accessibilityState(oItem, {
 				role: "menuitem",
-				disabled: null, // Prevent aria-disabled as a disabled attribute is enough
+				disabled: !bIsEnabled,
 				posinset: oInfo.iItemNo,
 				setsize: oInfo.iTotalItems,
-				labelledby: {value: /*oMenu.getId() + "-label " + */this.getId() + "-txt " + this.getId() + "-scuttxt", append: true}
+				labelledby: { value: this.getId() + "-txt", append: true }
 			});
 			if (oSubMenu) {
-				rm.attr("aria-haspopup", true);
+				rm.attr("aria-haspopup", coreLibrary.aria.HasPopup.Menu.toLowerCase());
 				rm.attr("aria-owns", oSubMenu.getId());
 			}
 		}
@@ -111,12 +107,15 @@ sap.ui.define(['sap/ui/core/IconPool', './MenuItemBase', './library'],
 		rm.openEnd();
 		rm.close("div");
 
-		if (oItem.getIcon()) {
+		if (oItem.getIcon() && oItem._getIcon) {
 			// icon/check column
 			rm.openStart("div");
 			rm.class("sapUiMnuItmIco");
 			rm.openEnd();
-			rm.icon(oItem.getIcon(), null, {title: null});
+
+			oIcon = oItem._getIcon(oItem);
+			rm.renderControl(oIcon);
+
 			rm.close("div");
 		}
 
@@ -159,7 +158,7 @@ sap.ui.define(['sap/ui/core/IconPool', './MenuItemBase', './library'],
 	};
 
 	MenuItem.prototype.focus = function(oMenu){
-		if (this.getEnabled() && this.getVisible()) {
+		if (this.getVisible()) {
 			this.$().trigger("focus");
 		} else {
 			oMenu.focus();

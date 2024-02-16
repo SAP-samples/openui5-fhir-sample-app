@@ -1,12 +1,12 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2024 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 // Provides class sap.ui.core.support.plugins.Breakpoint (Breakpoint support Plugin)
-sap.ui.define(['sap/ui/Device', 'sap/ui/core/ElementMetadata', '../Plugin', "sap/base/util/LoaderExtensions", "sap/base/util/ObjectPath", "sap/ui/thirdparty/jquery"],
-	function(Device, ElementMetadata, Plugin, LoaderExtensions, ObjectPath, jQueryDOM) {
+sap.ui.define(['sap/ui/Device', "sap/ui/core/Element", 'sap/ui/core/ElementMetadata', '../Plugin', "sap/base/util/LoaderExtensions", "sap/base/util/ObjectPath"],
+	function(Device, Element, ElementMetadata, Plugin, LoaderExtensions, ObjectPath) {
 	"use strict";
 
 	/*global alert */
@@ -16,8 +16,6 @@ sap.ui.define(['sap/ui/Device', 'sap/ui/core/ElementMetadata', '../Plugin', "sap
 
 			constructor : function(oSupportStub) {
 				Plugin.apply(this, ["sapUiSupportBreakpoint", "", oSupportStub]);
-
-				this._oStub = oSupportStub;
 
 				this._methodType = {
 					clazz: 1, proto: 2
@@ -179,7 +177,7 @@ sap.ui.define(['sap/ui/Device', 'sap/ui/core/ElementMetadata', '../Plugin', "sap
 
 		Breakpoint.prototype.getInstanceMethods = function(sControlId) {
 
-			var oControl = sap.ui.getCore().byId(sControlId), // get control instance
+			var oControl = Element.getElementById(sControlId), // get control instance
 				aMethods = [];
 
 			// check if control was found
@@ -189,7 +187,7 @@ sap.ui.define(['sap/ui/Device', 'sap/ui/core/ElementMetadata', '../Plugin', "sap
 
 			// loop through control object
 			for (var oProperty in oControl) {
-				if (!jQueryDOM.isFunction(oControl[oProperty])) {
+				if (typeof oControl[oProperty] !== "function") {
 					continue;
 				}
 
@@ -223,7 +221,7 @@ sap.ui.define(['sap/ui/Device', 'sap/ui/core/ElementMetadata', '../Plugin', "sap
 
 			// class methods
 			for (sKey in oObj) {
-				if (!jQueryDOM.isFunction(oObj[sKey])) {
+				if (typeof oObj[sKey] !== "function") {
 					continue;
 				}
 
@@ -242,7 +240,7 @@ sap.ui.define(['sap/ui/Device', 'sap/ui/core/ElementMetadata', '../Plugin', "sap
 
 			// instance methods
 			for (sKey in oObj.prototype) {
-				if (!jQueryDOM.isFunction(oObj.prototype[sKey])) {
+				if (typeof oObj.prototype[sKey] !== "function") {
 					continue;
 				}
 
@@ -303,7 +301,7 @@ sap.ui.define(['sap/ui/Device', 'sap/ui/core/ElementMetadata', '../Plugin', "sap
 		Breakpoint.prototype.changeInstanceBreakpoint = function(sControlId, sMethodName, bActive) {
 
 			// get control instance
-			var oControl = sap.ui.getCore().byId(sControlId);
+			var oControl = Element.getElementById(sControlId);
 
 			// check if control was found and a method was specified
 			if (!oControl || !sMethodName || !oControl[sMethodName]) {
@@ -509,13 +507,13 @@ sap.ui.define(['sap/ui/Device', 'sap/ui/core/ElementMetadata', '../Plugin', "sap
 
 			return function() {
 
-				var time = (new Date()).getTime();
+				var time = Date.now();
 
 				/*eslint-disable no-debugger */
 				debugger;
 				/*eslint-enable no-debugger */
 
-				if ((new Date().getTime()) - time < 50) {
+				if (Date.now() - time < 50) {
 					that._alertNoDebugger();
 				}
 
@@ -525,7 +523,6 @@ sap.ui.define(['sap/ui/Device', 'sap/ui/core/ElementMetadata', '../Plugin', "sap
 		};
 
 		Breakpoint.prototype._alertNoDebugger = function() {
-
 			if (this._bAlertNoDebugger) {
 				return; // show alert only one time
 			}
@@ -534,10 +531,6 @@ sap.ui.define(['sap/ui/Device', 'sap/ui/core/ElementMetadata', '../Plugin', "sap
 
 			if (Device.browser.chrome) {
 				text = "Please open your debugger by pressing CTRL + SHIFT + I.";
-			}
-
-			if (Device.browser.msie) {// TODO remove after the end of support for Internet Explorer
-				text = "Please open your debugger using F12, go to the 'Script' tab and attach it by pressing F5.";
 			}
 
 			if (text == null) {

@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2024 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -15,6 +15,11 @@ sap.ui.define([
 	"use strict";
 
 	/**
+	 * The controller metadata
+	 *
+	 * @param {string} sClassName Fully qualified name of the described class
+	 * @param {object} oClassInfo Info to construct the class and its metadata from
+	 *
 	 * @alias sap.ui.core.mvc.ControllerMetadata
 	 * @extends sap.ui.base.Metadata
 	 * @private
@@ -34,10 +39,11 @@ sap.ui.define([
 	ControllerMetadata.prototype.constructor = ControllerMetadata;
 
 	ControllerMetadata.prototype.applySettings = function(oClassInfo) {
-		// property 'override' needs to be handled separately and must not be attached to the prototype
-		if (oClassInfo.override) {
-			this._override = oClassInfo.override;
+		// property 'overrides' needs to be handled separately and must not be attached to the prototype
+		if (oClassInfo.overrides || oClassInfo.override) { // also consider the deprecated 'override' property
+			this._override = oClassInfo.overrides || oClassInfo.override; // ...but only when the new property is not set
 			delete oClassInfo.override;
+			delete oClassInfo.overrides;
 		}
 
 		Metadata.prototype.applySettings.call(this, oClassInfo);
@@ -65,14 +71,14 @@ sap.ui.define([
 			* If not, we stay compatible and every method prefixed with '-' or 'on' gets private.
 			*/
 			if (bExtendsController && !bDefinesMethods) {
-			   rPrivateCheck = /^_|^on|^init$|^exit$/;
+				rPrivateCheck = /^_|^on|^init$|^exit$/;
 			}
 
 			/*
 			* extend method metadata: make lifecycle hooks public
 			*/
 			if (bExtendsController && bDefinesMethods) {
-			    merge(oStaticInfo.methods, this._defaultLifecycleMethodMetadata);
+				merge(oStaticInfo.methods, this._defaultLifecycleMethodMetadata);
 			}
 		}
 
@@ -87,7 +93,7 @@ sap.ui.define([
 				if (!n.match(rPrivateCheck)) {
 					//final check
 					if (bExtendsController && this._oParent && this._oParent.isMethodFinal(n)) {
-						Log.error("Method: '" + n + "' of controller '" + this._oParent.getName() + "' is final and cannot be overridden by controller '" + this.getName() + "'");
+						Log.error("[FUTURE FATAL] Method: '" + n + "' of controller '" + this._oParent.getName() + "' is final and cannot be overridden by controller '" + this.getName() + "'");
 						delete this._oClass.prototype[n];
 					}
 					// default metadata for methods
@@ -102,7 +108,7 @@ sap.ui.define([
 		}
 		for (var m in this._mMethods) {
 			if (this.isMethodPublic(m)) {
-			    this._aPublicMethods.push(m);
+				this._aPublicMethods.push(m);
 			}
 		}
 	};
@@ -122,26 +128,26 @@ sap.ui.define([
 			var mParentMethods = this._oParent._mMethods ? this._oParent._mMethods : {};
 			//allow change of visibility but not the other attributes
 			for (var sMethod in mParentMethods) {
-			if (this._mMethods[sMethod] && !bIsExtension) {
-			var bPublic = this._mMethods[sMethod].public;
-			//copy parent method definition as final/overrideExecution should not be overridden
-			this._mMethods[sMethod] = merge({}, mParentMethods[sMethod]);
-			if (bPublic !== undefined) {
-			this._mMethods[sMethod].public = bPublic;
-			}
-			if (!this.isMethodPublic(sMethod) && this._mMethods[sMethod].public !== mParentMethods[sMethod].public) {
-			//if visibility changed to private delete from public methods
-			this._aAllPublicMethods.splice(this._aAllPublicMethods.indexOf(sMethod), 1);
-			}
-			} else {
-			this._mMethods[sMethod] = mParentMethods[sMethod];
-			}
+				if (this._mMethods[sMethod] && !bIsExtension) {
+					var bPublic = this._mMethods[sMethod].public;
+					//copy parent method definition as final/overrideExecution should not be overridden
+					this._mMethods[sMethod] = merge({}, mParentMethods[sMethod]);
+					if (bPublic !== undefined) {
+						this._mMethods[sMethod].public = bPublic;
+					}
+					if (!this.isMethodPublic(sMethod) && this._mMethods[sMethod].public !== mParentMethods[sMethod].public) {
+						//if visibility changed to private delete from public methods
+						this._aAllPublicMethods.splice(this._aAllPublicMethods.indexOf(sMethod), 1);
+					}
+				} else {
+					this._mMethods[sMethod] = mParentMethods[sMethod];
+				}
 			}
 		}
 
 		//flag each extension as final (but not the class ControllerExtension itself)
 		if (this._oParent && this._oParent.isA("sap.ui.core.mvc.ControllerExtension")) {
-		   this._bFinal = true;
+			this._bFinal = true;
 		}
 	};
 

@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2024 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -21,15 +21,22 @@ sap.ui.define([
 		 *   A map of headers
 		 * @param {string} sODataVersion
 		 *   The version of the OData service. Supported values are "2.0" and "4.0".
+		 * @param {boolean} [bIgnoreAnnotationsFromMetadata]
+		 *   Whether to ignore all annotations from metadata documents. Only annotations from
+		 *   additional annotation files are loaded.
 		 * @param {object} [mQueryParams={}]
 		 *   A map of query parameters as described in
-		 *   {@link sap.ui.model.odata.v4.lib._Helper.buildQuery}
+		 *   {@link sap.ui.model.odata.v4.lib._Helper.buildQuery}. Note that "sap-context-token"
+		 *   is deleted(!) after the first <code>read</code> for a metadata document.
+		 * @param {boolean} [bWithCredentials]
+		 *   Whether the XHR should be called with <code>withCredentials</code>
 		 * @returns {object}
 		 *   A new MetadataRequestor object
 		 */
-		create : function (mHeaders, sODataVersion, mQueryParams) {
+		create : function (mHeaders, sODataVersion, bIgnoreAnnotationsFromMetadata, mQueryParams,
+			bWithCredentials) {
 			var mUrl2Promise = {},
-				sQueryStr = _Helper.buildQuery(mQueryParams);
+				sQuery = _Helper.buildQuery(mQueryParams);
 
 			return {
 				/**
@@ -37,10 +44,10 @@ sap.ui.define([
 				 * @param {string} sUrl
 				 *   The URL of a metadata document, it must not contain a query string or a
 				 *   fragment part
-				 * @param {boolean} [bAnnotations=false]
+				 * @param {boolean} [bAnnotations]
 				 *   <code>true</code> if an additional annotation file is read, otherwise it is
 				 *   expected to be a metadata document in the correct OData version
-				 * @param {boolean} [bPrefetch=false]
+				 * @param {boolean} [bPrefetch]
 				 *   Whether to just read the metadata document, but not yet convert it from XML to
 				 *   JSON. For any given URL, this is useful in an optional early call that precedes
 				 *   a normal call without this flag.
@@ -62,10 +69,12 @@ sap.ui.define([
 						var Converter = sODataVersion === "4.0" || bAnnotations
 								? _V4MetadataConverter
 								: _V2MetadataConverter,
-							oData = oJSON.$XML;
+							oData = oJSON.$XML,
+							bIgnoreAnnotations = bIgnoreAnnotationsFromMetadata && !bAnnotations;
 
 						delete oJSON.$XML; // be nice to the garbage collector
-						return Object.assign(new Converter().convertXMLMetadata(oData, sUrl),
+						return Object.assign(
+							new Converter().convertXMLMetadata(oData, sUrl, bIgnoreAnnotations),
 							oJSON);
 					}
 
@@ -77,10 +86,16 @@ sap.ui.define([
 						delete mUrl2Promise[sUrl];
 					} else {
 						oPromise = new Promise(function (fnResolve, fnReject) {
-							jQuery.ajax(bAnnotations ? sUrl : sUrl + sQueryStr, {
-								method : "GET",
-								headers : mHeaders
-							}).then(function (oData, sTextStatus, jqXHR) {
+							const oAjaxSettings = {
+									method : "GET",
+									headers : mHeaders
+								};
+							if (bWithCredentials) {
+								oAjaxSettings.xhrFields = {withCredentials : true};
+							}
+
+							jQuery.ajax(bAnnotations ? sUrl : sUrl + sQuery, oAjaxSettings)
+							.then(function (oData, _sTextStatus, jqXHR) {
 								var sDate = jqXHR.getResponseHeader("Date"),
 									sETag = jqXHR.getResponseHeader("ETag"),
 									oJSON = {$XML : oData},
@@ -96,13 +111,18 @@ sap.ui.define([
 									oJSON.$LastModified = sLastModified;
 								}
 								fnResolve(oJSON);
-							}, function (jqXHR, sTextStatus, sErrorMessage) {
+							}, function (jqXHR, _sTextStatus, _sErrorMessage) {
 								var oError = _Helper.createError(jqXHR, "Could not load metadata");
 
 								Log.error("GET " + sUrl, oError.message,
 									"sap.ui.model.odata.v4.lib._MetadataRequestor");
 								fnReject(oError);
 							});
+							if (!bAnnotations
+								&& mQueryParams && "sap-context-token" in mQueryParams) {
+								delete mQueryParams["sap-context-token"];
+								sQuery = _Helper.buildQuery(mQueryParams);
+							}
 						});
 						if (bPrefetch) {
 							mUrl2Promise[sUrl] = oPromise;

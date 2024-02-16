@@ -1,6 +1,6 @@
 /*!
 * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2024 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
 */
 
@@ -26,6 +26,9 @@ function(library, Core, Control, coreLibrary, Device, HyphenationSupport, TextRe
 	// shortcut for sap.m.WrappingType
 	var WrappingType = library.WrappingType;
 
+	// shortcut for sap.m.EmptyIndicator
+	var EmptyIndicatorMode = library.EmptyIndicatorMode;
+
 	/**
 	 * Constructor for a new Text.
 	 *
@@ -48,17 +51,16 @@ function(library, Core, Control, coreLibrary, Device, HyphenationSupport, TextRe
 	 * to <code>true</code>.
 	 *
 	 * @extends sap.ui.core.Control
-	 * @implements sap.ui.core.IShrinkable, sap.ui.core.IFormContent
+	 * @implements sap.ui.core.IShrinkable, sap.ui.core.IFormContent, sap.ui.core.ISemanticFormContent
 	 *
 	 * @author SAP SE
-	 * @version 1.79.0
+	 * @version 1.120.6
 	 *
 	 * @constructor
 	 * @public
 	 * @alias sap.m.Text
 	 * @see {@link fiori:https://experience.sap.com/fiori-design-web/text/ Text}
 	 * @see {@link topic:f94deb45de184a3a87850b75d610d9c0 Text}
-	 * @ui5-metamodel This control/element also will be described in the UI5 (legacy) designtime metamodel
 	 */
 	var Text = Control.extend("sap.m.Text", /** @lends sap.m.Text.prototype */ {
 		metadata: {
@@ -66,7 +68,9 @@ function(library, Core, Control, coreLibrary, Device, HyphenationSupport, TextRe
 			interfaces: [
 				"sap.ui.core.IShrinkable",
 				"sap.ui.core.IFormContent",
-				"sap.m.IHyphenation"
+				"sap.ui.core.ISemanticFormContent",
+				"sap.m.IHyphenation",
+				"sap.m.IToolbarInteractiveControl"
 			],
 			library: "sap.m",
 			properties: {
@@ -120,11 +124,20 @@ function(library, Core, Control, coreLibrary, Device, HyphenationSupport, TextRe
 				 *
 				 * @since 1.51
 				 */
-				renderWhitespace: { type: "boolean", group: "Appearance", defaultValue: false }
+				renderWhitespace: { type: "boolean", group: "Appearance", defaultValue: false },
+
+				/**
+				 * Specifies if an empty indicator should be displayed when there is no text.
+				 *
+				 * @since 1.87
+				 */
+				emptyIndicatorMode: { type: "sap.m.EmptyIndicatorMode", group: "Appearance", defaultValue: EmptyIndicatorMode.Off }
 			},
 
 			designtime: "sap/m/designtime/Text.designtime"
-		}
+		},
+
+		renderer: TextRenderer
 	});
 
 	/**
@@ -179,7 +192,7 @@ function(library, Core, Control, coreLibrary, Device, HyphenationSupport, TextRe
 	 *
 	 * @protected
 	 * @param {HTMLElement} oDomRef DOM reference of the text node container.
-	 * @param {String} [sNodeValue] new Node value.
+	 * @param {string} [sNodeValue] new Node value.
 	 * @since 1.30.3
 	 */
 	Text.setNodeValue = function (oDomRef, sNodeValue) {
@@ -282,7 +295,7 @@ function(library, Core, Control, coreLibrary, Device, HyphenationSupport, TextRe
 	 *
 	 * @since 1.20
 	 * @protected
-	 * @return {Boolean}
+	 * @return {boolean}
 	 */
 	Text.prototype.canUseNativeLineClamp = function () {
 		// has line clamp feature
@@ -401,7 +414,7 @@ function(library, Core, Control, coreLibrary, Device, HyphenationSupport, TextRe
 	 * @param {HTMLElement} [oDomRef] DOM reference of the text container.
 	 * @param {int} [iStartPos] Start point of the ellipsis search.
 	 * @param {int} [iEndPos] End point of the ellipsis search.
-	 * @returns {int|undefined} Returns found ellipsis position or undefined.
+	 * @returns {int|undefined} Returns found ellipsis position or <code>undefined</code>.
 	 * @since 1.20
 	 */
 	Text.prototype.clampText = function (oDomRef, iStartPos, iEndPos) {
@@ -471,11 +484,24 @@ function(library, Core, Control, coreLibrary, Device, HyphenationSupport, TextRe
 	 * Gets the accessibility information for the text.
 	 *
 	 * @protected
-	 * @returns {object} Accessibility information for the text.
+	 * @returns {sap.ui.core.AccessibilityInfo} Accessibility information for the text.
 	 * @see sap.ui.core.Control#getAccessibilityInfo
 	 */
 	Text.prototype.getAccessibilityInfo = function () {
 		return { description: this.getText() };
+	};
+
+	/**
+	 * Required by the {@link sap.m.IToolbarInteractiveControl} interface.
+	 * Determines if the Control is interactive.
+	 *
+	 * @returns {boolean} If it is an interactive Control
+	 *
+	 * @private
+	 * @ui5-restricted sap.m.OverflowToolBar, sap.m.Toolbar
+	 */
+	Text.prototype._getToolbarInteractive = function () {
+		return false;
 	};
 
 	/**

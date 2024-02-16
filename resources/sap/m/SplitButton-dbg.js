@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2024 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -13,8 +13,6 @@ sap.ui.define([
 	'sap/ui/core/EnabledPropagator',
 	'sap/ui/core/IconPool',
 	'sap/ui/core/library',
-	'sap/ui/Device',
-	'sap/ui/core/InvisibleText',
 	'./SplitButtonRenderer',
 	"sap/ui/events/KeyCodes"
 ],
@@ -26,8 +24,6 @@ function(
 	EnabledPropagator,
 	IconPool,
 	coreLibrary,
-	Device,
-	InvisibleText,
 	SplitButtonRenderer,
 	KeyCodes
 	) {
@@ -50,100 +46,104 @@ function(
 		 * @extends sap.ui.core.Control
 		 *
 		 * @author SAP SE
-		 * @version 1.79.0
+		 * @version 1.120.6
 		 *
 		 * @constructor
 		 * @private
-		 * @ui5-restricted sap.m.MenuButton,sap.ui.richtextEditor.ToolbarWrapper
+		 * @ui5-restricted sap.m.MenuButton,sap.ui.richtexteditor.ToolbarWrapper
 		 * @alias sap.m.SplitButton
-		 * @ui5-metamodel This control/element also will be described in the UI5 (legacy) designtime metamodel
 		 */
-		var SplitButton = Control.extend("sap.m.SplitButton", /** @lends sap.m.SplitButton.prototype */ { metadata : {
+		var SplitButton = Control.extend("sap.m.SplitButton", /** @lends sap.m.SplitButton.prototype */ {
+			metadata : {
 
-			interfaces : [
-				"sap.m.IOverflowToolbarContent"
-			],
-			library : "sap.m",
-			properties : {
+				interfaces : [
+					"sap.m.IOverflowToolbarContent",
+					"sap.m.IToolbarInteractiveControl"
+				],
+				library : "sap.m",
+				properties : {
 
-				/**
-				 * Define the text of the button.
-				 */
-				text : {type : "string", group : "Misc", defaultValue : null},
+					/**
+					 * Define the text of the button.
+					 */
+					text : {type : "string", group : "Misc", defaultValue : null},
 
-				/**
-				 * Defines the type of the button (for example, Default, Accept, Reject, Transparent).
-				 * Values <code>Back</code>, <code>Up</code> and <code>Unstyled</code> are ignored.
-				 */
-				type : {type : "sap.m.ButtonType", group : "Appearance", defaultValue : ButtonType.Default},
+					/**
+					 * Defines the type of the button (for example, Default, Accept, Reject, Transparent).
+					 * Values <code>Back</code>, <code>Up</code> and <code>Unstyled</code> are ignored.
+					 */
+					type : {type : "sap.m.ButtonType", group : "Appearance", defaultValue : ButtonType.Default},
 
-				/**
-				 * Defines the width of the button.
-				 */
-				width : {type : "sap.ui.core.CSSSize", group : "Misc", defaultValue : null},
+					/**
+					 * Defines the width of the button.
+					 */
+					width : {type : "sap.ui.core.CSSSize", group : "Misc", defaultValue : null},
 
-				/**
-				 * Boolean property to enable the control (default is <code>true</code>).
-				 * <b>Note:</b> Depending on custom settings, the buttons that are disabled have other colors than the enabled ones.
-				 */
-				enabled : {type : "boolean", group : "Behavior", defaultValue : true},
+					/**
+					 * Boolean property to enable the control (default is <code>true</code>).
+					 * <b>Note:</b> Depending on custom settings, the buttons that are disabled have other colors than the enabled ones.
+					 */
+					enabled : {type : "boolean", group : "Behavior", defaultValue : true},
 
-				/**
-				 * Defines the icon to be displayed as graphical element within the button.
-				 * This can be an image or an icon from the icon font.
-				 */
-				icon : {type : "sap.ui.core.URI", group : "Appearance", defaultValue : null},
+					/**
+					 * Defines the icon to be displayed as graphical element within the button.
+					 * This can be an image or an icon from the icon font.
+					 */
+					icon : {type : "sap.ui.core.URI", group : "Appearance", defaultValue : null},
 
-				/**
-				 * The source property of an alternative icon for the active (pressed) state of the button.
-				 * Both active and default icon properties should be defined and of the same type - image or icon font.
-				 * If the <code>icon</code> property is not set or has a different type, the active icon is not displayed.
-				 */
-				activeIcon : {type : "sap.ui.core.URI", group : "Misc", defaultValue : null},
+					/**
+					 * The source property of an alternative icon for the active (pressed) state of the button.
+					 * Both active and default icon properties should be defined and of the same type - image or icon font.
+					 * If the <code>icon</code> property is not set or has a different type, the active icon is not displayed.
+					 */
+					activeIcon : {type : "sap.ui.core.URI", group : "Misc", defaultValue : null},
 
-				/**
-				 * When set to <code>true</code (default), one or more requests are sent trying to get
-				 * the density perfect version of image if this version of image doesn't exist on the server.
-				 * If only one version of image is provided, set this value to <code>false</code> to
-				 * avoid the attempt of fetching density perfect image.
-				 */
-				iconDensityAware : {type : "boolean", group : "Misc", defaultValue : true},
+					/**
+					 * When set to <code>true</code (default), one or more requests are sent trying to get
+					 * the density perfect version of image if this version of image doesn't exist on the server.
+					 * If only one version of image is provided, set this value to <code>false</code> to
+					 * avoid the attempt of fetching density perfect image.
+					 */
+					iconDensityAware : {type : "boolean", group : "Misc", defaultValue : true},
 
-				/**
-				 * This property specifies the element's text directionality with enumerated options.
-				 * By default, the control inherits text direction from the DOM.
-				 */
-				textDirection : {type : "sap.ui.core.TextDirection", group : "Appearance", defaultValue : TextDirection.Inherit}
-			},
-			aggregations: {
-				_textButton: { type: "sap.m.Button", multiple: false, visibility: "hidden" },
-				_arrowButton: { type: "sap.m.Button", multiple: false, visibility: "hidden" }
-			},
-			associations : {
+					/**
+					 * This property specifies the element's text directionality with enumerated options.
+					 * By default, the control inherits text direction from the DOM.
+					 */
+					textDirection : {type : "sap.ui.core.TextDirection", group : "Appearance", defaultValue : TextDirection.Inherit}
+				},
+				aggregations: {
+					_textButton: { type: "sap.m.Button", multiple: false, visibility: "hidden" },
+					_arrowButton: { type: "sap.m.Button", multiple: false, visibility: "hidden" }
+				},
+				associations : {
 
-				/**
-				 * Association to controls / IDs, which describe this control (see WAI-ARIA attribute aria-describedby).
-				 */
-				ariaDescribedBy : {type : "sap.ui.core.Control", multiple : true, singularName : "ariaDescribedBy"},
+					/**
+					 * Association to controls / IDs, which describe this control (see WAI-ARIA attribute aria-describedby).
+					 */
+					ariaDescribedBy : {type : "sap.ui.core.Control", multiple : true, singularName : "ariaDescribedBy"},
 
-				/**
-				 * Association to controls / IDs, which label this control (see WAI-ARIA attribute aria-labelledby).
-				 */
-				ariaLabelledBy : {type : "sap.ui.core.Control", multiple : true, singularName : "ariaLabelledBy"}
-			},
-			events : {
-				/**
-				 * Fired when the user clicks on the control.
-				 */
-				press : {},
+					/**
+					 * Association to controls / IDs, which label this control (see WAI-ARIA attribute aria-labelledby).
+					 */
+					ariaLabelledBy : {type : "sap.ui.core.Control", multiple : true, singularName : "ariaLabelledBy"}
+				},
+				events : {
+					/**
+					 * Fired when the user clicks on the control.
+					 */
+					press : {},
 
-				/**
-				 * Fired when the arrow button is pressed.
-				 */
-				arrowPress : {
+					/**
+					 * Fired when the arrow button is pressed.
+					 */
+					arrowPress : {
+					}
 				}
-			}
-		}});
+			},
+
+			renderer: SplitButtonRenderer
+		});
 
 		EnabledPropagator.call(SplitButton.prototype);
 
@@ -159,11 +159,15 @@ function(
 			$arrowButtonRef.removeAttr("aria-describedby");
 		};
 
-		SplitButton.prototype._handleAction = function(bIsArrowDown) {
-			if (bIsArrowDown) {
-				this.fireArrowPress();
+		SplitButton.prototype._handleAction = function(oEvent) {
+			if (oEvent.getSource().hasStyleClass("sapMSBArrow")) {
+				this.fireArrowPress({
+					keyboard: oEvent.getParameter("keyboard")
+				});
 			} else {
-				this.firePress();
+				this.firePress({
+					keyboard: oEvent.getParameter("keyboard")
+				});
 			}
 		};
 
@@ -192,15 +196,13 @@ function(
 
 			if (!oCtrl) {
 				oCtrl = new Button({
+					id: this.getId() + "-textButton",
 					width: '100%',
 					icon: this.getIcon(),
 					text: this.getText(),
-					press: this._handleAction.bind(this, false)
+					press: this._handleAction.bind(this)
 				}).addStyleClass('sapMSBText');
 
-				if (Device.browser.msie) {
-					oCtrl.addStyleClass('sapMSBTextIE');
-				}
 				this.setAggregation("_textButton", oCtrl);
 			}
 
@@ -212,8 +214,11 @@ function(
 
 			if (!oCtrl) {
 				oCtrl = new Button({
+					id: this.getId() + "-arrowButton",
 					icon: "sap-icon://slim-arrow-down",
-					press: this._handleAction.bind(this, true)
+					press: this._handleAction.bind(this),
+					tooltip: sap.ui.getCore().getLibraryResourceBundle("sap.m").getText("SPLIT_BUTTON_ARROW_TOOLTIP"),
+					ariaHasPopup: coreLibrary.aria.HasPopup.Menu
 				}).addStyleClass("sapMSBArrow");
 				this.setAggregation("_arrowButton", oCtrl);
 			}
@@ -259,31 +264,27 @@ function(
 				oEvent.preventDefault();
 			}
 
-			if (oEvent.which === KeyCodes.ENTER) {
-				this._getTextButton().firePress({/* no parameters */ });
-			}
+			this._getTextButton().onkeydown(oEvent);
 		};
 
 		SplitButton.prototype.onkeyup = function(oEvent) {
-			if (oEvent.which === KeyCodes.SPACE) {
-				this._getTextButton().firePress({/* no parameters */ });
-			}
+			this._getTextButton().onkeyup(oEvent);
 		};
 
 		SplitButton.prototype.onsapup = function(oEvent) {
-			this._getArrowButton().firePress();
+			this._getArrowButton().firePress({keyboard: true});
 		};
 
 		SplitButton.prototype.onsapdown = function(oEvent) {
-			this._getArrowButton().firePress();
+			this._getArrowButton().firePress({keyboard: true});
 		};
 
 		SplitButton.prototype.onsapupmodifiers = function(oEvent) {
-			this._getArrowButton().firePress();
+			this._getArrowButton().firePress({keyboard: true});
 		};
 
 		SplitButton.prototype.onsapdownmodifiers = function(oEvent) {
-			this._getArrowButton().firePress();
+			this._getArrowButton().firePress({keyboard: true});
 		};
 
 		//F4
@@ -326,6 +327,17 @@ function(
 
 			return oConfig;
 		};
+
+	/**
+	 * Determines if it is interactive Control
+	 *
+	 * @private
+	 * @returns {boolean} If it is an interactive Control
+	 */
+	SplitButton.prototype._getToolbarInteractive = function () {
+		return true;
+	};
+
 
 		return SplitButton;
 	});

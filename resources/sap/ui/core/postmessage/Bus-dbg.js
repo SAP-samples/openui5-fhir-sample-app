@@ -1,18 +1,16 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2024 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 sap.ui.define([
 	"sap/ui/core/EventBus",
-	"sap/base/util/includes",
 	"sap/base/util/isPlainObject",
 	"sap/base/Log"
 ],
 function (
 	EventBus,
-	includes,
 	isPlainObject,
 	Log
 ) {
@@ -38,7 +36,7 @@ function (
 	 * @alias sap.ui.core.postmessage.Bus
 	 * @author SAP SE
 	 * @since 1.56.0
-	 * @version 1.79.0
+	 * @version 1.120.6
 	 * @private
 	 * @ui5-restricted sap.ui.core.support, sap.ui.support, sap.ui.rta
 	 */
@@ -81,8 +79,8 @@ function (
 	};
 
 	/**
-	 * Returns an instance of the class
-	 * @return {sap.ui.core.postmessage.Bus}
+	 * Returns an instance of the class.
+	 * @returns {sap.ui.core.postmessage.Bus} An instance of the class.
 	 * @static
 	 * @public
 	 */
@@ -146,16 +144,13 @@ function (
 
 		// Accept host immediately when message is sent
 		if (
-			!includes(
-				[
-					PostMessageBus.event.READY,
-					PostMessageBus.event.ACCEPTED,
-					PostMessageBus.event.DECLINED
-				],
-				sEventId
-			)
+			![
+				PostMessageBus.event.READY,
+				PostMessageBus.event.ACCEPTED,
+				PostMessageBus.event.DECLINED
+			].includes(sEventId)
 			&& sOrigin !== '*'
-			&& !includes(this._aAcceptedOrigins, sOrigin)
+			&& !this._aAcceptedOrigins.includes(sOrigin)
 		) {
 			this._aAcceptedOrigins.push(sOrigin);
 		}
@@ -201,7 +196,7 @@ function (
 	 * @param {object}
 	 *            [oListener] Object that wants to be notified when the event occurs (<code>this</code> context within the
 	 *                        handler function). If it is not specified, the handler function is called in the context of the event bus.
-	 * @return {sap.ui.core.postmessage.Bus} Returns <code>this</code> to allow method chaining
+	 * @return {this} Returns <code>this</code> to allow method chaining
 	 * @public
 	 */
 
@@ -256,7 +251,7 @@ function (
 			var sOrigin = oEvent.origin;
 
 			// Ignore messages from disabled hosts
-			if (includes(this._aDeclinedOrigins, sOrigin)) {
+			if (this._aDeclinedOrigins.includes(sOrigin)) {
 				fnResolve();
 				return;
 			}
@@ -271,7 +266,7 @@ function (
 							eventId: PostMessageBus.event.DECLINED
 						});
 						fnResolve();
-					} else if (includes(this._aAcceptedOrigins, sOrigin)) {
+					} else if (this._aAcceptedOrigins.includes(sOrigin)) {
 						this.publish({
 							target: oEvent.source,
 							origin: oEvent.origin,
@@ -320,7 +315,7 @@ function (
 					break;
 				}
 				default: {
-					if (includes(this._aAcceptedOrigins, sOrigin)) {
+					if (this._aAcceptedOrigins.includes(sOrigin)) {
 						this._emitMessage(oEvent);
 					}
 					fnResolve();
@@ -397,7 +392,7 @@ function (
 		if (typeof sOrigin !== 'string') {
 			throw new TypeError('Expected a string, but got ' + typeof sOrigin);
 		}
-		if (!includes(this._aAcceptedOrigins, sOrigin)) {
+		if (!this._aAcceptedOrigins.includes(sOrigin)) {
 			this._aAcceptedOrigins.push(sOrigin);
 		}
 	};
@@ -436,7 +431,7 @@ function (
 		if (typeof sOrigin !== 'string') {
 			throw new TypeError('Expected a string, but got ' + typeof sOrigin);
 		}
-		if (!includes(this._aDeclinedOrigins, sOrigin)) {
+		if (!this._aDeclinedOrigins.includes(sOrigin)) {
 			this._aDeclinedOrigins.push(sOrigin);
 		}
 	};

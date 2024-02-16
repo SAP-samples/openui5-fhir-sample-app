@@ -1,7 +1,7 @@
 //@ui5-bundle sap/m/library-preload.support.js
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2024 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 /**
@@ -100,7 +100,7 @@ sap.ui.predefine("sap/m/library.support", [
 }, true);
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2024 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 /**
@@ -142,7 +142,7 @@ sap.ui.predefine("sap/m/rules/Breadcrumbs.support", ["sap/ui/support/library"],
 					var sElementId = oElement.getId(),
 						sElementName = oElement.getMetadata().getElementName();
 
-					if (oElement.getParent() instanceof sap.m.OverflowToolbar) {
+					if (oElement.getParent() && oElement.getParent().isA("sap.m.OverflowToolbar")) {
 						oIssueManager.addIssue({
 							severity: Severity.Medium,
 							details: "Breadcrumbs '" + sElementName + "' (" + sElementId + ") is placed inside an OverflowToolbar.",
@@ -160,7 +160,7 @@ sap.ui.predefine("sap/m/rules/Breadcrumbs.support", ["sap/ui/support/library"],
 }, true);
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2024 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 /**
@@ -176,15 +176,15 @@ sap.ui.predefine("sap/m/rules/Button.support", ["sap/ui/support/library"],
 		Audiences = SupportLib.Audiences; // Control, Internal, Application
 
 	// Controls that internally have sap.m.Button instances.
-	var aBlacklistedControls = [
+	var aExcludeListControls = [
 		"sap.ui.comp.smartvariants.SmartVariantManagement",
 		"sap.m.SplitButton"
 	];
 
-	function isControlBlacklisted(oControl) {
+	function isControlExcludeListed(oControl) {
 		if (oControl) {
-			for (var i = 0; i < aBlacklistedControls.length; i++) {
-				if (oControl.isA(aBlacklistedControls[i])) {
+			for (var i = 0; i < aExcludeListControls.length; i++) {
+				if (oControl.isA(aExcludeListControls[i])) {
 					return true;
 				}
 			}
@@ -192,17 +192,17 @@ sap.ui.predefine("sap/m/rules/Button.support", ["sap/ui/support/library"],
 		return false;
 	}
 
-	function isInsideBlacklistedControl(oButton) {
+	function isInsideExcludeListedControl(oButton) {
 		if (!oButton) {
 			return false;
 		}
 
 		// Check one level up.
-		if (isControlBlacklisted(oButton.getParent())) {
+		if (isControlExcludeListed(oButton.getParent())) {
 			return true;
 		}
 		// Check two levels up.
-		if (oButton.getParent() && isControlBlacklisted(oButton.getParent().getParent())) {
+		if (oButton.getParent() && isControlExcludeListed(oButton.getParent().getParent())) {
 			return true;
 		}
 
@@ -239,7 +239,7 @@ sap.ui.predefine("sap/m/rules/Button.support", ["sap/ui/support/library"],
 						var sElementId = oElement.getId(),
 							sElementName = oElement.getMetadata().getElementName();
 
-						if (!isInsideBlacklistedControl(oElement)) {
+						if (!isInsideExcludeListedControl(oElement)) {
 							oIssueManager.addIssue({
 								severity: Severity.Medium,
 								details: "Button '" + sElementName + "' (" + sElementId + ") consists of only an icon but has no tooltip",
@@ -258,7 +258,7 @@ sap.ui.predefine("sap/m/rules/Button.support", ["sap/ui/support/library"],
 }, true);
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2024 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 /**
@@ -290,7 +290,7 @@ sap.ui.predefine("sap/m/rules/CheckBox.support", ["sap/ui/support/library"],
 			resolution: "Either set enabled to true ot set editable to false",
 			resolutionurls: [{
 				text: "API Reference: sap.m.CheckBox",
-				href: "https://sapui5.hana.ondemand.com/#/api/sap.m.CheckBox"
+				href: "https://sdk.openui5.org/api/sap.m.CheckBox"
 			}],
 			check: function (oIssueManager, oCoreFacade, oScope) {
 				oScope.getElementsByClassName("sap.m.CheckBox")
@@ -319,7 +319,7 @@ sap.ui.predefine("sap/m/rules/CheckBox.support", ["sap/ui/support/library"],
 	}, true);
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2024 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 /**
@@ -393,7 +393,8 @@ sap.ui.predefine("sap/m/rules/DatePicker.support", ["sap/ui/support/library"], f
 			oScope.getElementsByClassName("sap.m.DatePicker")
 				.forEach(function(oElement) {
 					var oValueBinding = oElement.getBinding("value");
-					if (oValueBinding && oValueBinding.getType() instanceof sap.ui.model.odata.type.DateTime
+					if (oValueBinding && oValueBinding.getType()
+						&& oValueBinding.getType().isA("sap.ui.model.odata.type.DateTime")
 						&& (!oValueBinding.getType().oConstraints || !oValueBinding.getType().oConstraints.isDateOnly)) {
 						var sElementId = oElement.getId(),
 							sElementName = oElement.getMetadata().getElementName();
@@ -433,8 +434,8 @@ sap.ui.predefine("sap/m/rules/DatePicker.support", ["sap/ui/support/library"], f
 				.forEach(function(oElement) {
 					var oValueBinding = oElement.getBinding("value");
 					if (oValueBinding
-						&& oElement.getModel() instanceof sap.ui.model.json.JSONModel
-						&& oValueBinding.getType() instanceof sap.ui.model.odata.type.Date) {
+						&& oElement.getModel() && oElement.getModel().isA("sap.ui.model.json.JSONModel")
+						&& oValueBinding.getType() && oValueBinding.getType().isA("sap.ui.model.odata.type.Date")) {
 						var sElementId = oElement.getId(),
 							sElementName = oElement.getMetadata().getElementName();
 
@@ -500,7 +501,7 @@ sap.ui.predefine("sap/m/rules/DatePicker.support", ["sap/ui/support/library"], f
 }, true);
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2024 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 /**
@@ -596,7 +597,7 @@ sap.ui.predefine("sap/m/rules/DateRangeSelection.support", ["sap/ui/support/libr
 }, true);
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2024 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 /**
@@ -652,13 +653,13 @@ sap.ui.predefine("sap/m/rules/Dialog.support", ["sap/ui/support/library"],
 }, true);
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2024 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 /**
  * Defines support rules of the FacetFilter control of sap.m library.
  */
-sap.ui.predefine("sap/m/rules/FacetFilter.support", ["sap/ui/support/library"], function(SupportLib) {
+sap.ui.predefine("sap/m/rules/FacetFilter.support", ["sap/ui/support/library", "sap/ui/model/BindingMode"], function(SupportLib, BindingMode) {
 	"use strict";
 
 	// shortcuts
@@ -691,7 +692,7 @@ sap.ui.predefine("sap/m/rules/FacetFilter.support", ["sap/ui/support/library"], 
 				.forEach(function(oElement) {
 					if (oElement.getGrowing()
 						&& oElement.getModel()
-						&& oElement.getModel().getDefaultBindingMode() === sap.ui.model.BindingMode.TwoWay) {
+						&& oElement.getModel().getDefaultBindingMode() === BindingMode.TwoWay) {
 						var sElementId = oElement.getId(),
 							sElementName = oElement.getMetadata().getElementName();
 
@@ -716,27 +717,28 @@ sap.ui.predefine("sap/m/rules/FacetFilter.support", ["sap/ui/support/library"], 
 }, true);
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2024 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 /**
  * Defines support rules of the IconTabBar control of sap.m library.
  */
-sap.ui.predefine("sap/m/rules/IconTabBar.support", ["sap/ui/support/library"],
-	function(SupportLib) {
+sap.ui.predefine("sap/m/rules/IconTabBar.support", ["sap/ui/support/library", "sap/m/library"],
+	function(SupportLib, mobileLibrary) {
 	"use strict";
 
 	// shortcuts
 	var Categories = SupportLib.Categories, // Accessibility, Performance, Memory, ...
 		Severity = SupportLib.Severity,	// Hint, Warning, Error
-		Audiences = SupportLib.Audiences; // Control, Internal, Application
+		Audiences = SupportLib.Audiences, // Control, Internal, Application
+		IconTabFilterDesign = mobileLibrary.IconTabFilterDesign;
 
 	//**********************************************************
 	// Rule Definitions
 	//**********************************************************
 
 	var oIconTabBarRuleHDesign = {
-		id: "iconTabFilterWithHorizontalDesingShouldHaveIcons",
+		id: "iconTabFilterWithHorizontalDesignShouldHaveIcons",
 		audiences: [Audiences.Application],
 		categories: [Categories.FioriGuidelines],
 		enabled: true,
@@ -751,7 +753,7 @@ sap.ui.predefine("sap/m/rules/IconTabBar.support", ["sap/ui/support/library"],
 		check: function (oIssueManager, oCoreFacade, oScope) {
 			oScope.getElementsByClassName("sap.m.IconTabFilter")
 				.forEach(function(oElement) {
-					if (oElement.getProperty("design") === sap.m.IconTabFilterDesign.Horizontal
+					if (oElement.getProperty("design") === IconTabFilterDesign.Horizontal
 						&& !oElement.getProperty("icon")
 						&& !oElement.getProperty("showAll")) {
 
@@ -840,7 +842,7 @@ sap.ui.predefine("sap/m/rules/IconTabBar.support", ["sap/ui/support/library"],
 		check: function (oIssueManager, oCoreFacade, oScope) {
 			oScope.getElementsByClassName("sap.m.IconTabFilter")
 				.forEach(function(oElement) {
-					if (oElement.getProperty("design") === sap.m.IconTabFilterDesign.Vertical
+					if (oElement.getProperty("design") === IconTabFilterDesign.Vertical
 						&& oElement.getProperty("icon")
 						&& oElement.getProperty("count").length > 4) {
 
@@ -865,7 +867,7 @@ sap.ui.predefine("sap/m/rules/IconTabBar.support", ["sap/ui/support/library"],
 }, true);
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2024 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 /**
@@ -956,7 +958,7 @@ sap.ui.predefine("sap/m/rules/Image.support", ["sap/ui/support/library"],
 		resolution: "Enable the \"densityAware\" property of this image control",
 		resolutionurls: [{
 			text: "API Refrence for sap.m.Image",
-			href: "https://sapui5.hana.ondemand.com/#/api/sap.m.Image"
+			href: "https://sdk.openui5.org/api/sap.m.Image"
 		}],
 		check: function (oIssueManager, oCoreFacade, oScope, fnResolve) {
 
@@ -1015,7 +1017,7 @@ sap.ui.predefine("sap/m/rules/Image.support", ["sap/ui/support/library"],
 }, true);
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2024 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 /**
@@ -1034,6 +1036,29 @@ sap.ui.predefine("sap/m/rules/Input.support", ["sap/ui/support/library"],
 	// Rule Definitions
 	//**********************************************************
 
+	function isInsideFormOrTable(oControl) {
+		var oParent = oControl.getParent();
+
+		if (!oParent) {
+			return false;
+		}
+
+		return oParent.isA("sap.ui.layout.form.SimpleForm") || oParent.isA("sap.m.Table") || isInsideFormOrTable(oParent);
+	}
+
+	function isLabelled(oInput, aLabels) {
+		var bHasLabelForInput = aLabels.some(function (oLabel) {
+			return oLabel.getLabelFor() === oInput.getId();
+		});
+
+		if (bHasLabelForInput) {
+			return true;
+		}
+
+		// form and table manage the labelling automatically
+		return isInsideFormOrTable(oInput);
+	}
+
 	/**
 	 * Input field needs to have a label association
 	 */
@@ -1051,32 +1076,23 @@ sap.ui.predefine("sap/m/rules/Input.support", ["sap/ui/support/library"],
 			href:"https://experience.sap.com/fiori-design-web/input-field/#guidelines"
 		}],
 		check: function (issueManager, oCoreFacade, oScope) {
+			var aLabels = oScope.getElementsByClassName("sap.m.Label");
 
-			var aInputIds = oScope.getElementsByClassName("sap.m.Input")
-				.map(function(oInput) {
-					return oInput.getId();
-				});
-
-			oScope.getElementsByClassName("sap.m.Label")
-				.forEach(function (oLabel){
-					var sLabelFor = oLabel.getLabelFor();
-					if (aInputIds.indexOf(sLabelFor) > -1) {
-						var iIndex = aInputIds.indexOf(sLabelFor);
-						aInputIds.splice(iIndex, 1);
+			oScope.getElementsByClassName("sap.m.Input")
+				.filter(function (oInput) {
+					return oInput.getUIArea(); // filter aggregation binding templates
+				})
+				.forEach(function(oInput) {
+					if (!isLabelled(oInput, aLabels)) {
+						issueManager.addIssue({
+							severity: Severity.Medium,
+							details: "Input field" + " (" + oInput.getId() + ") is missing a label.",
+							context: {
+								id: oInput.getId()
+							}
+						});
 					}
 				});
-
-			if (aInputIds.length > 0) {
-				aInputIds.forEach(function(sInputId) {
-					issueManager.addIssue({
-						severity: Severity.Medium,
-						details: "Input field" + " (" + sInputId + ") is missing a label.",
-						context: {
-							id: sInputId
-						}
-					});
-				});
-			}
 		}
 	};
 
@@ -1085,7 +1101,7 @@ sap.ui.predefine("sap/m/rules/Input.support", ["sap/ui/support/library"],
 }, true);
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2024 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 /**
@@ -1118,7 +1134,7 @@ sap.ui.predefine("sap/m/rules/Link.support", ["sap/ui/support/library"],
 		resolution: "Remove the href property of the link",
 		resolutionurls: [{
 			text: "API Reference: sap.m.Link",
-			href: "https://sapui5.hana.ondemand.com/#/api/sap.m.Link"
+			href: "https://sdk.openui5.org/api/sap.m.Link"
 		}],
 		check: function (oIssueManager, oCoreFacade, oScope) {
 			oScope.getElementsByClassName("sap.m.Link")
@@ -1146,7 +1162,7 @@ sap.ui.predefine("sap/m/rules/Link.support", ["sap/ui/support/library"],
 }, true);
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2024 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 /**
@@ -1209,7 +1225,7 @@ sap.ui.predefine("sap/m/rules/MaskInput.support", ["sap/ui/support/library"], fu
 }, true);
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2024 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 /**
@@ -1231,7 +1247,7 @@ function(SupportLib) {
 	/**
 	 * Determines <code>Control</code> computed height.
 	 * @param {sap.ui.core.Control} oControl
-	 * @returns {Number}
+	 * @returns {number}
 	 */
 	var getControlHeight = function(oControl) {
 		return oControl.getDomRef().getBoundingClientRect().height;
@@ -1251,7 +1267,7 @@ function(SupportLib) {
 		resolution: "Use Message Page in a container with set height, such as sap.m.App",
 		resolutionurls: [{
 			text: "sap.m.MessagePage API Reference",
-			href: "https://openui5.hana.ondemand.com/#/api/sap.m.MessagePage"
+			href: "https://sdk.openui5.org/api/sap.m.MessagePage"
 		}],
 		check: function (oIssueManager, oCoreFacade, oScope) {
 			oScope.getElementsByClassName("sap.m.MessagePage").forEach(function(oMPage) {
@@ -1313,7 +1329,7 @@ function(SupportLib) {
 }, true);
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2024 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 /**
@@ -1346,7 +1362,7 @@ sap.ui.predefine("sap/m/rules/ObjectHeader.support", ["sap/ui/support/library"],
 			resolution: "Use markers aggregation",
 			resolutionurls: [{
 				text: "API Reference: sap.m.ObjectHeader",
-				href: "https://sapui5.hana.ondemand.com/#/api/sap.m.ObjectHeader"
+				href: "https://sdk.openui5.org/api/sap.m.ObjectHeader"
 			}],
 			check: function (oIssueManager, oCoreFacade, oScope) {
 				oScope.getElementsByClassName("sap.m.ObjectHeader")
@@ -1383,7 +1399,7 @@ sap.ui.predefine("sap/m/rules/ObjectHeader.support", ["sap/ui/support/library"],
 			resolution: "Use statuses aggregation",
 			resolutionurls: [{
 				text: "API Reference: sap.m.ObjectHeader",
-				href: "https://sapui5.hana.ondemand.com/#/api/sap.m.ObjectHeader"
+				href: "https://sdk.openui5.org/api/sap.m.ObjectHeader"
 			}],
 			check: function (oIssueManager, oCoreFacade, oScope) {
 				oScope.getElementsByClassName("sap.m.ObjectHeader")
@@ -1419,7 +1435,7 @@ sap.ui.predefine("sap/m/rules/ObjectHeader.support", ["sap/ui/support/library"],
 			resolution: "Change the responsive property to false",
 			resolutionurls: [{
 				text: "API Reference: sap.m.ObjectHeader",
-				href: "https://sapui5.hana.ondemand.com/#/api/sap.m.ObjectHeader"
+				href: "https://sdk.openui5.org/api/sap.m.ObjectHeader"
 			}],
 			check: function (oIssueManager, oCoreFacade, oScope) {
 				oScope.getElementsByClassName("sap.m.ObjectHeader")
@@ -1455,7 +1471,7 @@ sap.ui.predefine("sap/m/rules/ObjectHeader.support", ["sap/ui/support/library"],
 			resolution: "Change the responsive property to true",
 			resolutionurls: [{
 				text: "API Reference: sap.m.ObjectHeader",
-				href: "https://sapui5.hana.ondemand.com/#/api/sap.m.ObjectHeader"
+				href: "https://sdk.openui5.org/api/sap.m.ObjectHeader"
 			}],
 			check: function (oIssueManager, oCoreFacade, oScope) {
 				oScope.getElementsByClassName("sap.m.ObjectHeader")
@@ -1491,7 +1507,7 @@ sap.ui.predefine("sap/m/rules/ObjectHeader.support", ["sap/ui/support/library"],
 			resolution: "Change the responsive property to false",
 			resolutionurls: [{
 				text: "API Reference: sap.m.ObjectHeader",
-				href: "https://sapui5.hana.ondemand.com/#/api/sap.m.ObjectHeader"
+				href: "https://sdk.openui5.org/api/sap.m.ObjectHeader"
 			}],
 			check: function (oIssueManager, oCoreFacade, oScope) {
 				oScope.getElementsByClassName("sap.m.ObjectHeader")
@@ -1527,7 +1543,7 @@ sap.ui.predefine("sap/m/rules/ObjectHeader.support", ["sap/ui/support/library"],
 			resolution: "Change the responsive property to true",
 			resolutionurls: [{
 				text: "API Reference: sap.m.ObjectHeader",
-				href: "https://sapui5.hana.ondemand.com/#/api/sap.m.ObjectHeader"
+				href: "https://sdk.openui5.org/api/sap.m.ObjectHeader"
 			}],
 			check: function (oIssueManager, oCoreFacade, oScope) {
 				oScope.getElementsByClassName("sap.m.ObjectHeader")
@@ -1562,7 +1578,7 @@ sap.ui.predefine("sap/m/rules/ObjectHeader.support", ["sap/ui/support/library"],
 	}, true);
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2024 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 /**
@@ -1595,7 +1611,7 @@ sap.ui.predefine("sap/m/rules/ObjectListItem.support", ["sap/ui/support/library"
 			resolution: "Use markers aggregation",
 			resolutionurls: [{
 				text: "API Reference: sap.m.ObjectListItem",
-				href: "https://sapui5.hana.ondemand.com/#/api/sap.m.ObjectListItem"
+				href: "https://sdk.openui5.org/api/sap.m.ObjectListItem"
 			}],
 			check: function (oIssueManager, oCoreFacade, oScope) {
 				oScope.getElementsByClassName("sap.m.ObjectListItem")
@@ -1625,7 +1641,7 @@ sap.ui.predefine("sap/m/rules/ObjectListItem.support", ["sap/ui/support/library"
 	}, true);
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2024 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 /**
@@ -1658,7 +1674,7 @@ sap.ui.predefine("sap/m/rules/ObjectMarker.support", ["sap/ui/support/library"],
 			resolution: "Set type of the ObjectMarker",
 			resolutionurls: [{
 				text: "API Reference: sap.m.ObjectMarker",
-				href: "https://sapui5.hana.ondemand.com/#/api/sap.m.ObjectMarker"
+				href: "https://sdk.openui5.org/api/sap.m.ObjectMarker"
 			}],
 			check: function (oIssueManager, oCoreFacade, oScope) {
 				oScope.getElementsByClassName("sap.m.ObjectMarker")
@@ -1687,7 +1703,7 @@ sap.ui.predefine("sap/m/rules/ObjectMarker.support", ["sap/ui/support/library"],
 	}, true);
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2024 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 /**
@@ -1720,7 +1736,7 @@ sap.ui.predefine("sap/m/rules/ObjectStatus.support", ["sap/ui/support/library"],
 			resolution: "Set text or icon when active property is true",
 			resolutionurls: [{
 				text: "API Reference: sap.m.ObjectStatus",
-				href: "https://sapui5.hana.ondemand.com/#/api/sap.m.ObjectStatus"
+				href: "https://sdk.openui5.org/api/sap.m.ObjectStatus"
 			}],
 			check: function (oIssueManager, oCoreFacade, oScope) {
 				oScope.getElementsByClassName("sap.m.ObjectStatus")
@@ -1750,14 +1766,17 @@ sap.ui.predefine("sap/m/rules/ObjectStatus.support", ["sap/ui/support/library"],
 /* eslint-disable linebreak-style */
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2024 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 /**
  * Defines support rules of the Panel control of sap.m library.
  */
-sap.ui.predefine("sap/m/rules/Panel.support", ["sap/ui/support/library"],
-	function(SupportLib) {
+sap.ui.predefine("sap/m/rules/Panel.support", [
+	"sap/ui/support/library",
+	"sap/base/util/isEmptyObject"
+],
+	function(SupportLib, isEmptyObject) {
 		"use strict";
 		// shortcuts
 		var Categories = SupportLib.Categories, // Accessibility, Performance, Memory, ...
@@ -1784,13 +1803,13 @@ sap.ui.predefine("sap/m/rules/Panel.support", ["sap/ui/support/library"],
 				text: "SAP Fiori Design Guidelines: Panel",
 				href: "https://experience.sap.com/fiori-design-web/panel/#components",
 				text2: "Explored Sample",
-				href2: "https://openui5beta.hana.ondemand.com/#/sample/sap.m.sample.Panel/preview"
+				href2: "https://sdk.openui5.org/entity/sap.m.Panel/sample/sap.m.sample.Panel"
 			}],
 			check: function (oIssueManager, oCoreFacade, oScope) {
 				oScope.getElementsByClassName("sap.m.Panel")
 					.forEach(function(oElement) {
-						if (!jQuery.isEmptyObject(oElement.getAggregation("Title text"))
-							|| !jQuery.isEmptyObject(oElement.getAggregation("Toolbar"))) {
+						if (!isEmptyObject(oElement.getAggregation("Title text"))
+							|| !isEmptyObject(oElement.getAggregation("Toolbar"))) {
 
 							var sElementId = oElement.getId(),
 								sElementName = oElement.getMetadata().getElementName();
@@ -1812,14 +1831,14 @@ sap.ui.predefine("sap/m/rules/Panel.support", ["sap/ui/support/library"],
 	}, true);
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2024 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 /**
  * Defines support rules of the Select control of sap.m library.
  */
-sap.ui.predefine("sap/m/rules/Select.support", ["sap/ui/support/library"],
-	function(SupportLib) {
+sap.ui.predefine("sap/m/rules/Select.support", ["sap/ui/support/library", "sap/ui/model/BindingMode"],
+	function(SupportLib, BindingMode) {
 	"use strict";
 
 	// shortcuts
@@ -1848,7 +1867,7 @@ sap.ui.predefine("sap/m/rules/Select.support", ["sap/ui/support/library"],
 		resolution: "Use the sap.ui.model.Model.prototype.setSizeLimit to adjust the size limit of the 'items' model if you expect more than 100 items",
 		resolutionurls: [{
 			text: "API Reference for sap.ui.model.Model",
-			href: "https://sapui5.hana.ondemand.com/#/api/sap.ui.model.Model"
+			href: "https://sdk.openui5.org/api/sap.ui.model.Model"
 		}],
 		check: function (oIssueManager, oCoreFacade, oScope) {
 			oScope.getElementsByClassName("sap.m.Select")
@@ -1910,7 +1929,7 @@ sap.ui.predefine("sap/m/rules/Select.support", ["sap/ui/support/library"],
 							oSelectedKeyModel && // We have a model for the selectedKey
 							oItemsModel && // We have a model for the items
 							oSelectedKeyModel.getId() === oItemsModel.getId() && // Both entries are bound to the same model
-							oSelectedKeyModel.getDefaultBindingMode() === sap.ui.model.BindingMode.TwoWay // Model is in TwoWay binding mode
+							oSelectedKeyModel.getDefaultBindingMode() === BindingMode.TwoWay // Model is in TwoWay binding mode
 						) {
 
 							sSelectedKeyBindingPath = oElement.getBindingPath("selectedKey");
@@ -1957,20 +1976,21 @@ sap.ui.predefine("sap/m/rules/Select.support", ["sap/ui/support/library"],
 }, true);
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2024 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 /**
  * Defines support rules of the SelectDialog control of sap.m library.
  */
-sap.ui.predefine("sap/m/rules/SelectDialog.support", ["sap/ui/support/library"],
-	function(SupportLib) {
+sap.ui.predefine("sap/m/rules/SelectDialog.support", ["sap/ui/support/library", "sap/m/library"],
+	function(SupportLib, mobileLibrary) {
 		"use strict";
 
 		// shortcuts
 		var Categories = SupportLib.Categories, // Accessibility, Performance, Memory, ...
 			Severity = SupportLib.Severity,	// Hint, Warning, Error
-			Audiences = SupportLib.Audiences; // Control, Internal, Application
+			Audiences = SupportLib.Audiences, // Control, Internal, Application
+			ListType = mobileLibrary.ListType;
 
 		//**********************************************************
 		// Rule Definitions
@@ -1999,7 +2019,7 @@ sap.ui.predefine("sap/m/rules/SelectDialog.support", ["sap/ui/support/library"],
 							sListOfInactiveItems = "";
 
 						aListItems.forEach(function(oListItem){
-							if (oListItem.getType() === sap.m.ListType.Inactive) {
+							if (oListItem.getType() === ListType.Inactive) {
 								var sListItemId = oListItem.getId(),
 									sListItemName = oListItem.getMetadata().getElementName();
 
@@ -2029,7 +2049,7 @@ sap.ui.predefine("sap/m/rules/SelectDialog.support", ["sap/ui/support/library"],
 	}, true);
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2024 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 /**
@@ -2126,7 +2146,7 @@ sap.ui.predefine("sap/m/rules/StepInput.support", ["sap/ui/support/library"], fu
 }, true);
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2024 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 /**
@@ -2157,13 +2177,15 @@ sap.ui.predefine("sap/m/rules/Table.support", ["sap/ui/support/library", "sap/m/
 			minversion: "1.28",
 			title: "Table: Defining column widths",
 			description: "Defining column widths",
-			resolution: "Configure at least 1 column with width=auto or do not configure the width at all",
+			resolution: "Configure at least 1 column with width=auto or use fixedLayout=Strict",
 			resolutionurls: [{
 				text: "Documentation: Defining Column Widths",
-				href: "https://sapui5.hana.ondemand.com/#/topic/6f778a805bc3453dbb66e246d8271839"
+				href: "https://sdk.openui5.org/topic/6f778a805bc3453dbb66e246d8271839"
 			}],
 			check: function (oIssueManager, oCoreFacade, oScope) {
-				oScope.getElementsByClassName("sap.m.Table").forEach(function (oTable) {
+				oScope.getElementsByClassName("sap.m.Table").filter(function(oTable) {
+					return oTable.getFixedLayout() == true;
+				}).forEach(function (oTable) {
 					var aColumn = oTable.getColumns(),
 						bSomeColumnNoWidth;
 					if (!aColumn.length) {
@@ -2176,7 +2198,7 @@ sap.ui.predefine("sap/m/rules/Table.support", ["sap/ui/support/library", "sap/m/
 					if (!bSomeColumnNoWidth) {
 						oIssueManager.addIssue({
 							severity: Severity.Medium,
-							details: "All the columns are configured with a width. This should be avoided.",
+							details: "All the columns are configured with a width. Either set at least for one column width=auto, or fixedLayout=Strict for the table",
 							context: {
 								id: oTable.getId()
 							}
@@ -2200,10 +2222,10 @@ sap.ui.predefine("sap/m/rules/Table.support", ["sap/ui/support/library", "sap/m/
 			resolution: "Use the 'highlightText' property of the item to define the semantics of the 'highlight'.",
 			resolutionurls: [{
 				text: "API Reference: sap.m.ListItemBase#getHighlight",
-				href: "https://sapui5.hana.ondemand.com/#/api/sap.m.ListItemBase/methods/getHighlight"
+				href: "https://sdk.openui5.org/api/sap.m.ListItemBase/methods/getHighlight"
 			}, {
 				text: "API Reference: sap.m.ListItemBase#getHighlightText",
-				href: "https://sapui5.hana.ondemand.com/#/api/sap.m.ListItemBase/methods/getHighlightText"
+				href: "https://sdk.openui5.org/api/sap.m.ListItemBase/methods/getHighlightText"
 			}],
 			check: function(oIssueManager, oCoreFacade, oScope) {
 				function checkItemHighlight(oListItemBase) {
@@ -2233,20 +2255,21 @@ sap.ui.predefine("sap/m/rules/Table.support", ["sap/ui/support/library", "sap/m/
 	}, true);
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2024 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 /**
  * Defines support rules of the Title control of sap.m library.
  */
-sap.ui.predefine("sap/m/rules/Title.support", ["sap/ui/support/library"],
-	function(SupportLib) {
+sap.ui.predefine("sap/m/rules/Title.support", ["sap/ui/support/library", "sap/ui/core/library"],
+	function(SupportLib, coreLibrary) {
 	"use strict";
 
 	// shortcuts
 	var Categories = SupportLib.Categories, // Accessibility, Performance, Memory, ...
 		Severity = SupportLib.Severity,	// Hint, Warning, Error
-		Audiences = SupportLib.Audiences; // Control, Internal, Application
+		Audiences = SupportLib.Audiences, // Control, Internal, Application
+		TitleLevel = coreLibrary.TitleLevel;
 
 	//**********************************************************
 	// Rule Definitions
@@ -2273,7 +2296,7 @@ sap.ui.predefine("sap/m/rules/Title.support", ["sap/ui/support/library"],
 		check: function (oIssueManager, oCoreFacade, oScope) {
 			oScope.getElementsByClassName("sap.m.Title")
 				.forEach(function(oElement) {
-					if (oElement.getProperty("level") === sap.ui.core.TitleLevel.Auto) {
+					if (oElement.getProperty("level") === TitleLevel.Auto) {
 
 						var sElementId = oElement.getId(),
 							sElementName = oElement.getMetadata().getElementName();
@@ -2296,7 +2319,7 @@ sap.ui.predefine("sap/m/rules/Title.support", ["sap/ui/support/library"],
 }, true);
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2024 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 /**
@@ -2325,9 +2348,11 @@ function(SupportLib) {
 					bParent, oParent;
 				oTokenizers.forEach(function (oTokenizer) {
 					oParent = oTokenizer.getParent();
-					bParent = oParent && oParent instanceof sap.m.MultiInput || oParent instanceof sap.m.MultiComboBox ||
+					bParent = oParent && (
+								oParent.isA(["sap.m.MultiInput", "sap.m.MultiComboBox"]) ||
 								// Value Help Dialog uses the tokenizer in a horizontal layout with special style class
-								oParent.hasStyleClass("compVHTokenizerHLayout");
+								oParent.hasStyleClass("compVHTokenizerHLayout")
+							  );
 					if (!bParent) {
 						oIssueManager.addIssue({
 							severity: Severity.High,
@@ -2345,7 +2370,7 @@ function(SupportLib) {
 }, true);
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2024 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 /**
@@ -2411,3 +2436,4 @@ sap.ui.predefine("sap/m/rules/ViewSettingsDialog.support", ["sap/ui/support/libr
 	];
 
 }, true);
+//# sourceMappingURL=library-preload.support.js.map

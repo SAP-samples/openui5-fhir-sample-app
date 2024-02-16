@@ -1,12 +1,12 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2024 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 // Provides the implementation for the ControlControlMessageProcessor implementations
-sap.ui.define(['sap/ui/core/message/MessageProcessor'],
-	function(MessageProcessor) {
+sap.ui.define(['sap/ui/core/Element', 'sap/ui/core/message/MessageProcessor'],
+	function(Element, MessageProcessor) {
 	"use strict";
 
 
@@ -29,7 +29,7 @@ sap.ui.define(['sap/ui/core/message/MessageProcessor'],
 	 * @extends sap.ui.core.message.MessageProcessor
 	 *
 	 * @author SAP SE
-	 * @version 1.79.0
+	 * @version 1.120.6
 	 *
 	 * @public
 	 * @alias sap.ui.core.message.ControlMessageProcessor
@@ -51,13 +51,13 @@ sap.ui.define(['sap/ui/core/message/MessageProcessor'],
 
 	/**
 	 * Set Messages to check
-	 * @param {Object<string,array>}
-	 *         vMessages map of messages: {'target': [array of messages],...}
+	 * @param {Object<string,sap.ui.core.message.Message[]>}
+	 *         mMessages map of messages: {'target': [sap.ui.core.message.Message],...}
 	 * @protected
 	 */
-	ControlMessageProcessor.prototype.setMessages = function(vMessages) {
+	ControlMessageProcessor.prototype.setMessages = function(mMessages) {
 		this.mOldMessages = this.mMessages === null ? {} : this.mMessages;
-		this.mMessages = vMessages || {};
+		this.mMessages = mMessages || {};
 		this.checkMessages();
 		delete this.mOldMessages;
 	};
@@ -88,10 +88,10 @@ sap.ui.define(['sap/ui/core/message/MessageProcessor'],
 			if (!aParts[0]) {
 				aParts.shift();
 			}
-			oControl = sap.ui.getCore().byId(aParts[0]);
+			oControl = Element.getElementById(aParts[0]);
 
 			//if control does not exist: nothing to do
-			if  (!oControl) {
+			if  (!oControl || oControl._bIsBeingDestroyed) {
 				return;
 			}
 

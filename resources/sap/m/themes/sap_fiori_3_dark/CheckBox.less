@@ -55,10 +55,6 @@
 	}
 }
 
-.sapUiForm .sapMCbBg { /* In forms, align left with '0.0625rem(1px)' ( the focus width) */
-	left: 1px; // Must be in pixels to behave correctly in IE
-}
-
 .sapMCbBg.sapMCbMarkChecked:before {
 	color: @sapUiSelected;
 }
@@ -70,6 +66,17 @@
 /* CheckBox focus */
 .sapMCb:focus {
 	outline: none;
+}
+
+/* In Form Checkbox needs to be left aligned to bi in line with other controls (as Form itself has a padding) */
+.sapUiForm {
+	.sapMCbBg {
+		left: 0;
+	}
+
+	.sapMCb {
+		padding-left: 2.0625rem; // to have right gap between checkbox and label
+	}
 }
 
 html.sap-desktop {
@@ -84,6 +91,7 @@ html.sap-desktop {
 		outline-width: 1px;
 		outline-style: dotted;
 		outline-color: @sapUiContentFocusColor;
+		outline-offset: 0.0625rem;
 	}
 
 	.sapMCb:not(.sapMCbBgDis):not(.sapMCbDisplayOnly).sapMCbHasLabel {
@@ -94,7 +102,7 @@ html.sap-desktop {
 			top: 0.5625rem;
 			bottom: 0.5625rem;
 			left: 0.5625rem;
-			right: 0;
+			right: -0.0625rem;
 			border: 1px dotted @sapUiContentFocusColor;
 		}
 		&:not(.sapMCbErr):not(.sapMCbInfo):not(.sapMCbWarn):focus:before {
@@ -103,18 +111,7 @@ html.sap-desktop {
 	}
 
 	.sapUiForm .sapMCb:not(.sapMCbBgDis).sapMCbHasLabel:focus:before {
-		left: 0px; /* Cb in SimpleForm: left border adjustment */
-	}
-}
-
-/* TODO remove after the end of support for Internet Explorer */
-html[data-sap-ui-browser^="ie"].sap-desktop,
-html[data-sap-ui-browser^="ed"].sap-desktop {
-	.sapMCb:not(.sapMCbBgDis):not(.sapMCbHasLabel):focus > .sapMCbBg {
-		outline-style: dashed;
-	}
-	.sapMCb:not(.sapMCbBgDis):not(.sapMCbDisplayOnly).sapMCbHasLabel:focus:before {
-		border: 1px dashed @sapUiContentFocusColor;
+		left: -0.125rem;
 	}
 }
 
@@ -159,11 +156,19 @@ html[data-sap-ui-browser^="ed"].sap-desktop {
 
 /* Compact size */
 .sapUiSizeCompact{
-	.sapUiForm .sapMCbBg { /* In forms, align left with '0.0625rem(1px)' ( the focus width) */
-		left: 1px; // Must be in pixels to behave correctly in IE
-	}
 	.sapMCbBg {
 		border-radius: 0.125rem;
+	}
+
+	/* In Form Checkbox needs to be left aligned to bi in line with other controls (as Form itself has a padding) */
+	.sapUiForm {
+		.sapMCbBg {
+			left: 0;
+		}
+
+		.sapMCb {
+			padding-left: 1.5rem; // to have right gap between checkbox and label
+		}
 	}
 }
 
@@ -186,7 +191,7 @@ html.sap-desktop {
 		}
 
 		.sapUiForm .sapMCb:not(.sapMCbBgDis):focus:before {
-			left: 0px;
+			left: -0.125rem;
 		}
 
 		.sapMCbBg {

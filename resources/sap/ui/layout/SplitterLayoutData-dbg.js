@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2024 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -19,12 +19,10 @@ sap.ui.define(['sap/ui/core/LayoutData', './library'],
 	 *
 	 * @class
 	 * Holds layout data for the splitter contents.
-	 * Allowed size values are numeric values ending in "px" and "%" and the
-	 * special case "auto".
-	 * (The CSS value "auto" is used internally to recalculate the size of the content
-	 * dynamically and is not directly set as style property.)
+	 * Allowed size values are numeric values ending in "px", "rem", "%" and "auto".
+
 	 * @extends sap.ui.core.LayoutData
-	 * @version 1.79.0
+	 * @version 1.120.6
 	 *
 	 * @constructor
 	 * @public
@@ -32,7 +30,6 @@ sap.ui.define(['sap/ui/core/LayoutData', './library'],
 	 * @experimental Since version 1.22.0.
 	 * API is not yet finished and might change completely
 	 * @alias sap.ui.layout.SplitterLayoutData
-	 * @ui5-metamodel This control/element also will be described in the UI5 (legacy) designtime metamodel
 	 */
 	var SplitterLayoutData = LayoutData.extend("sap.ui.layout.SplitterLayoutData", /** @lends sap.ui.layout.SplitterLayoutData.prototype */ { metadata : {
 
@@ -45,7 +42,8 @@ sap.ui.define(['sap/ui/core/LayoutData', './library'],
 			resizable : {type : "boolean", group : "Behavior", defaultValue : true},
 
 			/**
-			 * Sets the size of the splitter content.
+			 * The size of the splitter content.
+			 * This property is updated when the area is resized by the user.
 			 */
 			size : {type : "sap.ui.core.CSSSize", group : "Dimension", defaultValue : 'auto'},
 
@@ -56,8 +54,36 @@ sap.ui.define(['sap/ui/core/LayoutData', './library'],
 		}
 	}});
 
-	/*** NOTHING ***/
+	SplitterLayoutData.prototype.init = function () {
+		LayoutData.prototype.init.apply(this, arguments);
+		this._bIsModified = false;
+	};
+
+	SplitterLayoutData.prototype._markModified = function () {
+		this._bIsModified = true;
+	};
+
+	SplitterLayoutData.prototype._isMarked = function () {
+		return this._bIsModified;
+	};
+
+	SplitterLayoutData.prototype._getSizeUnit = function () {
+		const sSize = this.getSize();
+
+		if (sSize.includes("px")) {
+			return "px";
+		}
+
+		if (sSize.includes("rem")) {
+			return "rem";
+		}
+
+		if (sSize.includes("%")) {
+			return "%";
+		}
+
+		return "auto";
+	};
 
 	return SplitterLayoutData;
-
 });

@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2024 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -21,12 +21,11 @@ sap.ui.define(["./DragDropBase"],
 	 * @extends sap.ui.core.dnd.DragDropBase
 	 *
 	 * @author SAP SE
-	 * @version 1.79.0
+	 * @version 1.120.6
 	 *
 	 * @public
 	 * @since 1.56
 	 * @alias sap.ui.core.dnd.DropInfo
-	 * @ui5-metamodel This control/element also will be described in the UI5 (legacy) designtime metamodel
 	 */
 	var DropInfo = DragDropBase.extend("sap.ui.core.dnd.DropInfo", /** @lends sap.ui.core.dnd.DropInfo.prototype */ { metadata: {
 
@@ -43,8 +42,6 @@ sap.ui.define(["./DragDropBase"],
 
 			/**
 			 * Defines the visual drop effect.
-			 *
-			 * In Internet Explorer, default visual drop effect is <code>Copy</code> and this property has no effect.
 			 */
 			dropEffect: {type: "sap.ui.core.dnd.DropEffect", defaultValue: "Move", invalidate: false},
 
@@ -70,7 +67,7 @@ sap.ui.define(["./DragDropBase"],
 			 * @param {object} oControlEvent.getParameters
 			 * @param {sap.ui.core.Element} oControlEvent.getParameters.target The target element on which the dragged element will be dropped
 			 * @param {sap.ui.core.dnd.DragSession} oControlEvent.getParameters.dragSession The UI5 <code>dragSession</code> object that exists only during drag and drop
-			 * @param {Event} oControlEvent.getParameters.browserEvent The underlying browser event
+			 * @param {DragEvent} oControlEvent.getParameters.browserEvent The underlying browser event
 			 * @public
 			 */
 			dragEnter: {
@@ -87,8 +84,8 @@ sap.ui.define(["./DragDropBase"],
 			 * @param {object} oControlEvent.getParameters
 			 * @param {sap.ui.core.Element} oControlEvent.getParameters.target The target element on which the dragged element will be dropped
 			 * @param {sap.ui.core.dnd.DragSession} oControlEvent.getParameters.dragSession The UI5 <code>dragSession</code> object that exists only during drag and drop
-			 * @param {string} oControlEvent.getParameters.dropPosition The calculated position of the drop action relative to the <code>target</code>, possible values are <code>Before</code>, <code>On</code>, <code>After</code>
-			 * @param {Event} oControlEvent.getParameters.browserEvent The underlying browser event
+			 * @param {sap.ui.core.dnd.RelativeDropPosition} oControlEvent.getParameters.dropPosition The calculated position of the drop action relative to the <code>target</code>
+			 * @param {DragEvent} oControlEvent.getParameters.browserEvent The underlying browser event
 			 * @public
 			 * @since 1.56
 			 */
@@ -106,8 +103,8 @@ sap.ui.define(["./DragDropBase"],
 			 * @param {sap.ui.core.dnd.DragSession} oControlEvent.getParameters.dragSession The UI5 <code>dragSession</code> object that exists only during drag and drop
 			 * @param {sap.ui.core.Element} oControlEvent.getParameters.draggedControl The element being dragged
 			 * @param {sap.ui.core.Element} oControlEvent.getParameters.droppedControl The element being dropped
-			 * @param {string} oControlEvent.getParameters.dropPosition The calculated position of the drop action relative to the <code>droppedControl</code>, possible values are <code>Before</code>, <code>On</code>, <code>After</code>
-			 * @param {Event} oControlEvent.getParameters.browserEvent The underlying browser event
+			 * @param {sap.ui.core.dnd.RelativeDropPosition} oControlEvent.getParameters.dropPosition The calculated position of the drop action relative to the <code>droppedControl</code>
+			 * @param {DragEvent} oControlEvent.getParameters.browserEvent The underlying browser event
 			 * @public
 			 */
 			drop: {

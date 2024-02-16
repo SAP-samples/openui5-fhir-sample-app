@@ -1,15 +1,17 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2024 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 sap.ui.define([
-	'sap/ui/thirdparty/jquery',
-	'sap/ui/test/Opa',
+	'sap/base/Log',
+	'sap/base/util/deepExtend',
+	'sap/base/util/isEmptyObject',
+	'sap/base/util/ObjectPath',
 	'sap/ui/base/Object',
-	"sap/base/Log"
-], function($, Opa, Ui5Object, Log) {
+	'sap/ui/test/Opa'
+], function(Log, deepExtend, isEmptyObject, ObjectPath, Ui5Object, Opa) {
 		"use strict";
 
 		/**
@@ -22,6 +24,7 @@ sap.ui.define([
 		 */
 		var PageObjectFactory = Ui5Object.extend("sap.ui.test.PageObjectFactory");
 
+		var oPageObjects = {};
 		/**
 		 * Creates a set of page objects, each consisting of actions and assertions, and adds them to
 		 * the Opa configuration.
@@ -36,19 +39,32 @@ sap.ui.define([
 		 * @returns {Object<string,Object>} Map of created page objects
 		 */
 		PageObjectFactory.create = function(mPageDefinitions, Opa5) {
-			var mPageObjects = {};
+			var mPageObjects = {},
+				sNamespace;
 
 			for (var sPageObjectName in mPageDefinitions) {
-				if (mPageDefinitions.hasOwnProperty(sPageObjectName) && $.isEmptyObject(mPageObjects[sPageObjectName])) {
+				if (mPageDefinitions.hasOwnProperty(sPageObjectName) && isEmptyObject(mPageObjects[sPageObjectName])) {
+					sNamespace = mPageDefinitions[sPageObjectName].namespace || "sap.ui.test.opa.pageObject";
+
+					if (oPageObjects[sNamespace] && !isEmptyObject(oPageObjects[sNamespace][sPageObjectName])) {
+						Log.error("Opa5 Page Object namespace clash: You have loaded multiple page objects with the same name '" + sNamespace + "."
+							+ sPageObjectName + "'. " + "To prevent override, specify the namespace parameter.");
+					}
 
 					mPageObjects[sPageObjectName] =  PageObjectFactory._createPageObject({
 						name: sPageObjectName,
 						baseClass: mPageDefinitions[sPageObjectName].baseClass || Opa5,
-						namespace: mPageDefinitions[sPageObjectName].namespace || "sap.ui.test.opa.pageObject",
+						namespace: sNamespace,
 						view: _getViewData(mPageDefinitions[sPageObjectName]),
 						actions: mPageDefinitions[sPageObjectName].actions,
 						assertions: mPageDefinitions[sPageObjectName].assertions
 					});
+
+					if (!oPageObjects[sNamespace]) {
+						oPageObjects[sNamespace] = {};
+					}
+
+					oPageObjects[sNamespace][sPageObjectName] = mPageObjects[sPageObjectName];
 				}
 			}
 
@@ -97,20 +113,16 @@ sap.ui.define([
 		// create class name for an operation object
 		function _createClassName(sNamespace, sPageObjectName, sOperationType) {
 			var sClassName = sNamespace + "." + sPageObjectName + "." + sOperationType;
-			var oObj = $.sap.getObject(sClassName,NaN);
-			if (oObj){
-				Log.error("Opa5 Page Object namespace clash: You have loaded multiple page objects with the same name '" + sClassName + "'. " +
-					"To prevent override, specify the namespace parameter.");
-			}
+
 			return sClassName;
 		}
 
 		// add default values to the waitFor method of an operation instance
 		function _configureWaitFor(oOperation, mView){
-			if (!$.isEmptyObject(mView) && oOperation.waitFor) {
+			if (!isEmptyObject(mView) && oOperation.waitFor) {
 				var fnOriginalWaitFor = oOperation.waitFor;
 				oOperation.waitFor = function (oOptions) {
-					return fnOriginalWaitFor.call(this, $.extend(true, {}, mView, oOptions));
+					return fnOriginalWaitFor.call(this, deepExtend({}, mView, oOptions));
 				};
 			}
 		}
@@ -137,7 +149,7 @@ sap.ui.define([
 		function _mixinTestLibraries(oOperation, sOperationType) {
 			if (Opa.config.testLibs) {
 				for (var sTestLib in Opa.config.testLibs) { // the test library is configured by the test
-					if (Opa.config.testLibBase && !$.isEmptyObject(Opa.config.testLibBase[sTestLib])) { // the test library exposes methods
+					if (Opa.config.testLibBase && !isEmptyObject(Opa.config.testLibBase[sTestLib])) { // the test library exposes methods
 						// add a plain object property to the operation prototype, that will contain all methods of the desired type
 						// the property name is with the same as the test library name
 						var oOperationPrototype = Object.getPrototypeOf(oOperation);

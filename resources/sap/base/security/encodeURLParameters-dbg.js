@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2024 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.define(
@@ -15,7 +15,7 @@ sap.ui.define(
 	 * @function
 	 * @since 1.58
 	 * @alias module:sap/base/security/encodeURLParameters
-	 * @param {Object} mParams The map of parameters to encode
+	 * @param {Object<string,string|number|boolean>} mParams The map of parameters to encode
 	 * @returns {string} The URL encoded parameter string
 	 * @SecValidate {0|return|XSS} validates the given string for a URL context
 	 * @example

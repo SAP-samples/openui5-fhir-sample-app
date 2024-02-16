@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2024 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.define(["sap/ui/Device", "sap/ui/layout/library"],
@@ -15,7 +15,7 @@ sap.ui.define(["sap/ui/Device", "sap/ui/layout/library"],
 	/**
 	 * @author SAP SE
 	 * @version
-	 * 1.79.0
+	 * 1.120.6
 	 * @namespace
 	 */
 	var GridRenderer = {
@@ -29,7 +29,7 @@ sap.ui.define(["sap/ui/Device", "sap/ui/layout/library"],
 	 * @param {sap.ui.core.RenderManager}
 	 *            oRm the RenderManager that can be used for writing to the render
 	 *            output buffer
-	 * @param {sap.ui.core.Control}
+	 * @param {sap.ui.layout.Grid}
 	 *            oControl an object representation of the control that should be
 	 *            rendered
 	 */
@@ -122,7 +122,7 @@ sap.ui.define(["sap/ui/Device", "sap/ui/layout/library"],
 
 
 		for ( var i = 0; i < aItems.length; i++) { // loop over all child controls
-			oRm.openStart("div");
+			oRm.openStart("div", oControl.getId() + "-wrapperfor-" + aItems[i].getId());
 			var oLay = oControl._getLayoutDataForControl(aItems[i]);
 			var bCellSpanXLChanged = false;
 
@@ -168,7 +168,7 @@ sap.ui.define(["sap/ui/Device", "sap/ui/layout/library"],
 				// sSpanL needed for XL if XL is not defined at all
 				var sSpanL;
 				var sSpan = oLay.getSpan();
-				if (!sSpan || !sSpan.lenght == 0) {
+				if (!sSpan) {
 					aSpan = aDefaultSpan;
 				} else {
 					aSpan = SPANPATTERN.exec(sSpan);

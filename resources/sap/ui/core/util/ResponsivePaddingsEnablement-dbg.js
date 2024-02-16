@@ -1,19 +1,19 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2024 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 // sap.ui.core.util.ResponsivePaddingsEnabler
 sap.ui.define([
-	"sap/ui/core/library",
 	"sap/base/Log",
+	"sap/ui/core/Element",
 	'sap/ui/core/ResizeHandler',
-	"sap/ui/thirdparty/jquery"
-],
-function (
-	library,
+	"sap/ui/thirdparty/jquery",
+	"sap/ui/core/library" // ensures loading of CSS
+], function (
 	Log,
+	Element,
 	ResizeHandler,
 	jQuery
 ) {
@@ -177,7 +177,7 @@ function (
 			});
 
 			$elemCollection.each(function (index, elem) {
-				var oControl = jQuery(elem).control(0);
+				var oControl = Element.closestTo(elem);
 				if (elem === oControl.getDomRef()) {
 					aClassNames.forEach(oControl.removeStyleClass.bind(oControl));
 				} else {
@@ -213,7 +213,7 @@ function (
 			}
 
 			$elemCollection.each(function (index, elem) {
-				var oControl = jQuery(elem).control(0);
+				var oControl = Element.closestTo(elem);
 				if (elem === oControl.getDomRef()) {
 					oControl.addStyleClass(MEDIA[sKey]);
 				} else {

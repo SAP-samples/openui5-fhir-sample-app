@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2024 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -8,7 +8,6 @@
 sap.ui.define([
 	"sap/ui/core/Core",
 	"sap/ui/core/Control",
-	'sap/ui/core/delegate/ItemNavigation',
 	"sap/f/GridContainer",
 	"sap/f/GridContainerSettings",
 	"sap/f/ProductSwitchItem",
@@ -17,7 +16,6 @@ sap.ui.define([
 	function (
 		Core,
 		Control,
-		ItemNavigation,
 		GridContainer,
 		GridContainerSettings,
 		ProductSwitchItem,
@@ -36,14 +34,13 @@ sap.ui.define([
 		 * @extends sap.ui.core.Control
 		 *
 		 * @author SAP SE
-		 * @version 1.79.0
+		 * @version 1.120.6
 		 *
 		 * @constructor
 		 * @public
 		 * @experimental Since 1.72. This class is experimental and provides only limited functionality. Also the API might be changed in future.
 		 * @alias sap.f.ProductSwitch
 		 * @since 1.72
-		 * @ui5-metamodel This control/element also will be described in the UI5 (legacy) designtime metamodel
 		 */
 		var ProductSwitch = Control.extend("sap.f.ProductSwitch", {
 			metadata: {
@@ -85,7 +82,9 @@ sap.ui.define([
 						}
 					}
 				}
-			}
+			},
+
+			renderer: ProductSwitchRenderer
 		});
 
 		ProductSwitch.COLUMNS = {
@@ -99,52 +98,6 @@ sap.ui.define([
 
 		ProductSwitch.prototype.exit = function () {
 			this._oCurrentSelectedItem = null;
-			this._destroyItemNavigation();
-		};
-
-		/**
-		 * Destroys the item navigation delegate
-		 * @private
-		 */
-		ProductSwitch.prototype._destroyItemNavigation = function () {
-			if (this._oItemNavigation) {
-				this.removeEventDelegate(this._oItemNavigation);
-				this._oItemNavigation.destroy();
-				this._oItemNavigation = null;
-			}
-		};
-
-		ProductSwitch.prototype.onAfterRendering = function () {
-			var oDomRef,
-				aChildDomRefs = [];
-
-			if (!this._oItemNavigation) {
-				this._oItemNavigation = new ItemNavigation(null, null);
-				this._oItemNavigation.setDisabledModifiers({
-					// Alt + arrow keys are reserved for browser navigation
-					sapnext: [
-						"alt", // Windows and Linux
-						"meta" // Apple (⌘)
-					],
-					sapprevious: [
-						"alt",
-						"meta"
-					]
-				});
-				this.addEventDelegate(this._oItemNavigation);
-			}
-
-			oDomRef = this.getDomRef();
-
-			// set the root dom node that surrounds the items
-			this._oItemNavigation.setRootDomRef(oDomRef);
-
-			aChildDomRefs = this.getItems().map(function (oItem) {
-				return oItem.getDomRef();
-			});
-
-			// set the array of DOM elements representing the items
-			this._oItemNavigation.setItemDomRefs(aChildDomRefs);
 		};
 
 		/**
@@ -218,7 +171,7 @@ sap.ui.define([
 		* If an ID of a <code>sap.f.ProductSwitchItem</code> instance is given, the item with this ID becomes the <code>selectedItem</code> association.
 		* Alternatively, a <code>sap.f.ProductSwitchItem</code> instance may be given or <code>null</code> to clear the selection.
 		*
-		* @returns {sap.f.ProductSwitch} <code>this</code> to allow method chaining
+		* @returns {this} <code>this</code> to allow method chaining
 		* @public
 		*/
 

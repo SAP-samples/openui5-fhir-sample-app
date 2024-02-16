@@ -54,21 +54,6 @@ Expose class for rounded images
 	vertical-align: center;
 }
 
-// Action Button START
-.sapUxAPObjectPageHeaderActionButtonHideText .sapMBtnContent {
-	display: none;
-}
-
-.sapUxAPObjectPageHeaderActionButtonHideText .sapMBtnInner.sapMBtnIconFirst,
-.sapUxAPObjectPageHeaderActionButtonHideText .sapMBtnInner.sapMBtnBack {
-	padding-left: 0;
-}
-
-.sapUxAPObjectPageHeaderActionButtonHideText .sapMBtnInner.sapMBtnIconFirst.sapMBtnText,
-.sapUxAPObjectPageHeaderActionButtonHideText .sapMBtnInner.sapMBtnBack.sapMBtnText {
-	padding-left: 0.75rem;
-}
-
 .sapUxAPObjectPageHeaderActionButtonHideIcon {
 	.sapMBtnIcon {
 		display: none;
@@ -190,7 +175,7 @@ html[data-sap-ui-animation="off"] .sapUxAPObjectPageHeaderStickied & .sapUxAPObj
 	opacity: 1;
 }
 
-.sapUxAPObjectPageLayout-Std-Desktop .sapUxAPObjectPageHeaderIdentifier {
+.sapUxAPObjectPageHeaderIdentifier {
 	padding-left: 3rem;
 }
 
@@ -217,13 +202,9 @@ html .sapUiContainer-Narrow .sapUxAPObjectPageHeaderIdentifier {
 	.sapUxAPObjectPageHeaderStickied & {
 		display: inline-block;
 	}
-	&.sapUxAPObjectPageHeaderIdentifierDescriptionForce:not(.sapOPHSubtitleBlock) {
-		display: inline-block;
+	&.sapUxAPObjectPageHeaderIdentifierDescriptionForce{
+		display: block;
 	}
-}
-
-.sapUxAPObjectPageHeaderIdentifier .sapUxAPObjectPageHeaderIdentifierDescription.sapUxAPObjectPageHeaderIdentifierDescriptionForce.sapOPHSubtitleBlock {
-	display: block;
 }
 
 .sapUxAPObjectPageHeaderIdentifierTitle {
@@ -250,6 +231,15 @@ html .sapUiContainer-Narrow .sapUxAPObjectPageHeaderIdentifier {
 html[data-sap-ui-browser^=ie] .sapUxAPObjectPageHeaderObjectImageContainerSub > img {
 	padding-top: 0;
 	padding-bottom: 0;
+}
+
+.sapUxAPObjectPageHeaderTitle {
+	position: absolute;
+	padding-right: 0px;
+	top: 0;
+	right: 0;
+	left: 0;
+	z-index: 2;
 }
 
 .sapUxAPObjectPageHeaderTitleArrow {
@@ -403,7 +393,7 @@ html[dir=rtl] .sapUxAPObjectPageHeaderMarks .sapMObjStatusMarker .sapUiIcon:firs
 	visibility: hidden;
 }
 
-.sapUxAPObjectPageHeaderStickied:hover .sapUxAPObjectPageHeaderExpandButton {
+.sapUxAPObjectPageHeaderStickied .sapUxAPObjectPageHeaderExpandButton {
 	visibility: visible;
 }
 

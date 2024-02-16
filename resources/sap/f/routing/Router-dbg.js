@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2024 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.define(['sap/ui/core/routing/Router', './TargetHandler', './Targets'],
@@ -15,11 +15,15 @@ sap.ui.define(['sap/ui/core/routing/Router', './TargetHandler', './Targets'],
 		 * <code>{@link sap.f.FlexibleColumnLayout}</code> as a root control.
 		 *
 		 * The difference to the <code>{@link sap.ui.core.routing.Router}</code> are the
-		 * <code>viewLevel</code>, <code>transition</code>, and <code>transitionParameters</code>
+		 * <code>level</code>, <code>transition</code>, and <code>transitionParameters</code>
 		 * properties that you can specify in every Route or Target created by this router.
 		 *
-		 * Additionally, the <code>layout</code> property can be specified in every Route,
-		 * in which case it is applied to the root control.
+		 * The difference to the <code>{@link sap.m.routing.Router}</code> is the additional
+		 * <code>layout</code> property that can be specified in every Route, in which case it
+		 * is applied to the root control. Also, the <code>sap.f.routing.Router</code> supports
+		 * navigations that involve both change of <code>{@link sap.f.LayoutType}</code>
+		 * and change of the current page within a single column of the
+		 * <code>sap.f.FlexibleColumnLayout</code>.
 		 *
 		 * See <code>{@link sap.ui.core.routing.Router}</code> for the constructor arguments.
 		 *
@@ -99,15 +103,15 @@ sap.ui.define(['sap/ui/core/routing/Router', './TargetHandler', './Targets'],
 
 			fireRoutePatternMatched : function (mArguments) {
 				var sRouteName = mArguments.name,
-					iViewLevel;
+					iLevel;
 
 				if (this._oTargets && this._oTargets._oLastDisplayedTarget) {
-					iViewLevel = this._oTargets._getViewLevel(this._oTargets._oLastDisplayedTarget);
+					iLevel = this._oTargets._getLevel(this._oTargets._oLastDisplayedTarget);
 				}
 
 				this._oTargetHandler.navigate({
 					navigationIdentifier: sRouteName,
-					viewLevel: iViewLevel,
+					level: iLevel,
 					askHistory: true
 				});
 

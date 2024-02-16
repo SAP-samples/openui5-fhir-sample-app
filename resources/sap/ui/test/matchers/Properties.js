@@ -1,6 +1,7 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2024 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
-sap.ui.define(["sap/ui/test/_LogCollector","sap/base/Log","sap/base/strings/capitalize","sap/ui/thirdparty/jquery"],function(e,r,t,a){"use strict";var s=r.getLogger("sap.ui.test.matchers.Properties");return function(e){return function(r){var u=true;a.each(e,function(e,o){var i=r["get"+t(e,0)];if(!i){u=false;s.error("Control '"+r+"' does not have a property '"+e+"'");return false}var n=i.call(r);if(o instanceof RegExp){u=o.test(n)}else if(a.isPlainObject(o)&&o.regex&&o.regex.source){var l=new RegExp(o.regex.source,o.regex.flags);u=l.test(n)}else{u=n===o}if(!u){s.debug("Control '"+r+"' property '"+e+"' has value '"+n+"' but should have value '"+o+"'");return false}});return u}}},true);
+sap.ui.define(["sap/base/Log","sap/base/strings/capitalize","sap/base/util/each","sap/base/util/isPlainObject"],function(e,r,t,a){"use strict";var s=e.getLogger("sap.ui.test.matchers.Properties");return function(e){return function(u){var n=true;t(e,function(e,t){var i=u["get"+r(e,0)];if(!i){n=false;s.error("Control '"+u+"' does not have a property '"+e+"'");return false}var o=i.call(u);if(t instanceof RegExp){n=t.test(o)}else if(a(t)&&t.regex&&t.regex.source){var l=new RegExp(t.regex.source,t.regex.flags);n=l.test(o)}else{n=o===t}if(!n){s.debug("Control '"+u+"' property '"+e+"' has value '"+o+"' but should have value '"+t+"'");return false}});return n}}},true);
+//# sourceMappingURL=Properties.js.map

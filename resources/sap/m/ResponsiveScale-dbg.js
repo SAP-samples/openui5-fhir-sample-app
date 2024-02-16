@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2024 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -34,13 +34,12 @@ sap.ui.define([
 		 * @extends sap.ui.core.Element
 		 *
 		 * @author SAP SE
-		 * @version 1.79.0
+		 * @version 1.120.6
 		 *
 		 * @constructor
 		 * @public
 		 * @since 1.46
 		 * @alias sap.m.ResponsiveScale
-		 * @ui5-metamodel This control/element also will be described in the UI5 (legacy) designtime metamodel
 		 */
 		var Scale = Element.extend("sap.m.ResponsiveScale", {
 			metadata: {
@@ -65,6 +64,7 @@ sap.ui.define([
 		 * @param {float} fStep - The step walking from start to end.
 		 * @param {int} iTickmarksThreshold - Limits the number of tickmarks.
 		 *
+		 * @public
 		 * @returns {number} The max number of possible tickmarks
 		 */
 		Scale.prototype.calcNumberOfTickmarks = function (fSize, fStep, iTickmarksThreshold) {
@@ -137,7 +137,7 @@ sap.ui.define([
 			var iJumpStep, iCurPos,
 				aHiddenLabelsIndices = new Array(iTotalLabelsCount),
 				// How many labels should get hidden, so there would be enough space.
-				// There's min distance design limitation of {TICKMARKS.MIN_SIZE.WITH_LABEL} between the labels
+				// There's min distance design size limits of {TICKMARKS.MIN_SIZE.WITH_LABEL} between the labels
 				iStartPosition = Math.ceil(1 / (fOffsetLeftPx / iLabelsMinDistance)),
 				fnCalcJumpStep = function (iPos) {
 					// iPos^2 === iPos * iPos === iPos << 1
@@ -185,7 +185,7 @@ sap.ui.define([
 		};
 
 		/**
-		 * Shows/hides tickmarks when some limitations are met.
+		 * Shows/hides tickmarks when some size limits are met.
 		 * Implements responsiveness of the tickmarks.
 		 *
 		 * @param {jQuery.Event} oEvent The event object passed.

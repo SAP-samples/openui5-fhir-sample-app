@@ -115,7 +115,7 @@ html.sap-desktop .sapMSegBBtnFocusable:hover .sapMSegBBtnInner {
 	color: @sapUiSegmentedButtonSelectedTextColor;
 	border-color: @sapUiSegmentedButtonSelectedHoverBorderColor;
 	.sapUiIcon{
-		color: @sapUiSegmentedButtonSelectedIconColor;
+		color: @sapUiButtonSelectedTextColor;
 	}
 }
 
@@ -153,22 +153,6 @@ html.sap-desktop .sapMSegBBtnFocusable.sapMBtnActive:hover .sapMSegBBtnInner {
 .sapMFlexItem .sapMSegBFit,
 .sapMOTB > .sapMSegBFit {
 	width: auto;
-}
-
-/* Fix for mobile segmented button in header, footer or bar element */
-html[data-sap-ui-os^="bb"],
-html[data-sap-ui-os^="Android4.1"][data-sap-ui-browser^="an"],
-html[data-sap-ui-os^="Android4.2"][data-sap-ui-browser^="an"],
-html[data-sap-ui-os^="Android4.3"][data-sap-ui-browser^="an"] {
-	header,
-	footer,
-	.sapMBar {
-		.sapMSegB {
-			height: 1.5rem;
-			line-height: 1.5rem;
-			display: inline-block;
-		}
-	}
 }
 
 html[data-sap-ui-os^="iOS"] {
@@ -257,53 +241,5 @@ html[data-sap-ui-os^="iOS"] {
 html[data-sap-ui-os^="Android"] {
 	.sapUiSizeCompact .sapMSegBBtn .sapUiIcon {
 		line-height: 1.6rem;
-	}
-}
-
-/* IE ignores outline-offset. Use an overlay: */
-html[data-sap-ui-browser^="ie"].sap-desktop,
-html[data-sap-ui-browser^="ed"].sap-desktop {
-	.sapMSegBBtn.sapMSegBBtnFocusable:focus .sapMSegBBtnInner {
-		outline: none;
-		position: relative;
-	}
-	.sapMSegBBtn.sapMSegBBtnFocusable:focus .sapMSegBBtnInner:before {
-		content: " ";
-		box-sizing: border-box;
-		position: absolute;
-		top: 0;
-		left: 0;
-		margin-top: 1px;
-		margin-left: 1px;
-		width: calc(~'100% - 2px');
-		height: calc(~'100% - 2px');
-		pointer-events: none;
-	}
-
-	.sapMSegB {
-		.sapMSegBBtnFocusable.sapMSegBBtnSel:focus .sapMSegBBtnInner {
-			outline: none;
-			position: relative;
-		}
-		.sapMSegBBtnFocusable.sapMSegBBtnSel:focus .sapMSegBBtnInner:before {
-			content: " ";
-			box-sizing: border-box;
-			position: absolute;
-			top: 0;
-			left: 0;
-			margin-top: 1px;
-			margin-left: 1px;
-			width: calc(~'100% - 2px');
-			height: calc(~'100% - 2px');
-			pointer-events: none;
-		}
-		.sapMSegBBtnFocusable {
-			&:focus .sapMSegBBtnInner:before {
-				border: 1px dashed @sapUiContentFocusColor;
-			}
-			&.sapMSegBBtnSel:focus .sapMSegBBtnInner:before {
-				border: 1px dashed @sapUiContentContrastFocusColor;
-			}
-		}
 	}
 }

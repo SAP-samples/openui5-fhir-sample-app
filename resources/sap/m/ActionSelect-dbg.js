@@ -1,12 +1,12 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2024 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 // Provides control sap.m.ActionSelect.
-sap.ui.define(['./Select', 'sap/ui/core/InvisibleText', 'sap/ui/core/Core', './ActionSelectRenderer'],
-	function(Select, InvisibleText, Core, ActionSelectRenderer) {
+sap.ui.define(['./Select', 'sap/ui/core/InvisibleText', 'sap/ui/Device', 'sap/ui/core/Core', './ActionSelectRenderer'],
+	function(Select, InvisibleText, Device, Core, ActionSelectRenderer) {
 		"use strict";
 
 		/**
@@ -20,25 +20,29 @@ sap.ui.define(['./Select', 'sap/ui/core/InvisibleText', 'sap/ui/core/Core', './A
 		 * @extends sap.m.Select
 		 *
 		 * @author SAP SE
-		 * @version 1.79.0
+		 * @version 1.120.6
 		 *
 		 * @constructor
 		 * @public
 		 * @since 1.16
+		 * @deprecated as of version 1.111.
 		 * @alias sap.m.ActionSelect
-		 * @ui5-metamodel This control/element also will be described in the UI5 (legacy) designtime metamodel
 		 */
-		var ActionSelect = Select.extend("sap.m.ActionSelect", /** @lends sap.m.ActionSelect.prototype */ { metadata : {
+		var ActionSelect = Select.extend("sap.m.ActionSelect", /** @lends sap.m.ActionSelect.prototype */ {
+			metadata : {
 
-			library : "sap.m",
-			associations : {
+				library : "sap.m",
+				associations : {
 
-				/**
-				 * Buttons to be added to the ActionSelect content.
-				 */
-				buttons : {type : "sap.m.Button", multiple : true, singularName : "button"}
-			}
-		}});
+					/**
+					 * Buttons to be added to the ActionSelect content.
+					 */
+					buttons : {type : "sap.m.Button", multiple : true, singularName : "button"}
+				}
+			},
+
+			renderer: ActionSelectRenderer
+		});
 
 		ActionSelect.prototype.init = function() {
 			Select.prototype.init.call(this);
@@ -112,10 +116,10 @@ sap.ui.define(['./Select', 'sap/ui/core/InvisibleText', 'sap/ui/core/Core', './A
 		/* ----------------------------------------------------------- */
 
 		/**
-		 * Button to be removed from the ActionSelect content.
+		 * Removes the given button from the <code>ActionSelect</code> content.
 		 *
-		 * @param {int | string | sap.m.Button} vButton The button to remove or its index or id.
-		 * @returns {string} The id of the removed button or null.
+		 * @param {int | string | sap.m.Button} vButton The button to remove or its index or ID.
+		 * @returns {string|null} The ID of the removed button or <code>null</code>.
 		 * @public
 		 */
 		ActionSelect.prototype.removeButton = function(vButton) {
@@ -164,6 +168,8 @@ sap.ui.define(['./Select', 'sap/ui/core/InvisibleText', 'sap/ui/core/Core', './A
 			var aButtons = this.getButtons(),
 				oPicker = this.getPicker(),
 				i;
+
+			this._bProcessChange = false;
 
 			// check whether event is marked or not
 			if ( oEvent.isMarked() || !this.getEnabled()) {
@@ -243,7 +249,7 @@ sap.ui.define(['./Select', 'sap/ui/core/InvisibleText', 'sap/ui/core/Core', './A
 		 * @private
 		 */
 		ActionSelect.prototype.onfocusinList = function(oEvent) {
-			if (document.activeElement !== this.getList().getDomRef()) {
+			if (document.activeElement !== this.getList().getDomRef() && !Device.system.phone) {
 				this.focus();
 			}
 		};
@@ -313,6 +319,8 @@ sap.ui.define(['./Select', 'sap/ui/core/InvisibleText', 'sap/ui/core/Core', './A
 		 * @private
 		 */
 		ActionSelect.prototype.exit = function () {
+			Select.prototype.exit.call(this);
+
 			if (this._oTutorMessageText) {
 				this._oTutorMessageText.destroy();
 				this._oTutorMessageText = null;

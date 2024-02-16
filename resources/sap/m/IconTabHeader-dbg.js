@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2024 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -14,16 +14,17 @@ sap.ui.define([
 	'sap/ui/core/delegate/ItemNavigation',
 	"sap/ui/core/InvisibleText",
 	'sap/ui/core/ResizeHandler',
+	'sap/ui/Device',
 	'sap/m/Button',
 	'sap/m/IconTabFilter',
 	'sap/m/IconTabSeparator',
 	'sap/m/IconTabBarDragAndDropUtil',
-	'sap/ui/core/dnd/DropPosition',
+	'sap/ui/core/library',
 	'sap/m/IconTabHeaderRenderer',
 	"sap/ui/thirdparty/jquery",
 	"sap/base/Log",
 	"sap/ui/events/KeyCodes"
-], function (
+], function(
 	library,
 	Core,
 	Control,
@@ -31,17 +32,21 @@ sap.ui.define([
 	ItemNavigation,
 	InvisibleText,
 	ResizeHandler,
+	Device,
 	Button,
 	IconTabFilter,
 	IconTabSeparator,
 	IconTabBarDragAndDropUtil,
-	DropPosition,
+	coreLibrary,
 	IconTabHeaderRenderer,
 	jQuery,
 	Log,
 	KeyCodes
 ) {
 	"use strict";
+
+	// shortcut for sap.ui.core.dnd.DropPosition
+	var DropPosition = coreLibrary.dnd.DropPosition;
 
 	// shortcut for sap.m.BackgroundDesign
 	var BackgroundDesign = library.BackgroundDesign;
@@ -52,6 +57,9 @@ sap.ui.define([
 	// shortcut for sap.m.IconTabDensityMode
 	var IconTabDensityMode = library.IconTabDensityMode;
 
+	// shortcut for sap.m.TabsOverflowMode
+	var TabsOverflowMode = library.TabsOverflowMode;
+
 	/**
 	 * Constructor for a new IconTabHeader.
 	 *
@@ -60,134 +68,202 @@ sap.ui.define([
 	 *
 	 * @class
 	 * This control displays a number of IconTabFilters and IconTabSeparators. If the available horizontal
-	 * space is exceeded, a horizontal scrolling appears.
+	 * space is exceeded, an overflow tab appears.
+	 *
+	 * <h3>Usage</h3>
+	 * Use <code>IconTabHeader</code> if you need it as a standalone header.
+	 * If you need to manage content use {@link sap.m.IconTabBar} instead.
+	 *
 	 * @extends sap.ui.core.Control
 	 *
 	 * @author SAP SE
-	 * @version 1.79.0
+	 * @version 1.120.6
 	 *
 	 * @constructor
 	 * @public
+	 * @since 1.15
 	 * @alias sap.m.IconTabHeader
-	 * @ui5-metamodel This control/element also will be described in the UI5 (legacy) designtime metamodel
 	 */
-	var IconTabHeader = Control.extend("sap.m.IconTabHeader", /** @lends sap.m.IconTabHeader.prototype */ { metadata : {
+	var IconTabHeader = Control.extend("sap.m.IconTabHeader", /** @lends sap.m.IconTabHeader.prototype */ {
+		metadata : {
 
-		library : "sap.m",
-		properties : {
+			library : "sap.m",
+			properties : {
 
-			/**
-			 * Defines whether the current selection is visualized.
-			 * @deprecated As of 1.15.0.
-			 * Regarding to changes of this control this property is not needed anymore.
-			 */
-			showSelection : {type : "boolean", group : "Misc", defaultValue : true, deprecated: true},
+				/**
+				 * Defines whether the current selection is visualized.
+				 * @deprecated As of 1.15.0.
+				 * Regarding to changes of this control this property is not needed anymore.
+				 */
+				showSelection : {type : "boolean", group : "Misc", defaultValue : true, deprecated: true},
 
-			/**
-			 * Key of the selected item.
-			 *
-			 * If the key has no corresponding aggregated item, no changes will apply.
-			 * If duplicate keys exists the first item matching, the key is used.
-			 * @since 1.15.0
-			 */
-			selectedKey : {type : "string", group : "Data", defaultValue : null},
+				/**
+				 * Key of the selected item.
+				 *
+				 * If the key has no corresponding aggregated item, no changes will apply.
+				 * If duplicate keys exists the first item matching, the key is used.
+				 * @since 1.15.0
+				 */
+				selectedKey : {type : "string", group : "Data", defaultValue : null},
 
-			/**
-			 * Specifies whether the control is rendered.
-			 * @since 1.15.0
-			 */
-			visible : {type : "boolean", group : "Behavior", defaultValue : true},
+				/**
+				 * Specifies whether the control is rendered.
+				 * @since 1.15.0
+				 */
+				visible : {type : "boolean", group : "Behavior", defaultValue : true},
 
-			/**
-			 * Specifies the header mode.
-			 * <b>Note:</b> The Inline mode works only if no icons are set.
-			 *
-			 * @since 1.40
-			 */
-			mode : {type : "sap.m.IconTabHeaderMode", group : "Appearance", defaultValue : IconTabHeaderMode.Standard},
+				/**
+				 * Specifies the header mode.
+				 *
+				 * @since 1.40
+				 */
+				mode : {type : "sap.m.IconTabHeaderMode", group : "Appearance", defaultValue : IconTabHeaderMode.Standard},
 
-			/**
-			 * Specifies if the overflow select list is displayed.
-			 *
-			 * The overflow select list represents a list, where all tab filters are displayed,
-			 * so the user can select specific tab filter easier.
-			 * @deprecated as of 1.75
-			 */
-			showOverflowSelectList : {type : "boolean", group : "Appearance", defaultValue : false, deprecated: true},
+				/**
+				 * Specifies if the overflow select list is displayed.
+				 *
+				 * The overflow select list represents a list, where all tab filters are displayed,
+				 * so the user can select specific tab filter easier.
+				 * @deprecated as of 1.75
+				 */
+				showOverflowSelectList : {type : "boolean", group : "Appearance", defaultValue : false, deprecated: true},
 
-			/**
-			 * Specifies the background color of the header.
-			 *
-			 * Depending on the theme, you can change the state of
-			 * the background color to "Solid", "Translucent", or "Transparent".
-			 * Default is "Solid".
-			 * @since 1.44
-			 */
-			backgroundDesign : {type : "sap.m.BackgroundDesign", group : "Appearance", defaultValue : BackgroundDesign.Solid},
+				/**
+				 * Specifies the background color of the header.
+				 *
+				 * Depending on the theme, you can change the state of the background color to "Solid", "Translucent", or "Transparent".
+				 * <b>Note:</b> In SAP Belize Deep (sap_belize_plus) theme this property should be set to "Solid".
+				 * @since 1.44
+				 */
+				backgroundDesign : {type : "sap.m.BackgroundDesign", group : "Appearance", defaultValue : BackgroundDesign.Solid},
 
-			/**
-			 * Specifies whether tab reordering is enabled. Relevant only for desktop devices.
-			 * The {@link sap.m.IconTabSeparator sap.m.IconTabSeparator} cannot be dragged  and dropped
-			 * Items can be moved around {@link sap.m.IconTabSeparator sap.m.IconTabSeparator}
-			 * @since 1.46
-			 */
-			enableTabReordering : {type : "boolean", group : "Behavior", defaultValue : false},
+				/**
+				 * Specifies whether tab reordering is enabled. Relevant only for desktop devices.
+				 * The {@link sap.m.IconTabSeparator sap.m.IconTabSeparator} cannot be dragged  and dropped
+				 * Items can be moved around {@link sap.m.IconTabSeparator sap.m.IconTabSeparator}
+				 * Reordering is enabled via keyboard using <code>Ctrl</code> + arrow keys (Windows) and <code>Control</code> + arrow keys (Mac OS)
+				 * @since 1.46
+				 */
+				enableTabReordering : {type : "boolean", group : "Behavior", defaultValue : false},
 
-			/**
-			 * Specifies the allowed level of tabs nesting within one another using drag and drop.
-			 * Default value is 0 which means nesting via interaction is not allowed. Maximum value is 100.
-			 * This property allows nesting via user interaction only, and does not restrict adding items
-			 * to the <code>items</code> aggregation of {@link sap.m.IconTabFilter sap.m.IconTabFilter}.
-			 * @since 1.79
-			 */
-			maxNestingLevel: { type: "int", group : "Behavior", defaultValue: 0},
+				/**
+				 * Specifies the allowed level of tabs nesting within one another using drag and drop.
+				 * Default value is 0 which means nesting via interaction is not allowed. Maximum value is 100.
+				 * This property allows nesting via user interaction only, and does not restrict adding items
+				 * to the <code>items</code> aggregation of {@link sap.m.IconTabFilter sap.m.IconTabFilter}.
+				 * @since 1.79
+				 */
+				maxNestingLevel: { type: "int", group : "Behavior", defaultValue: 0},
 
-			/**
-			 * Specifies the visual density mode of the tabs.
-			 *
-			 * The values that can be applied are <code>Cozy</code>, <code>Compact</code> and <code>Inherit</code>.
-			 * <code>Cozy</code> and <code>Compact</code> render the control in one of these modes independent of the global density settings.
-			 * The <code>Inherit</code> value follows the global density settings which are applied.
-			 * For compatibility reasons, the default value is <code>Cozy</code>.
-			 * @since 1.56
-			 */
-			tabDensityMode :{type : "sap.m.IconTabDensityMode", group : "Appearance", defaultValue : IconTabDensityMode.Cozy}
-		},
-		aggregations : {
+				/**
+				 * Specifies the visual density mode of the tabs.
+				 *
+				 * The values that can be applied are <code>Cozy</code>, <code>Compact</code> and <code>Inherit</code>.
+				 * <code>Cozy</code> and <code>Compact</code> render the control in one of these modes independent of the global density settings.
+				 * The <code>Inherit</code> value follows the global density settings which are applied.
+				 * For compatibility reasons, the default value is <code>Cozy</code>.
+				 * @since 1.56
+				 */
+				tabDensityMode :{type : "sap.m.IconTabDensityMode", group : "Appearance", defaultValue : IconTabDensityMode.Cozy},
 
-			/**
-			 * The items displayed in the IconTabHeader.
-			 */
-			items : {type : "sap.m.IconTab", multiple : true, singularName : "item", dnd : {draggable: true, droppable: true, layout: "Horizontal"} },
+				/**
+				 * Specifies optional texts for the screen reader.
+				 *
+				 * The given object can contain the following keys:
+				 * <code>headerLabel</code> - text to serve as a label for the header,
+				 * <code>headerDescription</code> - text to serve as a description for the header.
+				 * @since 1.80
+				 */
+				ariaTexts : {type : "object", group : "Accessibility", defaultValue : null},
 
-			/**
-			 * Internal aggregation for managing the overflow tab.
-			 */
-			_overflow : {type : "sap.m.IconTabFilter", multiple : false, visibility : "hidden"}
-		},
-		events : {
+				/**
+				 * Specifies the overflow mode of the header.
+				 *
+				 * The default <code>End</code> mode shows as many tabs that can fit on the screen, then shows one overflow at the end
+				 * containing the remaining items.
+				 * The <code>StartAndEnd</code> is used to keep the order of tabs intact and offers overflow tabs on both ends of the bar.
+				 * @since 1.90
+				 */
+				tabsOverflowMode: {type : "sap.m.TabsOverflowMode", group : "Behavior", defaultValue : TabsOverflowMode.End}
+			},
+			aggregations : {
 
-			/**
-			 * Fires when an item is selected.
-			 */
-			select : {
-				parameters : {
+				/**
+				 * The items displayed in the IconTabHeader.
+				 */
+				items : {type : "sap.m.IconTab", multiple : true, singularName : "item", dnd : {draggable: true, droppable: true, layout: "Horizontal"} },
 
-					/**
-					 * The selected item
-					 * @since 1.15.0
-					 */
-					item : {type : "sap.m.IconTabFilter"},
+				/**
+				 * Internal aggregation for managing the overflow tab.
+				 */
+				_overflow : {type : "sap.m.IconTabFilter", multiple : false, visibility : "hidden"},
 
-					/**
-					 * The key of the selected item
-					 * @since 1.15.0
-					 */
-					key : {type : "string"}
+				/**
+				 * Internal aggregation for managing the start overflow tab.
+				 */
+				_startOverflow : {type : "sap.m.IconTabFilter", multiple : false, visibility : "hidden"}
+			},
+			events : {
+
+				/**
+				 * Fires when an item is selected.
+				 */
+				select : {
+					parameters : {
+
+						/**
+						 * The selected item
+						 * @since 1.15.0
+						 */
+						item : {type : "sap.m.IconTabFilter"},
+
+						/**
+						 * The key of the selected item
+						 * @since 1.15.0
+						 */
+						key : {type : "string"},
+
+						/**
+						 * The key of the previous selected item
+						 * @since 1.96
+						 */
+						previousKey : {type : "string"}
+					}
 				}
 			}
-		}
-	}});
+		},
+
+		renderer: IconTabHeaderRenderer
+	});
+
+	/**
+	 * Sets a new value for property {@link #setAriaTexts ariaTexts}.
+	 *
+	 * Specifies optional texts for the screen reader.
+	 *
+	 * The given object can contain the following keys: <code>headerLabel</code> - text to serve as a label for the header, <code>headerDescription</code> - text to serve as a description for the header.
+	 *
+	 * When called with a value of <code>null</code> or <code>undefined</code>, the default value of the property will be restored.
+	 *
+	 * @method
+	 * @param {{headerLabel: string, headerDescription: string}} [oAriaTexts] New value for property <code>ariaTexts</code>
+	 * @public
+	 * @name sap.m.IconTabHeader#setAriaTexts
+	 * @returns {this} Reference to <code>this</code> in order to allow method chaining
+	 */
+
+	/**
+	 * Gets current value of property {@link #getAriaTexts ariaTexts}.
+	 *
+	 * Specifies optional texts for the screen reader.
+	 *
+	 * The given object can contain the following keys: <code>headerLabel</code> - text to serve as a label for the header, <code>headerDescription</code> - text to serve as a description for the header.
+	 *
+	 * @method
+	 * @returns {{headerLabel: string, headerDescription: string}|null} Value of property <code>ariaTexts</code>
+	 * @public
+	 * @name sap.m.IconTabHeader#getAriaTexts
+	 */
 
 	/**
 	 * Library internationalization resource bundle.
@@ -199,9 +275,12 @@ sap.ui.define([
 	EnabledPropagator.apply(IconTabHeader.prototype, [true]);
 
 	IconTabHeader.prototype.init = function () {
+		// if it is "true", the "select" event will be fired
+		// even when the "selectedKey" property is changed via API (without user interaction).
+		this._bFireSelectEvent = false;
 		this._aTabKeys = [];
 		this._oAriaHeadText = null;
-		this._oAriaTexts = {};
+		this._bIsRendered = false;
 	};
 
 	IconTabHeader.prototype.exit = function () {
@@ -220,25 +299,29 @@ sap.ui.define([
 			this._aTabKeys = null;
 		}
 
-		if (this._oPopover) {
-			this._oPopover.destroy();
-			this._oPopover = null;
+		if (this._oOverflow) {
+			this._oOverflow.removeEventDelegate(this._oOverflowEventDelegate);
+			this._oOverflowEventDelegate = null;
+			this._oOverflow = null;
 		}
 
-		if (this.getAggregation("_overflow")) {
-			this._getOverflow().removeEventDelegate(this._oOverflowEventDelegate);
-			this._oOverflowEventDelegate = null;
+		if (this._oStartOverflow) {
+			this._oStartOverflow.removeEventDelegate(this._oStartOverflowEventDelegate);
+			this._oStartOverflowEventDelegate = null;
+			this._oStartOverflow = null;
 		}
 
 		if (this._oAriaHeadText) {
 			this._oAriaHeadText.destroy();
 			this._oAriaHeadText = null;
 		}
-		this._oAriaTexts = null;
 		this._bRtl = null;
 	};
 
 	IconTabHeader.prototype.onBeforeRendering = function () {
+
+		this._bIsRendered = false;
+
 		this._bRtl = Core.getConfiguration().getRTL();
 
 		if (this._sResizeListenerId) {
@@ -256,6 +339,7 @@ sap.ui.define([
 
 		if (this.oSelectedItem) {
 			this._applySelectionToFilters();
+			this.oSelectedItem._hideBadge();
 		}
 
 		if (Core.isThemeApplied()) {
@@ -268,6 +352,23 @@ sap.ui.define([
 
 		//listen to resize
 		this._sResizeListenerId = ResizeHandler.register(this.getDomRef(), jQuery.proxy(this._fnResize, this));
+
+		// notify items that they are rendered
+		this.getItems().forEach(function (oItem) {
+			if (oItem._onAfterParentRendering) {
+				oItem._onAfterParentRendering();
+			}
+		});
+
+		this._bIsRendered = true;
+	};
+
+	/**
+	 * Returns if the control is rendered
+	 * @private
+	 */
+	IconTabHeader.prototype._isRendered = function () {
+		return this._bIsRendered;
 	};
 
 	/**
@@ -279,8 +380,8 @@ sap.ui.define([
 	};
 
 	/**
-	 * Returns overflow tab
 	 * @private
+	 * @returns {sap.m.IconTabFilter} The overflow tab instance
 	 */
 	IconTabHeader.prototype._getOverflow = function () {
 		var oOverflow = this.getAggregation("_overflow");
@@ -291,14 +392,39 @@ sap.ui.define([
 				text: oResourceBundle.getText("ICONTABHEADER_OVERFLOW_MORE")
 			});
 			oOverflow._bIsOverflow = true;
-
-			oOverflow.addEventDelegate({ onsapnext: oOverflow.onsapdown }, oOverflow);
-			oOverflow.addEventDelegate({ onlongdragover: oOverflow._handleOnLongDragOver }, oOverflow);
-
+			this._oOverflowEventDelegate = {
+				onsapnext: oOverflow.onsapdown
+			};
+			oOverflow.addEventDelegate(this._oOverflowEventDelegate, oOverflow);
 			this.setAggregation("_overflow", oOverflow);
+			this._oOverflow = oOverflow;
 		}
 
 		return oOverflow;
+	};
+
+	/**
+	 * @private
+	 * @returns {sap.m.IconTabFilter} The start overflow tab instance
+	 */
+	IconTabHeader.prototype._getStartOverflow = function () {
+		var oStartOverflow = this.getAggregation("_startOverflow");
+
+		if (!oStartOverflow) {
+			oStartOverflow = new IconTabFilter({
+				id: this.getId() + '-startOverflow',
+				text: oResourceBundle.getText("ICONTABHEADER_OVERFLOW_MORE")
+			});
+			oStartOverflow._bIsStartOverflow = true;
+			this._oStartOverflowEventDelegate = {
+				onsapprevious: oStartOverflow.onsapdown
+			};
+			oStartOverflow.addEventDelegate(this._oStartOverflowEventDelegate, oStartOverflow);
+			this.setAggregation("_startOverflow", oStartOverflow);
+			this._oStartOverflow = oStartOverflow;
+		}
+
+		return oStartOverflow;
 	};
 
 	/**
@@ -307,13 +433,16 @@ sap.ui.define([
 	 * @private
 	 */
 	IconTabHeader.prototype._getInvisibleHeadText = function () {
+
+		var mAriaTexts = this.getAriaTexts() || {};
+
 		if (!this._oAriaHeadText) {
 			this._oAriaHeadText = new InvisibleText({
 				id: this.getId() + "-ariaHeadText"
 			});
 		}
 
-		this._oAriaHeadText.setText(this._oAriaTexts.headerDescription);
+		this._oAriaHeadText.setText(mAriaTexts.headerDescription);
 		return this._oAriaHeadText;
 	};
 
@@ -323,23 +452,7 @@ sap.ui.define([
 			return;
 		}
 
-		var aItems = this.getItems();
-		var iIndex = -1;
-		var oItem;
-
-		for (var i = 0; i < aItems.length; i++) {
-			oItem = aItems[i];
-
-			if (oItem instanceof IconTabFilter == false) {
-				continue;
-			}
-
-			iIndex++;
-
-			if ((this.oSelectedItem._getRootTab() || this.oSelectedItem) === oItem) {
-				break;
-			}
-		}
+		var iIndex = this._oItemNavigation.getItemDomRefs().indexOf(this.oSelectedItem._getRootTab().getDomRef());
 		this._oItemNavigation.setFocusedIndex(iIndex);
 	};
 
@@ -379,15 +492,24 @@ sap.ui.define([
 
 	/**
 	 * Sets the selected item based on key.
-	 * @overwrite
+	 * @override
 	 * @public
 	 * @param {string} sKey The key of the item to be selected
-	 * @return {sap.m.IconTabHeader} this pointer for chaining
+	 * @return {this} this pointer for chaining
 	 */
 	IconTabHeader.prototype.setSelectedKey = function (sKey) {
+		if (sKey === this.getSelectedKey()) {
+			if (this._isInsideIconTabBar()) {
+				this.getParent().setProperty("selectedKey", sKey, true);
+			}
+
+			return this;
+		}
+
 		var aItems = this.getTabFilters(),
 			bIsParentIconTabBar = this._isInsideIconTabBar(),
-			bSelectedItemFound;
+			bApiChange = true,
+			oSelectedItem;
 
 		if (aItems.length > 0) {
 			sKey = sKey || aItems[0]._getNonEmptyKey();
@@ -395,15 +517,11 @@ sap.ui.define([
 
 		// adjust UI and internal variables if already rendered (otherwise taken care by onBeforeRendering)
 		if (this.$().length) {
-			for (var i = 0; i < aItems.length; i++) {
-				if (aItems[i]._getNonEmptyKey() === sKey) {
-					this.setSelectedItem(aItems[i], true);
-					bSelectedItemFound = true;
-					break;
-				}
-			}
+			oSelectedItem = this._findItemByKey(sKey);
 
-			if (!bSelectedItemFound && !bIsParentIconTabBar && sKey) {
+			if (oSelectedItem) {
+				this.setSelectedItem(oSelectedItem, bApiChange);
+			} else if (!bIsParentIconTabBar && sKey) {
 				this.setSelectedItem(null);
 			}
 		}
@@ -417,8 +535,8 @@ sap.ui.define([
 	 * Sets the selected item, updates the UI, and fires the select event.
 	 * @private
 	 * @param {sap.m.IconTabFilter} oItem The item to be selected
-	 * @param {Boolean} bAPIChange whether this function is called through the API
-	 * @returns {sap.m.IconTabHeader} this pointer for chaining
+	 * @param {boolean} bAPIChange whether this function is called through the API
+	 * @returns {this} this pointer for chaining
 	 */
 	IconTabHeader.prototype.setSelectedItem = function (oItem, bAPIChange) {
 		if (!oItem) {
@@ -436,6 +554,7 @@ sap.ui.define([
 
 		var oParent = this.getParent();
 		var bIsParentIconTabBar = this._isInsideIconTabBar();
+		var sPrevKey = this.getSelectedKey();
 
 		//if the old selected tab and the new selected tab both have no own content, which means they both use the same content from the icontabbar
 		//there is no need to rerender the content
@@ -462,7 +581,7 @@ sap.ui.define([
 			} else {
 				//change the content aria-labelled by the newly selected tab;
 				if (bIsParentIconTabBar) {
-					oParent.$("content").attr('aria-labelledby', oItem.sId);
+					oParent.$("content").attr('aria-labelledby', oItem._getRootTab().getId());
 				}
 
 				// set new item
@@ -501,6 +620,12 @@ sap.ui.define([
 			oParent.setProperty("selectedKey", sSelectedKey, true);
 		}
 
+		if (bIsParentIconTabBar) {
+			bAPIChange = bAPIChange && !oParent._bFireSelectEvent;
+		} else {
+			bAPIChange = bAPIChange && !this._bFireSelectEvent;
+		}
+
 		if (!bAPIChange) {
 			// fire event on iconTabBar
 			if (bIsParentIconTabBar) {
@@ -508,7 +633,8 @@ sap.ui.define([
 					selectedItem: this.oSelectedItem,
 					selectedKey: sSelectedKey,
 					item: this.oSelectedItem,
-					key: sSelectedKey
+					key: sSelectedKey,
+					previousKey: sPrevKey
 				});
 			} else {
 				// fire event on header
@@ -516,12 +642,22 @@ sap.ui.define([
 					selectedItem: this.oSelectedItem,
 					selectedKey: sSelectedKey,
 					item: this.oSelectedItem,
-					key: sSelectedKey
+					key: sSelectedKey,
+					previousKey: sPrevKey
 				});
 			}
 		}
 
-		this._setItemsForStrip();
+		this.oSelectedItem._startBadgeHiding();
+
+		var oSelectedRootItemDomRef = this.oSelectedItem._getRootTab().getDomRef();
+
+		if (!oSelectedRootItemDomRef ||
+			oSelectedRootItemDomRef.classList.contains("sapMITBFilterHidden") ||
+			this.getTabsOverflowMode() === TabsOverflowMode.End) {
+			this._setItemsForStrip();
+		}
+
 		return this;
 	};
 
@@ -541,6 +677,12 @@ sap.ui.define([
 			iSelectedDomIndex = -1,
 			oSelectedRootItem = this.oSelectedItem && this.oSelectedItem._getRootTab();
 
+		if (this.$().hasClass("sapMITHStartOverflowList")) {
+			var oStartOverflowDomRef = this._getStartOverflow().getFocusDomRef();
+			oStartOverflowDomRef.setAttribute("tabindex", "-1");
+			aTabDomRefs.push(oStartOverflowDomRef);
+		}
+
 		// find a collection of all tabs
 		this.getTabFilters().forEach(function (oItem) {
 			var oItemDomRef = this.getFocusDomRef(oItem);
@@ -555,7 +697,7 @@ sap.ui.define([
 			}
 		}.bind(this));
 
-		if (this.$().hasClass("sapMITHOverflowList")) {
+		if (this.$().hasClass("sapMITHEndOverflowList")) {
 			var oOverflowDomRef = this._getOverflow().getFocusDomRef();
 			oOverflowDomRef.setAttribute("tabindex", "-1");
 			aTabDomRefs.push(oOverflowDomRef);
@@ -633,6 +775,8 @@ sap.ui.define([
 		this.addAggregation("items", oItem);
 
 		this._invalidateParentIconTabBar();
+
+		return this;
 	};
 
 	IconTabHeader.prototype.insertItem = function (oItem, iIndex) {
@@ -695,7 +839,7 @@ sap.ui.define([
 			return oItem;
 		}
 
-		if (oItem && oItem == this.oSelectedItem && sAggregationName == 'items') {
+		if (!this._getPreserveSelection() && oItem && oItem == this.oSelectedItem && sAggregationName == 'items') {
 
 			var iIndexOf = (aItems ? Array.prototype.indexOf.call(aItems, oItem) : -1);
 			aItems = this.getTabFilters();
@@ -730,6 +874,23 @@ sap.ui.define([
 	};
 
 	/**
+	 * Returns whether the currently selected item is preserved.
+	 * @private
+	 */
+	IconTabHeader.prototype._getPreserveSelection = function () {
+		return this._bPreserveSelection;
+	};
+
+	/**
+	 * Sets whether the currently selected item is preserved.
+	 * @param {boolean} bPreserveSelection The new value
+	 * @private
+	 */
+	IconTabHeader.prototype._setPreserveSelection = function (bPreserveSelection) {
+		this._bPreserveSelection = bPreserveSelection;
+	};
+
+	/**
 	 * Returns the displayed text - text or text + (count)
 	 * @private
 	 */
@@ -755,7 +916,7 @@ sap.ui.define([
 	 * @private
 	 */
 	IconTabHeader.prototype.isInlineMode = function () {
-		return this._bTextOnly && this.getMode() == IconTabHeaderMode.Inline;
+		return this.getMode() === IconTabHeaderMode.Inline;
 	};
 
 	/**
@@ -833,71 +994,311 @@ sap.ui.define([
 			return;
 		}
 
-		var oTabStrip = this.getDomRef("head"),
-			oSelectedItem = (this.oSelectedItem && this.oSelectedItem.getVisible()) ? this.oSelectedItem : aTabFilters[0];
+		var oTabStrip = this.getDomRef("head");
 
 		if (!oTabStrip) {
 			// control has not been rendered, exit
 			return;
 		}
 
-		if (this._oPopover) {
-			this._oPopover.close();
-		}
-
-		var iTabStripWidth = oTabStrip.offsetWidth,
-			oItem,
-			i,
-			oSelectedItemDomRef = (oSelectedItem._getRootTab() || oSelectedItem).getDomRef(),
+		var oStartOverflow = this._getStartOverflow(),
+			oOverflow = this._getOverflow(),
 			aItems = this.getItems()
 				.filter(function (oItem) { return oItem.getDomRef(); })
-				.map(function (oItem) { return oItem.getDomRef(); });
+				.map(function (oItem) { return oItem.getDomRef(); }),
+			oSelectedItem = (this.oSelectedItem && this.oSelectedItem.getVisible()) ? this.oSelectedItem : aTabFilters[0],
+			oSelectedItemDomRef = (oSelectedItem._getRootTab() || oSelectedItem).getDomRef();
 
 		if (!aItems.length || !oSelectedItemDomRef) {
 			return;
 		}
 
+		// hide overflow tabs
+		oStartOverflow.$().removeClass("sapMITHOverflowVisible");
+		oOverflow.$().removeClass("sapMITHOverflowVisible");
+
+		this.$().removeClass("sapMITHStartOverflowList");
+		this.$().removeClass("sapMITHEndOverflowList");
+
 		// reset all display styles and their initial order to calculate items' width
 		aItems.forEach(function (oItem) {
-			oItem.style.width = "";
 			oItem.classList.remove("sapMITBFilterHidden");
 		});
 
-		oSelectedItemDomRef.classList.remove("sapMITBFilterTruncated");
+		var iTotalWidthItems = aItems.reduce(function (iSum, oDomRef) {
+				return iSum + jQuery(oDomRef).outerWidth(true);
+			}, 0),
+			bHasOverflow = iTotalWidthItems > oTabStrip.offsetWidth;
 
-		// find all fitting items, start with selected item's width
-		var oSelectedItemStyle = window.getComputedStyle(oSelectedItemDomRef);
-		var iSumFittingItems = oSelectedItemDomRef.offsetWidth  + Number.parseInt(oSelectedItemStyle.marginLeft) + Number.parseInt(oSelectedItemStyle.marginRight);
-		aItems.splice(aItems.indexOf(oSelectedItemDomRef), 1);
-
-		if (iTabStripWidth < iSumFittingItems) {
-			// selected item can't fit fully, truncate it's text and put all other items in the overflow
-			oSelectedItemDomRef.style.width = iTabStripWidth - 20 + "px";
-			oSelectedItemDomRef.classList.add("sapMITBFilterTruncated");
+		if (!bHasOverflow) {
+			return;
 		}
 
-		var iLastVisible = -1;
-		// hide all items after the fitting items, selected item will take place as the last fitting item, if it's out of order
-		for (i = 0; i < aItems.length; i++) {
-			oItem = aItems[i];
-			var oStyle = window.getComputedStyle(oItem);
-			var iItemSize = oItem.offsetWidth + Number.parseInt(oStyle.marginLeft) + Number.parseInt(oStyle.marginRight);
-
-			if (iTabStripWidth > (iSumFittingItems + iItemSize)) {
-				iSumFittingItems += iItemSize;
-				iLastVisible = i;
-			} else {
+		switch (this.getTabsOverflowMode()) {
+			case TabsOverflowMode.StartAndEnd:
+				this._updateStartAndEndOverflow(aItems, oSelectedItemDomRef);
 				break;
+			case TabsOverflowMode.End:
+			default:
+				this._updateEndOverflow(aItems, oSelectedItemDomRef);
+				break;
+		}
+	};
+
+
+	IconTabHeader.prototype._updateEndOverflow = function (aItems, oSelectedItemDomRef) {
+		var oOverflow = this._getOverflow(),
+			oTabStrip = this.getDomRef("head"),
+			iTabStripWidth,
+			iLastVisible,
+			mSelectedItem,
+			i;
+
+		oOverflow.$().addClass("sapMITHOverflowVisible");
+		this.$().addClass("sapMITHEndOverflowList");
+
+		iTabStripWidth = oTabStrip.offsetWidth;
+		mSelectedItem = this._getSelectedItemIndexAndSize(aItems, oSelectedItemDomRef);
+		iLastVisible = this._findLastVisibleItem(aItems, iTabStripWidth, mSelectedItem.width);
+
+		for (i = iLastVisible + 1; i < aItems.length; i++) {
+			aItems[i].classList.add("sapMITBFilterHidden");
+		}
+
+		oOverflow._updateExpandButtonBadge();
+	};
+
+
+	IconTabHeader.prototype._updateStartAndEndOverflow = function (aItems, oSelectedItemDomRef) {
+		var oStartOverflow = this._getStartOverflow(),
+			oOverflow = this._getOverflow(),
+			oTabStrip = this.getDomRef("head"),
+			iTabStripWidth = oTabStrip.offsetWidth,
+			mSelectedItem = this._getSelectedItemIndexAndSize(aItems, oSelectedItemDomRef),
+			bHasStartOverflow = this._hasStartOverflow(iTabStripWidth, aItems, mSelectedItem),
+			bHasEndOverflow = this._hasEndOverflow(iTabStripWidth, aItems, mSelectedItem),
+			iFirstVisible,
+			iLastVisible,
+			i;
+
+		// has "end", but no "start" overflow
+		if (!bHasStartOverflow) {
+			oOverflow.$().addClass("sapMITHOverflowVisible");
+			this.$().addClass("sapMITHEndOverflowList");
+			// width has changed after the overflow became visible
+			iTabStripWidth = oTabStrip.offsetWidth;
+
+			iLastVisible = this._findLastVisibleItem(aItems, iTabStripWidth, mSelectedItem.width);
+
+			for (i = iLastVisible + 1; i < aItems.length; i++) {
+				aItems[i].classList.add("sapMITBFilterHidden");
 			}
+
+			oOverflow._updateTabCountText();
+			oOverflow._updateExpandButtonBadge();
+			return;
+		}
+
+		// has "start", but no "end" overflow
+		if (!bHasEndOverflow) {
+			oStartOverflow.$().addClass("sapMITHOverflowVisible");
+			this.$().addClass("sapMITHStartOverflowList");
+			// width has changed after the overflow became visible
+			iTabStripWidth = oTabStrip.offsetWidth;
+
+			iFirstVisible = this._findFirstVisibleItem(aItems, iTabStripWidth, mSelectedItem.width);
+
+			for (i = iFirstVisible - 1; i >= 0; i--) {
+				aItems[i].classList.add("sapMITBFilterHidden");
+			}
+
+			oStartOverflow._updateTabCountText();
+			oStartOverflow._updateExpandButtonBadge();
+			return;
+		}
+
+		// has "start" and "end" overflows
+		oStartOverflow.$().addClass("sapMITHOverflowVisible");
+		this.$().addClass("sapMITHStartOverflowList");
+
+		oOverflow.$().addClass("sapMITHOverflowVisible");
+		this.$().addClass("sapMITHEndOverflowList");
+		// width has changed after the overflow became visible
+		iTabStripWidth = oTabStrip.offsetWidth;
+
+		iFirstVisible = this._findFirstVisibleItem(aItems, iTabStripWidth, mSelectedItem.width, mSelectedItem.index - 1);
+		iLastVisible = this._findLastVisibleItem(aItems, iTabStripWidth, mSelectedItem.width, iFirstVisible);
+
+		for (i = iFirstVisible - 1; i >= 0; i--) {
+			aItems[i].classList.add("sapMITBFilterHidden");
 		}
 
 		for (i = iLastVisible + 1; i < aItems.length; i++) {
-			oItem = aItems[i];
-			oItem.classList.add("sapMITBFilterHidden");
+			aItems[i].classList.add("sapMITBFilterHidden");
 		}
 
-		this._getOverflow().$().toggleClass("sapMITHOverflowVisible", iLastVisible + 1 !== aItems.length);
-		this.$().toggleClass("sapMITHOverflowList", iLastVisible + 1 !== aItems.length);
+		oStartOverflow._updateExpandButtonBadge();
+		oStartOverflow._updateTabCountText();
+		oOverflow._updateTabCountText();
+		oOverflow._updateExpandButtonBadge();
+	};
+
+	IconTabHeader.prototype._hasStartOverflow = function (iTabStripWidth, aItems, mSelectedItem) {
+		if (mSelectedItem.index === 0) {
+			return false;
+		}
+
+		var i,
+			iLeftItemsWidth = 0;
+
+		for (i = mSelectedItem.index - 1; i >= 0; i--) {
+			iLeftItemsWidth += this._getItemSize(aItems[i]);
+		}
+
+		var bHasStartOverflow = iTabStripWidth < iLeftItemsWidth + mSelectedItem.width;
+
+		// if there is no "start" overflow, it has "end" overflow
+		// check it again with the "end" overflow
+		if (!bHasStartOverflow) {
+			this._getOverflow().$().addClass("sapMITHOverflowVisible");
+			this.$().addClass("sapMITHEndOverflowList");
+
+			iTabStripWidth = this.getDomRef("head").offsetWidth;
+			bHasStartOverflow = iTabStripWidth < iLeftItemsWidth + mSelectedItem.width;
+
+			this._getOverflow().$().removeClass("sapMITHOverflowVisible");
+			this.$().removeClass("sapMITHEndOverflowList");
+		}
+
+		return bHasStartOverflow;
+	};
+
+	IconTabHeader.prototype._hasEndOverflow = function (iTabStripWidth, aItems, mSelectedItem) {
+		if (mSelectedItem.index >= aItems.length) {
+			return false;
+		}
+
+		var i,
+			iRightItemsWidth = 0;
+
+		for (i = mSelectedItem.index; i < aItems.length; i++) {
+			iRightItemsWidth += this._getItemSize(aItems[i]);
+		}
+
+		var bHasEndOverflow = iTabStripWidth < iRightItemsWidth + mSelectedItem.width;
+
+		// if there is no "end" overflow, it has "start" overflow
+		// check it again with the "start" overflow
+		if (!bHasEndOverflow) {
+			this._getStartOverflow().$().addClass("sapMITHOverflowVisible");
+			this.$().addClass("sapMITHStartOverflowList");
+
+			iTabStripWidth = this.getDomRef("head").offsetWidth;
+			bHasEndOverflow = iTabStripWidth < iRightItemsWidth + mSelectedItem.width;
+
+			this._getStartOverflow().$().removeClass("sapMITHOverflowVisible");
+			this.$().removeClass("sapMITHStartOverflowList");
+		}
+
+		return bHasEndOverflow;
+	};
+
+	IconTabHeader.prototype._getSelectedItemIndexAndSize = function (aItems, oSelectedItemDomRef) {
+		var iSelectedItemIndex = aItems.indexOf(oSelectedItemDomRef),
+			iSelectedItemSize = this._getItemSize(oSelectedItemDomRef),
+			oSelectedSeparator;
+
+		if (aItems[iSelectedItemIndex - 1] && aItems[iSelectedItemIndex - 1].classList.contains("sapMITBSep")) {
+			oSelectedSeparator = aItems[iSelectedItemIndex - 1];
+			iSelectedItemSize += this._getItemSize(oSelectedSeparator);
+		}
+
+		aItems.splice(iSelectedItemIndex, 1);
+
+		// if previous item is a separator - remove it
+		if (oSelectedSeparator) {
+			aItems.splice(iSelectedItemIndex - 1, 1);
+			iSelectedItemIndex--;
+		}
+
+		return {
+			index: iSelectedItemIndex,
+			width: iSelectedItemSize
+		};
+	};
+
+	IconTabHeader.prototype._findFirstVisibleItem = function (aItems, iTabStripWidth, iSelectedItemWidth, iStartIndex) {
+		var iLastVisible,
+			iIndex,
+			iItemSize;
+
+		if (iStartIndex === undefined) {
+			iStartIndex = aItems.length - 1;
+		}
+
+		iLastVisible = iStartIndex + 1;
+
+		for (iIndex = iStartIndex; iIndex >= 0; iIndex--) {
+			iItemSize = this._getItemSize(aItems[iIndex]);
+
+			if (iTabStripWidth < iSelectedItemWidth + iItemSize) {
+				break;
+			}
+
+			iSelectedItemWidth += iItemSize;
+			iLastVisible = iIndex;
+		}
+
+		return iLastVisible;
+	};
+
+	IconTabHeader.prototype._findLastVisibleItem = function (aItems, iTabStripWidth, iSelectedItemWidth, iStartIndex) {
+		var iLastVisible,
+			iIndex,
+			iItemSize;
+
+		iStartIndex = iStartIndex || 0;
+		iLastVisible = iStartIndex - 1;
+
+		for (iIndex = iStartIndex; iIndex < aItems.length; iIndex++) {
+			iItemSize = this._getItemSize(aItems[iIndex]);
+
+			if (iTabStripWidth < iSelectedItemWidth + iItemSize) {
+				break;
+			}
+
+			iSelectedItemWidth += iItemSize;
+			iLastVisible = iIndex;
+		}
+
+		// if prev item is separator - hide it
+		var oPrevItem = aItems[iIndex - 1];
+		if (oPrevItem && oPrevItem.classList.contains("sapMITBSep")) {
+			iLastVisible -= 1;
+		}
+
+		return iLastVisible;
+	};
+
+	IconTabHeader.prototype._getItemSize = function (oItemDomRef) {
+		var oStyle = window.getComputedStyle(oItemDomRef),
+			iWidth = oItemDomRef.offsetWidth,
+			iMargins = Number.parseInt(oStyle.marginLeft) + Number.parseInt(oStyle.marginRight);
+
+		return iWidth + iMargins;
+	};
+
+	IconTabHeader.prototype._hasSubItems = function () {
+		var aTabFilters = this.getTabFilters(),
+			i;
+
+		for (i = 0; i < aTabFilters.length; i++) {
+			if (aTabFilters[i].getItems().length > 0) {
+				return true;
+			}
+		}
+
+		return false;
 	};
 
 	/**
@@ -933,13 +1334,13 @@ sap.ui.define([
 					if (oControl.getMetadata().isInstanceOf("sap.m.IconTab") && !(oControl instanceof IconTabSeparator)) {
 
 						if (this._isUnselectable(oControl)) {
-							if (oControl.getItems().length || oControl._bIsOverflow) {
+							if (oControl.getItems().length || oControl._isOverflow()) {
 								oControl._expandButtonPress();
 							}
 							return;
 						}
 
-						if (oControl === this._getOverflow()) {
+						if ((oControl === this._getOverflow()) || (oControl === this._getStartOverflow())) {
 							oControl._expandButtonPress();
 							return;
 						}
@@ -950,13 +1351,13 @@ sap.ui.define([
 					// select item if it is an iconTab but not a separator
 
 					if (this._isUnselectable(oControl)) {
-						if (oControl.getItems().length || oControl._bIsOverflow) {
+						if (oControl.getItems().length || oControl._isOverflow()) {
 							oControl._expandButtonPress();
 						}
 						return;
 					}
 
-					if (oControl === this._getOverflow()) {
+					if ((oControl === this._getOverflow()) || (oControl === this._getStartOverflow())) {
 						oControl._expandButtonPress();
 						return;
 					}
@@ -968,13 +1369,13 @@ sap.ui.define([
 				if (oControl.getMetadata().isInstanceOf("sap.m.IconTab") && !(oControl instanceof IconTabSeparator)) {
 
 					if (this._isUnselectable(oControl)) {
-						if (oControl.getItems().length || oControl._bIsOverflow) {
+						if (oControl.getItems().length || oControl._isOverflow()) {
 							oControl._expandButtonPress();
 						}
 						return;
 					}
 
-					if (oControl === this._getOverflow()) {
+					if ((oControl === this._getOverflow()) || (oControl === this._getStartOverflow())) {
 						oControl._expandButtonPress();
 						return;
 					}
@@ -993,7 +1394,9 @@ sap.ui.define([
 		if (this._getOverflow()._oPopover) {
 			this._getOverflow()._oPopover.close();
 		}
-
+		if (this._getStartOverflow()._oPopover) {
+			this._getStartOverflow()._oPopover.close();
+		}
 		this._setItemsForStrip();
 		this._initItemNavigation();
 	};
@@ -1011,7 +1414,7 @@ sap.ui.define([
 
 		return !oFilter.getEnabled() || (this._isInsideIconTabBar() && !this.getParent().getContent().length &&
 			oFilter._getNestedLevel() === 1 && oFilter.getItems().length && !oFilter.getContent().length) ||
-			oFilter._bIsOverflow;
+			oFilter._isOverflow();
 	};
 
 	/**
@@ -1021,6 +1424,15 @@ sap.ui.define([
 	IconTabHeader.prototype._isInsideIconTabBar = function() {
 		var oParent = this.getParent();
 		return oParent instanceof Control && oParent.isA('sap.m.IconTabBar');
+	};
+
+	/**
+	 * Returns if the control is inside a sap.tnt.ToolHeader.
+	 * @private
+	 */
+	IconTabHeader.prototype._isInsideToolHeader = function() {
+		var oParent = this.getParent();
+		return oParent instanceof Control && oParent.isA('sap.tnt.ToolHeader');
 	};
 
 	/**
@@ -1034,7 +1446,7 @@ sap.ui.define([
 	};
 
 	/**
-	 * @overwrite
+	 * @override
 	 */
 	//overwritten method, returns for most cases the iconDomRef. if the given tab has no icon, the textDomRef is returned.
 	IconTabHeader.prototype.getFocusDomRef = function (oFocusTab) {
@@ -1063,9 +1475,8 @@ sap.ui.define([
 		var aItems = this.getItems(),
 			sSelectedKey = this.getSelectedKey(),
 			i = 0,
-			oParent = this.getParent(),
 			bIsParentIconTabBar = this._isInsideIconTabBar(),
-			bIsParentToolHeader = oParent && oParent.isA("sap.tnt.ToolHeader");
+			bIsParentToolHeader = this._isInsideToolHeader();
 
 		if (!aItems.length) {
 			return;
@@ -1176,11 +1587,35 @@ sap.ui.define([
 		}
 	};
 
-	/**
-	 * @private
-	 */
-	IconTabHeader.prototype._setAriaTexts = function (oAriaTexts) {
-		this._oAriaTexts = oAriaTexts || {};
+	IconTabHeader.prototype._getItemsForOverflow = function (bIsStartOverflow, bTopLevelTabs) {
+
+		var aItemsInStrip = this._getItemsInStrip(),
+			bIsStartAndEndMode = this.getTabsOverflowMode() === TabsOverflowMode.StartAndEnd,
+			iIndex,
+			aItems = this.getItems(),
+			aItemsForList = [];
+
+		if (bIsStartAndEndMode) {
+			iIndex = aItems.indexOf(aItemsInStrip[0]);
+			aItems = bIsStartOverflow ? aItems.slice(0, iIndex) : aItems.slice(iIndex, aItems.length);
+		}
+
+		aItems.forEach(function (oItem) {
+			// If tab is an overflow tab and oItem is already in Tab Strip, do not add it to list
+			// on a mobile device, this behavior doesn't occur, and all items are shown
+			if (!Device.system.phone && aItemsInStrip.indexOf(oItem) > -1) {
+				return;
+			}
+
+			aItemsForList.push(oItem);
+			if (oItem.isA("sap.m.IconTabFilter") && !bTopLevelTabs) {
+				oItem._getAllSubItems().forEach(function (oSubItem) {
+					aItemsForList.push(oSubItem);
+				});
+			}
+		});
+
+		return aItemsForList;
 	};
 
 	/* =========================================================== */
@@ -1241,9 +1676,14 @@ sap.ui.define([
 				oEvent.preventDefault();
 				break;
 			case KeyCodes.SPACE:
-				this._handleActivation(oEvent);
 				oEvent.preventDefault(); // prevent scrolling when focused on the tab
 				break;
+		}
+	};
+
+	IconTabHeader.prototype.onkeyup = function(oEvent) {
+		if (oEvent.which === KeyCodes.SPACE) {
+			this._handleActivation(oEvent);
 		}
 	};
 
@@ -1273,9 +1713,14 @@ sap.ui.define([
 
 		IconTabBarDragAndDropUtil.handleDrop(oContext, oEventDropPosition, oDraggedControl._getRealTab(), oDroppedControl, false, allowedNestingLevel);
 
+		if (oDraggedControl._getNestedLevel() > 1) {
+			oDraggedControl._getRootTab()._closePopover();
+		}
+
 		this._setItemsForStrip();
 		this._initItemNavigation();
 		this._getOverflow()._setSelectListItems();
+		this._getStartOverflow()._setSelectListItems();
 		this._getSelectList()._initItemNavigation();
 
 		oDraggedControl._getRealTab().$().trigger("focus");
@@ -1297,8 +1742,8 @@ sap.ui.define([
 	 * Moves a tab by a specific key code
 	 *
 	 * @param {object} oTab The event object
-	 * @param {integer} iKeyCode Key code
-	 * @param {integer} iMaxIndex The end of the tab strip`
+	 * @param {int} iKeyCode Key code
+	 * @param {int} iMaxIndex The end of the tab strip`
 	 * @private
 	 */
 	IconTabHeader.prototype._moveTab = function (oTab, iKeyCode, iMaxIndex) {
@@ -1319,6 +1764,8 @@ sap.ui.define([
 
 		var oTab = oEvent.srcControl,
 			iTabStripEnd = this.indexOfItem(this._getItemsInStrip().pop());
+
+		oEvent.preventDefault();
 
 		this._moveTab(oTab, oEvent.keyCode, iTabStripEnd);
 		oTab.$().trigger("focus");

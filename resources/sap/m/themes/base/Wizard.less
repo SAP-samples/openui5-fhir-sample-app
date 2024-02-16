@@ -17,7 +17,11 @@
 		position: relative;
 		height: ~"calc(100% - 4rem)"; /* 4rem is the height of the Progress Navigator*/
 		box-sizing: border-box;
-		padding: 1rem;
+		padding: 0 1rem 1rem 1rem;
+	}
+
+	.sapMWizardStep:first-child {
+		margin-top: 1rem;
 	}
 
 	.sapMWizardStep  {
@@ -30,11 +34,7 @@
 		display: block;
 	}
 
-	.sapMWizardLastActivatedStep {
-		min-height: 100%;
-	}
-
-	.sapMWizardStepTitle::before {
+	&.sapMWizardModeScroll .sapMWizardStepTitle::before {
 		counter-increment: steps-counter;
 		content: counter(steps-counter) ". ";
 	}
@@ -46,6 +46,7 @@
 	}
 
 	.sapMWizardNextButtonVisible {
+		margin-top: 0.5rem;
 		bottom: 0rem;
 		opacity: 1;
 		animation-name: showWizardButton
@@ -71,6 +72,10 @@
 	&.sapMWizardBgList .sapMWizardStepContainer {
 		background-color: @sapUiGroupContentBackground;
 	}
+}
+
+.sapMWizard:not(.sapMWizardModePage) .sapMWizardLastActivatedStep {
+	min-height: ~"calc(100% - 1rem)"; /* 1rem is the margin from the top of the container*/
 }
 
 html[data-sap-ui-animation='on'] .sapMWizardNextButtonVisible,

@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2024 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -9,8 +9,9 @@ sap.ui.define([
 	'./library',
 	'sap/ui/core/Element',
 	'sap/ui/core/StashedControlSupport',
-	"sap/base/assert"
-], function (library, Element, StashedControlSupport, assert) {
+	"sap/base/assert",
+	"sap/ui/base/Object"
+], function (library, Element, StashedControlSupport, assert, BaseObject) {
 	"use strict";
 
 	/**
@@ -37,13 +38,12 @@ sap.ui.define([
 	 * @extends sap.ui.core.Element
 	 *
 	 * @author SAP SE
-	 * @version 1.79.0
+	 * @version 1.120.6
 	 *
 	 * @constructor
 	 * @public
 	 * @since 1.38
 	 * @alias sap.uxap.ObjectPageLazyLoader
-	 * @ui5-metamodel This control/element also will be described in the UI5 (legacy) designtime metamodel
 	 */
 	var LazyLoader = Element.extend("sap.uxap.ObjectPageLazyLoader", /** @lends sap.uxap.ObjectPageLazyLoader.prototype */ {
 		metadata: {
@@ -62,7 +62,7 @@ sap.ui.define([
 	StashedControlSupport.mixInto(LazyLoader);
 
 	LazyLoader.prototype.setParent = function (oParent) {
-		if (!(oParent === null || oParent instanceof sap.uxap.ObjectPageSubSection)) {
+		if (!(oParent === null || BaseObject.isObjectA(oParent, "sap.uxap.ObjectPageSubSection"))) {
 			assert(false, "setParent(): oParent must be an instance of sap.uxap.ObjectPageSubSection or null");
 		}
 

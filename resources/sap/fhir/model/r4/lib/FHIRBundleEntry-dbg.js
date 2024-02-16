@@ -1,6 +1,6 @@
 /*!
  * SAP SE
- * (c) Copyright 2009-2021 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2024 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -20,7 +20,7 @@ sap.ui.define([], function() {
 	 * @author SAP SE
 	 * @protected
 	 * @since 1.0.0
-	 * @version 2.2.8
+	 * @version 2.3.6
 	 */
 	var FHIRBundleEntry = function(sFullUrl, oResource, oRequest) {
 		this._sFullUrl = sFullUrl;

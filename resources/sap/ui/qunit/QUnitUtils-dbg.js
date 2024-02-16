@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2024 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -13,32 +13,36 @@
  * @name sap.ui.test
  * @public
  */
-
+// The module ID argument is given because QUnitUtils.js often was included as a script Element in the past.
+// It is now recommended to use it via a module dependency (sap.ui.define).
 sap.ui.define('sap/ui/qunit/QUnitUtils', [
-	'jquery.sap.global',
-	'sap/base/util/ObjectPath',
-	'sap/ui/Device',
-	'sap/ui/base/DataType',
-	'sap/ui/events/KeyCodes',
+	"sap/base/Log",
 	"sap/base/strings/camelize",
 	"sap/base/strings/capitalize",
-	"sap/base/util/UriParameters",
-	"sap/base/Log",
+	"sap/base/util/extend",
+	"sap/base/util/ObjectPath",
+	"sap/ui/base/DataType",
+	"sap/ui/core/Element",
+	"sap/ui/events/KeyCodes",
+	"sap/ui/thirdparty/jquery",
 	"sap/ui/dom/jquery/control" // jQuery Plugin "control"
 ],
 	function(
-		jQuery,
-		ObjectPath,
-		Device,
-		DataType,
-		KeyCodes,
+		Log,
 		camelize,
 		capitalize,
-		UriParameters,
-		Log
+		extend,
+		ObjectPath,
+		DataType,
+		Element,
+		KeyCodes,
+		jQuery
 	) {
 	"use strict";
 
+	/**
+	 * @deprecated As of 1.120
+	 */
 	if ( typeof QUnit !== 'undefined' ) {
 
 		// any version < 2.0 activates legacy support
@@ -46,11 +50,11 @@ sap.ui.define('sap/ui/qunit/QUnitUtils', [
 		var bLegacySupport = !(parseFloat(QUnit.version) >= 2.0);
 
 		// extract the URL parameters
-		var mParams = UriParameters.fromQuery(window.location.search);
+		var mParams = new URLSearchParams(window.location.search);
 
 		if ( bLegacySupport ) {
-		// TODO: Remove deprecated code once all projects adapted
-		QUnit.equals = window.equals = window.equal;
+			// TODO: Remove deprecated code once all projects adapted
+			QUnit.equals = window.equals = window.equal;
 		}
 
 		// Set a timeout for all tests, either to a value given via URL
@@ -64,8 +68,8 @@ sap.ui.define('sap/ui/qunit/QUnitUtils', [
 		}
 
 		if ( bLegacySupport ) {
-		// Do not reorder tests, as most of the tests depend on each other
-		QUnit.config.reorder = false;
+			// Do not reorder tests, as most of the tests depend on each other
+			QUnit.config.reorder = false;
 		}
 
 		// only when instrumentation is done on server-side blanket itself doesn't
@@ -80,7 +84,7 @@ sap.ui.define('sap/ui/qunit/QUnitUtils', [
 					var QUnit = window.QUnit;
 					window.QUnit = undefined;
 					// load the blanket instance
-					sap.ui.requireSync("sap/ui/thirdparty/blanket");
+					sap.ui.requireSync("sap/ui/thirdparty/blanket"); // legacy-relevant
 					// restore the QUnit object
 					window.QUnit = QUnit;
 					// trigger blanket to display the coverage report
@@ -116,6 +120,8 @@ sap.ui.define('sap/ui/qunit/QUnitUtils', [
 	 * @param {int} [iDelay] optional delay in milliseconds
 	 *
 	 * @public
+	 * @deprecated As of version 1.120, not needed with property async test design. If tests depend on theming,
+	 *    they rather should use the waitForTheme option or module <code>waitForThemeApplied</code>.
 	 */
 	QUtils.delayTestStart = function(iDelay){
 		QUnit.config.autostart = false;
@@ -130,7 +136,9 @@ sap.ui.define('sap/ui/qunit/QUnitUtils', [
 		}
 	};
 
-	var fixOriginalEvent = jQuery.noop;
+	var noop = function() {};
+
+	var fixOriginalEvent = noop;
 
 	try {
 
@@ -142,15 +150,15 @@ sap.ui.define('sap/ui/qunit/QUnitUtils', [
 		// if so, we might be running on top of jQuery 2.2.0 or higher and we have to add the native Event methods to the 'originalEvent'
 		fixOriginalEvent = function(origEvent) {
 			if ( origEvent ) {
-				origEvent.preventDefault = origEvent.preventDefault || jQuery.noop;
-				origEvent.stopPropagation = origEvent.stopPropagation || jQuery.noop;
-				origEvent.stopImmediatePropagation = origEvent.stopImmediatePropagation || jQuery.noop;
+				origEvent.preventDefault = origEvent.preventDefault || noop;
+				origEvent.stopPropagation = origEvent.stopPropagation || noop;
+				origEvent.stopImmediatePropagation = origEvent.stopImmediatePropagation || noop;
 			}
 		};
 
-		var OrigjQEvent = jQuery.Event;
+		const OrigjQEvent = jQuery.Event;
 		jQuery.Event = function(src, props) {
-			var event = new OrigjQEvent(src, props);
+			const event = new OrigjQEvent(src, props);
 			fixOriginalEvent(event.originalEvent);
 			return event;
 		};
@@ -219,6 +227,16 @@ sap.ui.define('sap/ui/qunit/QUnitUtils', [
 
 	};
 
+	var fnClosestTo = Element.closestTo && Element.closestTo.bind(Element);
+
+	/**
+	 * @deprecated Since 1.106
+	 */
+	if ( fnClosestTo == null ) {
+		fnClosestTo = function(oElement) {
+			return jQuery(oElement).control(0); // legacy-relevant: fallback for older UI5 versions
+		};
+	}
 
 	/**
 	 * Programmatically triggers a touch event specified by its name.
@@ -237,7 +255,7 @@ sap.ui.define('sap/ui/qunit/QUnitUtils', [
 		}
 
 		var oEvent = fakeEvent(sEventName, oTarget, oParams),
-			oElement = jQuery(oTarget).control(0),
+			oElement = fnClosestTo(oTarget),
 			sEventHandlerName = (sEventHandlerPrefix == null ? 'on' : sEventHandlerPrefix) + sEventName;
 
 		if (oElement && oElement[sEventHandlerName]) {
@@ -362,10 +380,10 @@ sap.ui.define('sap/ui/qunit/QUnitUtils', [
 		oParams.location = mapKeyCodeToLocation(sKey);
 
 		oParams.which = oParams.keyCode;
-		oParams.shiftKey = bShiftKey;
-		oParams.altKey = bAltKey;
-		oParams.metaKey = bCtrlKey;
-		oParams.ctrlKey = bCtrlKey;
+		oParams.shiftKey = !!bShiftKey;
+		oParams.altKey = !!bAltKey;
+		oParams.metaKey = !!bCtrlKey;
+		oParams.ctrlKey = !!bCtrlKey;
 		QUtils.triggerEvent(sEventType, oTarget, oParams);
 	};
 
@@ -564,11 +582,17 @@ sap.ui.define('sap/ui/qunit/QUnitUtils', [
 
 	// --------------------------------------------------------------------------------------------------
 
+	/**
+	 * @deprecated No longer used in DIST layer
+	 */
 	var FONT_WEIGHTS = {
 		'normal': 400,
 		'bold': 700
 	};
 
+	/**
+	 * @deprecated No longer used in DIST layer
+	 */
 	jQuery.fn.extend({
 
 		/**
@@ -655,7 +679,7 @@ sap.ui.define('sap/ui/qunit/QUnitUtils', [
 			if ( typeof sType === "string" ) {
 				mDefaultTestValues[sType] = ensureArray(aValues);
 			} else if ( typeof sType === "object" ) {
-				jQuery.extend(mDefaultTestValues, sType);
+				extend(mDefaultTestValues, sType);
 			}
 		};
 
@@ -666,31 +690,32 @@ sap.ui.define('sap/ui/qunit/QUnitUtils', [
 		QUtils.createSettingsDomain = function(oClass, oPredefinedValues) {
 
 			function createValues(sType) {
-				if ( mDefaultTestValues[sType] ) {
-					return mDefaultTestValues[sType];
-				}
-
-				try {
-					//TODO: global jquery call found
-					jQuery.sap.require(sType);
-				} catch (e) {
-					//escape eslint check for empty block
-				}
-				var oType = ObjectPath.get(sType);
-				if ( !(oType instanceof DataType) ) {
-					var r = [];
-					for (var n in oType) {
-						r.push(oType[n]);
+				if ( !mDefaultTestValues[sType] ) {
+					var oType = DataType.getType(sType);
+					var oEnumValues = oType && oType.isEnum() ? oType.getEnumValues() : undefined;
+					/**
+					 * @deprecated As of 1.120
+					 */
+					if (!oType) {
+						try {
+							sap.ui.requireSync(sType.replace(/\./g, "/")); // legacy-relevant legacy fallback
+						} catch (e) {
+							// ignore
+						}
+						oEnumValues = ObjectPath.get(sType);
 					}
-					mDefaultTestValues[sType] = r;
-					return r;
+					if (oEnumValues && !(oEnumValues instanceof DataType)) {
+						mDefaultTestValues[sType] = Object.keys(oEnumValues);
+					} else {
+						mDefaultTestValues[sType] = [];
+					}
 				}
-				return [];
-
+				return mDefaultTestValues[sType];
 			}
 
-			var oClass = new oClass().getMetadata().getClass(); // resolves proxy
-			var oPredefinedValues = oPredefinedValues || {};
+			oClass = new oClass().getMetadata().getClass(); // resolves proxy
+			oPredefinedValues = oPredefinedValues || {};
+
 			var result = {};
 			var oProps = oClass.getMetadata().getAllProperties();
 			for (var name in oProps) {
@@ -717,8 +742,9 @@ sap.ui.define('sap/ui/qunit/QUnitUtils', [
 				return;
 			}
 
-			var oClass = new oClass().getMetadata().getClass(); // resolves proxy
-			var oTestConfig = oTestConfig || {};
+			oClass = new oClass().getMetadata().getClass(); // resolves proxy
+			oTestConfig = oTestConfig || {};
+
 			var oTestValues = QUtils.createSettingsDomain(oClass, oTestConfig.allPairTestValues || {});
 
 			info("domain");
@@ -988,7 +1014,7 @@ sap.ui.define('sap/ui/qunit/QUnitUtils', [
 						} else if ( c > a ) {
 							var j = offset(a,c,va,0),
 								end = j + params[c].n;
-							for (count = occurs[j]; count > 0 && i < end; j++ ) {
+							for (count = occurs[j]; count > 0 && j < end; j++ ) {
 								if ( occurs[j] < count ) {
 									count = occurs[j];
 								}
@@ -1067,9 +1093,15 @@ sap.ui.define('sap/ui/qunit/QUnitUtils', [
 
 	}());
 
-	// export
-	// TODO: Get rid of the old namespace and adapt the existing tests accordingly
+	// legacy global exports
+	/**
+	 *  TODO: Get rid of the old namespace and adapt the existing tests accordingly
+	 * @deprecated
+	 */
 	ObjectPath.set("sap.ui.test.qunit", QUtils);
+	/**
+	 * @deprecated
+	 */
 	window.qutils = QUtils;
 
 	return QUtils;

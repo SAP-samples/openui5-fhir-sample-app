@@ -1,33 +1,41 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2024 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 // Provides control sap.m.FormattedText.
 sap.ui.define([
 	'./library',
+	'sap/ui/core/library',
 	'sap/ui/core/Control',
 	'./FormattedTextAnchorGenerator',
 	'./FormattedTextRenderer',
 	"sap/base/Log",
-	"sap/base/security/URLWhitelist",
-	"sap/base/security/sanitizeHTML"
+	"sap/base/security/URLListValidator",
+	"sap/base/security/sanitizeHTML",
+	"sap/ui/util/openWindow",
+	'sap/ui/core/Core'
 ],
 function(
 	library,
+	coreLibrary,
 	Control,
 	FormattedTextAnchorGenerator,
 	FormattedTextRenderer,
 	Log,
-	URLWhitelist,
-	sanitizeHTML0
+	URLListValidator,
+	sanitizeHTML0,
+	openWindow,
+	Core
 	) {
 		"use strict";
 
 
 		// shortcut for sap.m.LinkConversion
-		var LinkConversion = library.LinkConversion;
+		var LinkConversion = library.LinkConversion,
+			TextDirection = coreLibrary.TextDirection,
+			TextAlign = coreLibrary.TextAlign;
 
 		/**
 		 * Constructor for a new FormattedText.
@@ -38,13 +46,12 @@ function(
 		 * @class
 		 * The FormattedText control allows the usage of a limited set of tags for inline display of formatted text in HTML format.
 		 * @extends sap.ui.core.Control
-		 * @version 1.79.0
+		 * @version 1.120.6
 		 *
 		 * @constructor
 		 * @public
 		 * @since 1.38.0
 		 * @alias sap.m.FormattedText
-		 * @ui5-metamodel This control/element also will be described in the UI5 (legacy) designtime metamodel
 		 */
 		var FormattedText = Control.extend("sap.m.FormattedText", /** @lends sap.m.FormattedText.prototype */ {
 			metadata: {
@@ -57,6 +64,7 @@ function(
 					 * <ul>
 					 *	<li><code>a</code></li>
 					 *	<li><code>abbr</code></li>
+					 *	<li><code>bdi</code></li>
 					 *	<li><code>blockquote</code></li>
 					 *	<li><code>br</code></li>
 					 *	<li><code>cite</code></li>
@@ -75,14 +83,14 @@ function(
 					 *	<li><code>u</code></li>
 					 *	<li><code>dl</code></li>
 					 *	<li><code>dt</code></li>
-					 *	<li><code>dl</code></li>
+					 *	<li><code>dd</code></li>
 					 *	<li><code>ul</code></li>
 					 *	<li><code>ol</code></li>
 					 *	<li><code>li</code></li>
 					 * </ul>
-					 * <p><code>class, style,</code> and <code>target</code> attributes are allowed.
-					 * If <code>target</code> is not set, links open in a new window by default.
-					 * <p>Only safe <code>href</code> attributes can be used. See {@link module:sap/base/security/URLWhitelist URLWhitelist}.
+					 * <p><code>style, dir</code> and <code>target</code> attributes are allowed.
+					 * <p>If <code>target</code> is not set, links open in a new window by default.
+					 * <p>Only safe <code>href</code> attributes can be used. See {@link module:sap/base/security/URLListValidator URLListValidator}.
 					 *
 					 * <b>Note:</b> Keep in mind that not supported HTML tags and
 					 * the content nested inside them are both not rendered by the control.
@@ -114,7 +122,28 @@ function(
 					/**
 					 *  Optional height of the control in CSS units.
 					 */
-					height: {type : "sap.ui.core.CSSSize", group : "Appearance", defaultValue : null}
+					height: {type : "sap.ui.core.CSSSize", group : "Appearance", defaultValue : null},
+
+					/**
+					 * Defines the directionality of the text in the <code>FormattedText</code>, e.g. right-to-left(<code>RTL</code>)
+					 * or left-to-right (<code>LTR</code>).
+					 *
+					 * <b>Note:</b> This functionality if set to the root element. Use the <code>bdi</code> element and
+					 * the <code>dir</code> attribute to set explicit direction to an element.
+					 *
+					 * @since 1.86.0
+					 */
+					textDirection: { type: "sap.ui.core.TextDirection", group: "Appearance", defaultValue: TextDirection.Inherit },
+
+					/**
+					 * Determines the text alignment in the text elements in the <code>FormattedText</code>.
+					 *
+					 * <b>Note:</b> This functionality if set to the root element. To set explicit alignment to an element
+					 * use the <code>style</code> attribute.
+					 *
+					 * @since 1.86.0
+					 */
+					textAlign : {type : "sap.ui.core.TextAlign", group : "Appearance", defaultValue : TextAlign.Begin}
 				},
 				aggregations: {
 
@@ -125,7 +154,9 @@ function(
 					*/
 					controls: {type: "sap.m.Link", multiple: true, singularName: "control"}
 				}
-			}
+			},
+
+			renderer: FormattedTextRenderer
 		});
 
 		/*
@@ -137,13 +168,15 @@ function(
 				'style' : 1,
 				'class' : 1,
 				'a::href' : 1,
-				'a::target' : 1
+				'a::target' : 1,
+				'dir' : 1
 			},
 			// rules for the allowed tags
 			ELEMENTS: {
 				// Text Module Tags
 				'a' : {cssClass: 'sapMLnk'},
 				'abbr': 1,
+				'bdi' : 1,
 				'blockquote': 1,
 				'br': 1,
 				'cite': 1,
@@ -177,6 +210,7 @@ function(
 			},
 			ELEMENTS: {
 				'a' : {cssClass: 'sapMLnk'},
+				'br': 1,
 				'em': 1,
 				'strong': 1,
 				'u': 1
@@ -229,12 +263,13 @@ function(
 
 				// sanitize hrefs
 				if (attr == "href") { // a::href
-					if (!URLWhitelist.validate(value)) {
+					if (!URLListValidator.validate(value)) {
 						Log.warning("FormattedText: incorrect href attribute:" + value, this);
 						attribs[i + 1] = "#";
 						addTarget = false;
 					}
 				}
+
 				if (attr == "target") { // a::target already exists
 					addTarget = false;
 				}
@@ -280,35 +315,86 @@ function(
 			return sanitizeHTML0(sText, {
 				tagPolicy: fnPolicy.bind(this),
 				uriRewriter: function (sUrl) {
-					// by default we use the URL whitelist to check the URLs
-					if (URLWhitelist.validate(sUrl)) {
+					// by default, we use the URLListValidator to check the URLs
+					if (URLListValidator.validate(sUrl)) {
 						return sUrl;
 					}
 				}
 			});
 		}
 
-		// prohibit a new window from accessing window.opener.location
-		function openExternalLink (oEvent) {
-			var newWindow = window.open();
-			newWindow.opener = null;
-			newWindow.location = oEvent.currentTarget.href;
+		// open links href using safe API
+		function openLink (oEvent) {
+			if (oEvent.originalEvent.defaultPrevented) {
+				return;
+			}
 			oEvent.preventDefault();
+			var oLink = Core.byId(oEvent.currentTarget.id);
+			if (oLink && oLink.isA('sap.m.Link') && (oLink.getAccessibleRole() === library.LinkAccessibleRole.Button || !oLink.getHref())) {
+				return;
+			}
+			openWindow(oEvent.currentTarget.href, oEvent.currentTarget.target);
 		}
 
 		FormattedText.prototype.onAfterRendering = function () {
-			this.$().find('a[target="_blank"]').on("click", openExternalLink);
+			this.$().find('a').on("click", openLink);
+			var aLinks = this.getControls(),
+				oTemplate;
+
+			aLinks.forEach(function(oLink, iCurrentIndex) {
+				oTemplate = this.getDomRef("$" + iCurrentIndex);
+				if (oTemplate) {
+					oTemplate.replaceWith(oLink.getDomRef());
+				} else {
+					oLink.getDomRef().style.display = "none";
+				}
+			}.bind(this));
+
+			this._sanitizeCSSPosition(this.getDomRef());
 		};
 
 		FormattedText.prototype.onBeforeRendering = function () {
-			this.$().find('a[target="_blank"]').off("click", openExternalLink);
+			this.$().find('a').off("click", openLink);
 		};
 
+		/**
+		 * Adds CSS static position to provided DOM reference internal HTML nodes.
+		 *
+		 * @param {Element} oDomRef DOM reference that should be sanitized
+		 * @private
+		 */
+		FormattedText.prototype._sanitizeCSSPosition = function(oDomRef) {
+
+			if (!oDomRef) {
+				return;
+			}
+
+			var oWalker = document.createTreeWalker(
+					oDomRef,
+					NodeFilter.SHOW_ELEMENT
+				),
+				oCurrentNode = oWalker.nextNode();
+
+			while (oCurrentNode) {
+				oCurrentNode.style.setProperty("position", "static", "important");
+				oCurrentNode = oWalker.nextNode();
+			}
+		};
+
+		/**
+		 * Returns the HTML that should be displayed.
+		 *
+		 * IMPORTANT NOTE: When a HTML returned by this method is being placed in the page DOM, ALWAYS call _sanitizeCSSPosition
+		 * after it is rendered on the page DOM in order to sanitize the CSS position!
+		 *
+		 * @return {string} HTML that should be rendered
+		 * @private
+		 */
 		FormattedText.prototype._getDisplayHtml = function (){
 			var sText = this.getHtmlText(),
 				sAutoGenerateLinkTags = this.getConvertLinksToAnchorTags();
 
-			if (sAutoGenerateLinkTags === library.LinkConversion.None) {
+			if (sAutoGenerateLinkTags === LinkConversion.None) {
 				return sText;
 			}
 
@@ -320,7 +406,7 @@ function(
 		/**
 		 * Defines the HTML text to be displayed.
 		 * @param {string} sText HTML text as a string
-		 * @return {sap.m.FormattedText} this for chaining
+		 * @return {this} this for chaining
 		 * @public
 		 */
 		FormattedText.prototype.setHtmlText = function (sText) {
@@ -338,6 +424,9 @@ function(
 			this._renderingRules = bLimit ? _limitedRenderingRules : _defaultRenderingRules;
 		};
 
+		FormattedText.prototype.getFocusDomRef = function () {
+			return this.getDomRef() && this.getDomRef().querySelector("a");
+		};
 
 		return FormattedText;
 	});

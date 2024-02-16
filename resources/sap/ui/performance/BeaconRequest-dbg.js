@@ -1,10 +1,10 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2024 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 /*global Blob*/
-sap.ui.define(["sap/base/Log"], function (Log) {
+sap.ui.define([], function () {
 	"use strict";
 
 	/**
@@ -32,21 +32,19 @@ sap.ui.define(["sap/base/Log"], function (Log) {
 		this._sUrl = option.url;
 
 		/**
-		 * Send data if the browser has been closed
-		 *
-		 * The "visibilitychange" event is not fired in Safari when the browser tab is closed.
+		 * Send data if the document visibility has changed to 'hidden'.
+		 * That's the case if the tab inactive e.g. by switching to another tab
+		 * or in case the active tab is closed. On mobile devices it's the only
+		 * reliable event for detecting tab switch or minimizing/closing the
+		 * browser.
+		 * Previously also the 'pagehide' event was needed because safari did not
+		 * fire the 'visibilitychange' event on navigating away from a page but
+		 * as of Safari 14.5 this issue is fixed.
 		 */
 		document.addEventListener("visibilitychange", function () {
 			if (document.visibilityState === "hidden") {
 				this.send();
 			}
-		}.bind(this));
-
-		/**
-		 * Ensure that the date is sent if the "visibilitychange" event was not fired.
-		 */
-		window.addEventListener("unload", function () {
-			this.send();
 		}.bind(this));
 	};
 

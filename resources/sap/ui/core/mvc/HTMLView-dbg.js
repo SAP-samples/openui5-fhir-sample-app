@@ -1,39 +1,39 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2024 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 // Provides control sap.ui.core.mvc.HTMLView.
 sap.ui.define([
-	'sap/ui/thirdparty/jquery',
 	'./View',
 	'./HTMLViewRenderer',
+	'./ViewType',
 	'sap/base/util/merge',
 	'sap/ui/base/ManagedObject',
 	'sap/ui/core/DeclarativeSupport',
-	'sap/ui/core/library',
 	'sap/ui/model/resource/ResourceModel',
 	'sap/base/util/LoaderExtensions'
 ],
 	function(
-		jQuery,
 		View,
 		HTMLViewRenderer,
+		ViewType,
 		merge,
 		ManagedObject,
 		DeclarativeSupport,
-		library,
 		ResourceModel,
 		LoaderExtensions
 	) {
 	"use strict";
 
-	// shortcut for enum(s)
-	var ViewType = library.mvc.ViewType;
-
 	/**
-	 * Constructor for a new mvc/HTMLView.
+	 * Constructor for a new <code>HTMLView</code>.
+	 *
+	 * <strong>Note:</strong> Application code shouldn't call the constructor directly, but rather use the factory
+	 * {@link sap.ui.core.mvc.HTMLView.create HTMLView.create} or {@link sap.ui.core.mvc.View.create View.create}
+	 * with type {@link sap.ui.core.mvc.ViewType.HTML HTML}. The factory simplifies asynchronous loading of a view
+	 * and future features might be added to the factory only.
 	 *
 	 * @param {string} [sId] id for the new control, generated automatically if no id is given
 	 * @param {object} [mSettings] initial settings for the new control
@@ -43,17 +43,26 @@ sap.ui.define([
 	 * @extends sap.ui.core.mvc.View
 	 *
 	 * @author SAP SE
-	 * @version 1.79.0
+	 * @version 1.120.6
 	 *
 	 * @public
 	 * @since 1.9.2
 	 * @alias sap.ui.core.mvc.HTMLView
-	 * @ui5-metamodel This control/element also will be described in the UI5 (legacy) designtime metamodel
+	 * @deprecated Since version 1.108, as there are no more known usages of <code>HTMLViews</code>,
+	 *    and as the use of HTML as syntax does not bring any advantages over XML. The HTML necessary for
+	 *    the <code>HTMLView</code> is not re-used for the HTML of the controls, but is fully replaced.
+	 *
+	 *    Consider using {@link sap.ui.core.mvc.XMLView XMLViews} or "typed views" (view classes
+	 *    written in JavaScript) instead. For more information, see the documentation on
+	 *    {@link topic:91f27e3e6f4d1014b6dd926db0e91070 View types}.
 	 */
-	var HTMLView = View.extend("sap.ui.core.mvc.HTMLView", /** @lends sap.ui.core.mvc.HTMLView.prototype */ { metadata : {
-
-		library : "sap.ui.core"
-	}});
+	var HTMLView = View.extend("sap.ui.core.mvc.HTMLView", /** @lends sap.ui.core.mvc.HTMLView.prototype */ {
+		metadata : {
+			library : "sap.ui.core",
+			deprecated: true
+		},
+		renderer: HTMLViewRenderer
+	});
 
 
 
@@ -95,14 +104,15 @@ sap.ui.define([
 	 *
 	 * @param {string} [sId] id of the newly created view, only allowed for instance creation
 	 * @param {string | object} vView name or implementation of the view.
-	 * @param {boolean} [vView.async] defines how the view source is loaded and rendered later on
+	 * @param {boolean} [vView.async] whether the view source is loaded asynchronously
 	 * @public
 	 * @static
-	 * @deprecated since 1.56: Use {@link sap.ui.core.mvc.HTMLView.create HTMLView.create} instead
+	 * @deprecated Since 1.56. Use {@link sap.ui.core.mvc.HTMLView.create HTMLView.create} to create view instances
 	 * @return {sap.ui.core.mvc.HTMLView | undefined} the created HTMLView instance in the creation case, otherwise undefined
+	 * @ui5-global-only
 	 */
 	sap.ui.htmlview = function(sId, vView) {
-		return sap.ui.view(sId, vView, ViewType.HTML);
+		return sap.ui.view(sId, vView, ViewType.HTML); // legacy-relevant
 	};
 
 	/**
@@ -116,6 +126,8 @@ sap.ui.define([
 	/**
 	 * Flag for feature detection of asynchronous loading/rendering
 	 * @public
+	 * @readonly
+	 * @type {boolean}
 	 * @since 1.30
 	 */
 	HTMLView.asyncSupport = true;
@@ -252,18 +264,20 @@ sap.ui.define([
 			var oProperties = that.getMetadata().getAllProperties();
 
 			if (oMetaElement) {
-				jQuery.each(oMetaElement.attributes, function(iIndex, oAttr) {
-					var sName = DeclarativeSupport.convertAttributeToSettingName(oAttr.name, that.getId());
-					var sValue = oAttr.value;
-					var oProperty = oProperties[sName];
-					if (!mSettings[sName]) {
+				var aAttributes = oMetaElement.getAttributeNames();
+				for (var j = 0; j < aAttributes.length; j++) {
+					var sAttributeName = aAttributes[j];
+					var sSettingName = DeclarativeSupport.convertAttributeToSettingName(sAttributeName, that.getId());
+					var sValue = oMetaElement.getAttribute(sAttributeName);
+					var oProperty = oProperties[sSettingName];
+					if (!mSettings[sSettingName]) {
 						if (oProperty) {
-							mSettings[sName] = DeclarativeSupport.convertValueToType(DeclarativeSupport.getPropertyDataType(oProperty),sValue);
-						} else if (HTMLView._mAllowedSettings[sName]) {
-							mSettings[sName] = sValue;
+							mSettings[sSettingName] = DeclarativeSupport.convertValueToType(DeclarativeSupport.getPropertyDataType(oProperty),sValue);
+						} else if (HTMLView._mAllowedSettings[sSettingName]) {
+							mSettings[sSettingName] = sValue;
 						}
 					}
-				});
+				}
 				that._oTemplate = oMetaElement;
 			}
 
@@ -353,7 +367,7 @@ sap.ui.define([
 	 * @param {sap.ui.core.Control} oControl reference to a Control
 	 * @private
 	 */
-		HTMLView.prototype.connectControl = function(oControl) {
+	HTMLView.prototype.connectControl = function(oControl) {
 		this._connectedControls = this._connectedControls || [];
 		this._connectedControls.push(oControl);
 	};

@@ -1,9 +1,8 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2024 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
-
 sap.ui.define([
 	"sap/base/Log",
 	"sap/base/strings/escapeRegExp",
@@ -41,23 +40,52 @@ sap.ui.define([
 			"Number": Number,
 			"Object": Object,
 			"odata": {
+				"collection": function (aElements) {
+					return aElements.filter(function (vElement) {
+						return vElement !== undefined;
+					});
+				},
 				"compare": function () {
-					var ODataUtils;
+					var oODataUtils = sap.ui.require("sap/ui/model/odata/v4/ODataUtils");
 
-					ODataUtils = sap.ui.requireSync("sap/ui/model/odata/v4/ODataUtils");
-					return ODataUtils.compare.apply(ODataUtils, arguments);
+					/** @deprecated As of version 1.120.0 */
+					if (!oODataUtils) {
+						oODataUtils = sap.ui.requireSync("sap/ui/model/odata/v4/ODataUtils");
+					}
+					if (!oODataUtils) {
+						throw new TypeError("Expression uses 'odata.compare' which requires to"
+							+ " import 'sap/ui/model/odata/v4/ODataUtils' in advance");
+					}
+
+					return oODataUtils.compare.apply(oODataUtils, arguments);
 				},
 				"fillUriTemplate": function (sExpression, mData) {
+					/** @deprecated As of version 1.120.0 */
 					if (!URI.expand) {
+						// probing is not required since the presence of URI.expand is the indicator
+						// that URITemplate has been loaded already
 						/* URITemplate = */ sap.ui.requireSync("sap/ui/thirdparty/URITemplate");
 					}
+					if (!URI.expand) {
+						throw new TypeError("Expression uses 'odata.fillUriTemplate' which requires"
+							+ " to import 'sap/ui/thirdparty/URITemplate' in advance");
+					}
+
 					return URI.expand(sExpression.trim(), mData).toString();
 				},
 				"uriEncode": function () {
-					var ODataUtils;
+					var oODataUtils = sap.ui.require("sap/ui/model/odata/ODataUtils");
 
-					ODataUtils = sap.ui.requireSync("sap/ui/model/odata/ODataUtils");
-					return ODataUtils.formatValue.apply(ODataUtils, arguments);
+					/** @deprecated As of version 1.120.0 */
+					if (!oODataUtils) {
+						oODataUtils = sap.ui.requireSync("sap/ui/model/odata/ODataUtils");
+					}
+					if (!oODataUtils) {
+						throw new TypeError("Expression uses 'odata.uriEncode' which requires to"
+							+ " import 'sap/ui/model/odata/ODataUtils' in advance");
+					}
+
+					return oODataUtils.formatValue.apply(oODataUtils, arguments);
 				}
 			},
 			"parseFloat": parseFloat,
@@ -325,7 +353,7 @@ sap.ui.define([
 	 * @returns {any} the binding value
 	 */
 	function BINDING(i, aParts) {
-		return aParts[i];
+		return clean(aParts[i]);
 	}
 
 	/**
@@ -333,7 +361,7 @@ sap.ui.define([
 	 * and "else" clause.
 	 * @param {function} fnCondition - formatter function for the condition
 	 * @param {function} fnThen - formatter function for the "then" clause
-	 * @param {function} fnElse- formatter function for the "else" clause
+	 * @param {function} fnElse - formatter function for the "else" clause
 	 * @param {any[]} aParts - the array of binding values
 	 * @return {any} - the value of the "then" or "else" clause, depending on the value of the
 	 *   condition
@@ -367,7 +395,7 @@ sap.ui.define([
 		if (oReference) {
 			oReference.base = oParent;
 		}
-		return vChild;
+		return clean(vChild);
 	}
 
 	/**
@@ -381,10 +409,10 @@ sap.ui.define([
 		var oReference = {};
 
 		// evaluate function expression and call it
-		return fnLeft(aParts, oReference).apply(oReference.base,
+		return clean(fnLeft(aParts, oReference).apply(oReference.base,
 			aArguments.map(function (fnArgument) {
 				return fnArgument(aParts); // evaluate argument
-			}));
+			})));
 	}
 
 	/**
@@ -436,7 +464,7 @@ sap.ui.define([
 		if (oReference) {
 			oReference.base = oParent;
 		}
-		return vChild;
+		return clean(vChild);
 	}
 
 	/**
@@ -476,6 +504,16 @@ sap.ui.define([
 			nud: unexpected
 		};
 		return mSymbols[sId];
+	}
+
+	/**
+	 * Cleans the given <code>vValue</code>.
+	 *
+	 * @param {any} vValue - the value to be cleaned
+	 * @returns {any} the cleaned value
+	 */
+	function clean(vValue) {
+		return vValue === Function ? undefined : vValue;
 	}
 
 	/**
@@ -731,7 +769,7 @@ sap.ui.define([
 		 * Throws an error if the next token's ID is not equal to the optional
 		 * <code>sExpectedTokenId</code>.
 		 * @param {string} [sExpectedTokenId] - the expected id of the next token
-		 * @returns {object} - the next token or undefined if all tokens have been read
+		 * @returns {object|undefined} - the next token or undefined if all tokens have been read
 		 */
 		function advance(sExpectedTokenId) {
 			var oToken = aTokens[iNextToken];
@@ -753,7 +791,7 @@ sap.ui.define([
 
 		/**
 		 * Returns the next token in the array of tokens, but does not advance the index.
-		 * @returns {object} - the next token or undefined if all tokens have been read
+		 * @returns {object|undefined} - the next token or undefined if all tokens have been read
 		 */
 		function current() {
 			return aTokens[iNextToken];

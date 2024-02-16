@@ -1,26 +1,33 @@
-/*
- * ! OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+/*!
+ * OpenUI5
+ * (c) Copyright 2009-2024 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.define([
-	'../json/JSONModel', '../json/JSONPropertyBinding', '../json/JSONListBinding', 'sap/ui/base/ManagedObject', 'sap/ui/base/ManagedObjectObserver', '../Context', '../ChangeReason', "sap/base/util/uid", "sap/base/Log", "sap/base/util/isPlainObject", "sap/base/util/deepClone"
-], function (JSONModel, JSONPropertyBinding, JSONListBinding, ManagedObject, ManagedObjectObserver, Context, ChangeReason, uid, Log, isPlainObject, deepClone) {
+	'../json/JSONModel', '../json/JSONPropertyBinding', '../json/JSONListBinding', 'sap/ui/base/ManagedObject', 'sap/ui/base/ManagedObjectObserver', '../Context', '../ChangeReason', "sap/base/util/uid", "sap/base/Log", "sap/base/util/isPlainObject", "sap/base/util/deepClone", "sap/base/util/deepEqual"
+], function (JSONModel, JSONPropertyBinding, JSONListBinding, ManagedObject, ManagedObjectObserver, Context, ChangeReason, uid, Log, isPlainObject, deepClone, deepEqual) {
 	"use strict";
 
-	var CUSTOMDATAKEY = "@custom", ID_DELIMITER = "--";/**
+	var CUSTOMDATAKEY = "@custom",
+		ID_DELIMITER = "--";
+
+	/**
 	 * Adapt the observation of child controls in order to be able to react when e.g. the value
 	 * of a select inside a list changed. Currently the MOM is not updated then
 	 *
-	 * @param {object} the caller, here the managed object model
-	 * @param {control} the control which shall be (un)observed
-	 * @param {object} the observed aggregation
-	 * @param {boolean} <code>true</code> for observing and <code>false</code> for unobserving
+	 * @param {object} caller the caller, here the managed object model
+	 * @param {sap.ui.base.ManagedObject} oControl the control which shall be (un)observed
+	 * @param {object} oAggregation the observed aggregation
+	 * @param {boolean} bObserve <code>true</code> for observing and <code>false</code> for unobserving
 	 *
 	 * @private
 	 */
 	function _adaptDeepChildObservation(caller, oControl, oAggregation, bObserve) {
 		var aChildren = oAggregation.get(oControl) || [], oChild, bRecord;
+
+		if (aChildren && !Array.isArray(aChildren) && !oAggregation.multiple) {
+			aChildren = [aChildren];
+		}
 
 		for (var i = 0; i < aChildren.length; i++) {
 			oChild = aChildren[i];
@@ -172,7 +179,7 @@ sap.ui.define([
 				return oObject.getId();
 			}
 
-			return JSONListBinding.prototype.getEntryKey.apply(this, arguments);
+			return JSONListBinding.prototype.getEntryData.apply(this, arguments); // as ListBinding.prototype.getContextData falls back to getEntryData if getEntryKey is not defined
 		},
 		getEntryData: function(oContext) {
 			// use the id of the ManagedObject instance as the identifier
@@ -289,7 +296,7 @@ sap.ui.define([
 	 * this object.
 	 *
 	 * @param {sap.ui.base.ManagedObject} oObject the managed object models root object
-	 * @param {object} oData an object for custom data
+	 * @param {object} [oData] an object for custom data
 	 * @alias sap.ui.model.base.ManagedObjectModel
 	 * @extends sap.ui.model.json.JSONModel
 	 * @public
@@ -313,6 +320,8 @@ sap.ui.define([
 				]);
 
 				this._oObserver = new ManagedObjectObserver(this.observerChanges.bind(this));
+
+				this.setSizeLimit(1000000); // SizeLimit should be set on Model the control is bound to, the ManagedObjectModel should not limit aggregations inside.
 			}
 		});
 
@@ -414,7 +423,7 @@ sap.ui.define([
 			if (oObject instanceof ManagedObject) {
 				var oProperty = oObject.getMetadata().getManagedProperty(sProperty);
 				if (oProperty) {
-					if (oProperty.get(oObject) !== oValue) {
+					if (!deepEqual(oProperty.get(oObject), oValue)) {
 						oProperty.set(oObject, oValue);
 						//update only property and sub properties
 						var fnFilter = function (oBinding) {
@@ -975,29 +984,46 @@ sap.ui.define([
 			});
 		}
 
-		this.checkUpdate();
+		var fnFilter;
+		if (oChange.object === this._oObject) { // if root object, only bindings starting with the changed property/aggregation are from interest
+			fnFilter = function (oBinding) { // update only bindings that might be affected
+				var sPath = this.resolve(oBinding.sPath, oBinding.oContext);
+				return sPath ? sPath.startsWith("/" + oChange.name) : true;
+			}.bind(this);
+		}
+
+		this.checkUpdate(false, false, fnFilter);
 	};
 
 	/**
 	 * Private method iterating the registered bindings of this model instance and initiating their check for update
-	 * @param {boolean} bForceUpdate
+	 * @param {boolean} [bForceUpdate]
 	 * @param {boolean} bAsync
 	 * @param {function} fnFilter an optional test function to filter the binding
 	 * @protected
 	 */
 	ManagedObjectModel.prototype.checkUpdate = function (bForceUpdate, bAsync, fnFilter) {
 		if (bAsync) {
+			this.bForceUpdate = this.bForceUpdate || bForceUpdate;
 			if (!this.sUpdateTimer) {
+				this.fnFilter = this.fnFilter || fnFilter;
 				this.sUpdateTimer = setTimeout(function () {
-					this.checkUpdate(bForceUpdate, false, fnFilter);
+					this.checkUpdate(this.bForceUpdate, false, this.fnFilter);
 				}.bind(this), 0);
+			} else if (this.fnFilter && this.fnFilter !== fnFilter) {
+				this.fnFilter = undefined; // if different filter set use no filter
 			}
 			return;
 		}
+		bForceUpdate = this.bForceUpdate || bForceUpdate;
 
 		if (this.sUpdateTimer) {
 			clearTimeout(this.sUpdateTimer);
 			this.sUpdateTimer = null;
+			this.bForceUpdate = undefined;
+
+			fnFilter = this.fnFilter === fnFilter ? fnFilter : undefined; // if different filter or no filter set -> use no filter
+			this.fnFilter = undefined;
 		}
 		var aBindings = this.aBindings.slice(0);
 		aBindings.forEach(function (oBinding) {

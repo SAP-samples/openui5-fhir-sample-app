@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2024 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -14,6 +14,7 @@ sap.ui.define([],
 	 * @namespace
 	 */
 	var SimpleFormRenderer = {
+		apiVersion: 2
 	};
 
 
@@ -21,24 +22,19 @@ sap.ui.define([],
 	 * Renders the HTML for the given control, using the provided {@link sap.ui.core.RenderManager}.
 	 *
 	 * @param {sap.ui.core.RenderManager} oRm the RenderManager that can be used for writing to the render output buffer
-	 * @param {sap.ui.core.Control} oControl an object representation of the control that should be rendered
+	 * @param {sap.ui.layout.form.SimpleForm} oControl an object representation of the control that should be rendered
 	 */
 	SimpleFormRenderer.render = function(oRm, oControl){
 
 		oControl._bChangedByMe = true;
 		// write the HTML into the render manager
-		oRm.write("<div");
-		oRm.writeControlData(oControl);
-		oRm.addClass("sapUiSimpleForm");
-		if (oControl.getWidth()) {
-			oRm.addStyle("width", oControl.getWidth());
-		}
-		oRm.writeStyles();
-		oRm.writeClasses();
-		oRm.write(">"); // div element
+		oRm.openStart("div", oControl)
+			.class("sapUiSimpleForm")
+			.style("width", oControl.getWidth())
+			.openEnd(); // div element
 		var oForm = oControl.getAggregation("form");
 		oRm.renderControl(oForm);
-		oRm.write("</div>");
+		oRm.close("div");
 		oControl._bChangedByMe = false;
 
 	};

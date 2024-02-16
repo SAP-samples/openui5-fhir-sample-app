@@ -11,6 +11,19 @@
 
 (function( window ) {
 
+	//### BEGIN MODIFIED BY SAP
+	// include and setup qunitPause before QUnit is loaded. if pausing is enabled, it will hook into setTimeout.
+	// the goal is to prevent QUnit timeouts while test is already paused.
+	if (window && window.sap && window.sap.ui && window.sap.ui.require) {
+		try {
+			var QUnitPause = window.sap.ui.require("sap/ui/test/qunitPause") || window.sap.ui.requireSync("sap/ui/test/qunitPause"); // legacy-relevant
+			QUnitPause.setupBeforeQUnit();
+		} catch (e) {
+			window.console.warn("Could not find module sap/ui/test/qunitPause. Details: " + e);
+		}
+	}
+	//### END MODIFIED BY SAP
+
 var QUnit,
 	config,
 	onErrorFnPrev,
@@ -169,26 +182,50 @@ config.modules.push( config.currentModule );
 
 // Initialize more QUnit.config and QUnit.urlParams
 (function() {
-	var i, current,
+//### BEGIN MODIFIED BY SAP
+//	var i, current,
+//		location = window.location || { search: "", protocol: "file:" },
+//		params = location.search.slice( 1 ).split( "&" ),
+//		length = params.length,
+//		urlParams = {};
+//
+//	if ( params[ 0 ] ) {
+//		for ( i = 0; i < length; i++ ) {
+//			current = params[ i ].split( "=" );
+//			current[ 0 ] = decodeURIComponent( current[ 0 ] );
+//
+//			// allow just a key to turn on a flag, e.g., test.html?noglobals
+//			current[ 1 ] = current[ 1 ] ? decodeURIComponent( current[ 1 ] ) : true;
+//			if ( urlParams[ current[ 0 ] ] ) {
+//				urlParams[ current[ 0 ] ] = [].concat( urlParams[ current[ 0 ] ], current[ 1 ] );
+//			} else {
+//				urlParams[ current[ 0 ] ] = current[ 1 ];
+//			}
+//		}
+//	}
+
+	var i, param, name, value,
 		location = window.location || { search: "", protocol: "file:" },
 		params = location.search.slice( 1 ).split( "&" ),
 		length = params.length,
 		urlParams = {};
 
-	if ( params[ 0 ] ) {
-		for ( i = 0; i < length; i++ ) {
-			current = params[ i ].split( "=" );
-			current[ 0 ] = decodeURIComponent( current[ 0 ] );
+	for ( i = 0; i < length; i++ ) {
+		if ( params[ i ] ) {
+			param = params[ i ].split( "=" );
+			name = decodeURIComponent( param[ 0 ] );
 
 			// allow just a key to turn on a flag, e.g., test.html?noglobals
-			current[ 1 ] = current[ 1 ] ? decodeURIComponent( current[ 1 ] ) : true;
-			if ( urlParams[ current[ 0 ] ] ) {
-				urlParams[ current[ 0 ] ] = [].concat( urlParams[ current[ 0 ] ], current[ 1 ] );
+			value = param.length === 1 ||
+				decodeURIComponent( param.slice( 1 ).join( "=" ) );
+			if ( urlParams[ name ] ) {
+				urlParams[ name ] = [].concat( urlParams[ name ], value );
 			} else {
-				urlParams[ current[ 0 ] ] = current[ 1 ];
+				urlParams[ name ] = value;
 			}
 		}
 	}
+//END MODIFIED BY SAP
 
 	if ( urlParams.filter === true ) {
 		delete urlParams.filter;
@@ -661,7 +698,6 @@ function resumeProcessing() {
 
 function pauseProcessing() {
 	config.blocking = true;
-
 	if ( config.testTimeout && defined.setTimeout ) {
 		clearTimeout( config.timeout );
 		config.timeout = setTimeout(function() {
@@ -3498,7 +3534,10 @@ function appendHeader() {
 
 	if ( header ) {
 		header.innerHTML = "<a href='" +
-			setUrl({ filter: undefined, module: undefined, testId: undefined }) +
+			//### BEGIN MODIFIED BY SAP
+			// setUrl({ filter: undefined, module: undefined, testId: undefined }) +
+			escapeText( setUrl( { filter: undefined, module: undefined, testId: undefined } ) ) +
+			//### END MODIFIED BY SAP
 			"'>" + header.innerHTML + "</a> ";
 	}
 }
@@ -3746,7 +3785,10 @@ QUnit.log(function( details ) {
 				message += "<tr class='test-message'><th>Message: </th><td>" +
 					"Diff suppressed as the depth of object is more than current max depth (" +
 					QUnit.config.maxDepth + ").<p>Hint: Use <code>QUnit.dump.maxDepth</code> to " +
-					" run with a higher max depth or <a href='" + setUrl({ maxDepth: -1 }) + "'>" +
+					//### BEGIN MODIFIED BY SAP
+					// " run with a higher max depth or <a href='" + setUrl({ maxDepth: -1 }) + "'>" +
+					" run with a higher max depth or <a href='" + escapeText( setUrl( { maxDepth: -1 } ) ) + "'>" +
+					//### END MODIFIED BY SAP
 					"Rerun</a> without max depth.</p></td></tr>";
 			}
 		}

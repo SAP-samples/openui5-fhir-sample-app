@@ -1,10 +1,10 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2024 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
-sap.ui.define(["sap/ui/Device"],
-	function(Device) {
+sap.ui.define(["sap/ui/Device", "sap/ui/core/Configuration"],
+	function(Device, Configuration) {
 	"use strict";
 
 
@@ -21,14 +21,14 @@ sap.ui.define(["sap/ui/Device"],
 	 * Renders the HTML for the given control, using the provided {@link sap.ui.core.RenderManager}.
 	 *
 	 * @param {sap.ui.core.RenderManager} oRm the RenderManager that can be used for writing to the render output buffer
-	 * @param {sap.ui.core.Control} oControl an object representation of the control that should be rendered
+	 * @param {sap.m.ActionSheet} oControl an object representation of the control that should be rendered
 	 */
 	ActionSheetRenderer.render = function(oRm, oControl){
 		var aActionButtons = oControl._getAllButtons(),
 			aInvisibleTexts = oControl.getAggregation("_invisibleAriaTexts"),
 			oResourceBundle = sap.ui.getCore().getLibraryResourceBundle('sap.m'),
 			iButtonsCount = aActionButtons.length,
-			bAccessibilityOn = sap.ui.getCore().getConfiguration().getAccessibility(),
+			bAccessibilityOn = Configuration.getAccessibility(),
 			iVisibleButtonCount = aActionButtons.filter(function (oButton) { return oButton.getVisible(); }).length,
 			oCurInvisibleText, i, bMixedButtons, oButton, iVisibleButtonTempCount = 1,
 			fnGetRelatedInvisibleText = function (oBtn) {
@@ -59,7 +59,7 @@ sap.ui.define(["sap/ui/Device"],
 		// This is needed in order to prevent JAWS from announcing the ActionSheet content multiple times
 		bAccessibilityOn && oRm.attr("role", "presentation");
 
-		oRm.openEnd("div");
+		oRm.openEnd();
 
 		for (i = 0; i < iButtonsCount; i++) {
 			oButton = aActionButtons[i];

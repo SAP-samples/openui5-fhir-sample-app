@@ -49,17 +49,6 @@
 	padding-left: 0;
 }
 
-.sapMMultiComboBoxReadOnlyPopover {
-	.sapMLIB {
-		pointer-events: none;
-		border-bottom: 0;
-
-		&.sapMLIBHoverable:hover {
-			background: none;
-		}
-	}
-}
-
 .sapMMultiComboBox.sapMInputBaseNoWidth {
 	width: 100%;
 }
@@ -79,10 +68,6 @@ li.sapMMultiComboBoxItem .sapMCbBg {
 	color: transparent;
 }
 
-.sapMMultiComboBoxHasToken .sapMInputBaseInner:-ms-input-placeholder {
-	color: transparent;
-}
-
 .sapMMultiComboBoxHasToken .sapMInputBaseInner:-moz-placeholder {
 	color: transparent;
 }
@@ -91,27 +76,29 @@ li.sapMMultiComboBoxItem .sapMCbBg {
 /* ListItem                       */
 /* ------------------------------ */
 
-.sapMMultiComboBoxItem .sapMCb {
-	height: 2.5rem;
-	line-height: 2.5rem;
+.sapMMultiComboBoxItem.sapMSLIWrapping .sapMCb {
+	height: 2.4375rem;
+	line-height: 2.4375rem;
+	margin-top: 0;
 }
 
 .sapMMultiComboBoxPicker {
 	.sapMFocusable:focus {
-		outline: 1px dotted @sapUiContentFocusColor;
+		outline: @sapUiContentFocusWidth @sapUiContentFocusStyle @sapUiContentFocusColor;
 		outline-offset: -0.125rem;
 	}
 
-	}
 	.sapMSLITitleOnly {
 		font-size: 0.875rem;
+	}
 }
 
 /* Compact size */
 .sapUiSizeCompact {
-	.sapMMultiComboBoxItem .sapMCb {
+	.sapMLIB.sapMMultiComboBoxItem.sapMSLIWrapping > .sapMCb{
 		height: 2rem;
 		line-height: 2rem;
+		margin-top: 0;
 	}
 
 	/* handle min-width calculation */
@@ -134,5 +121,22 @@ li.sapMMultiComboBoxItem .sapMCbBg {
 		&.sapMInputBaseReadonly .sapMInputBaseContentWrapper {
 			min-width: @_InputBase_Control_Tokens_ReadOnly_MinWidth_Compact;
 		}
+	}
+
+	.sapMMultiComboBoxSelectAll.sapMTB .sapMCb {
+		margin-left: 0.5rem;
+		padding-left: 2.25rem;
+	}
+}
+
+.sapMMultiComboBoxSelectAll.sapMTB.sapMIBar {
+	padding: 0;
+	&.sapMMultiComboBoxSelectAllFocused {
+		outline: @sapUiContentFocusWidth @sapUiContentFocusStyle @sapUiContentFocusColor;
+		outline-offset: -0.125rem;
+	}
+
+	& .sapMBarChild.sapMCb.sapMCbHasLabel:focus:before {
+		border: none;
 	}
 }

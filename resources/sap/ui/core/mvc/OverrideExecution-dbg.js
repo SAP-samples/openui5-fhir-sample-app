@@ -1,10 +1,10 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2024 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
-// Provides enumeration sap.ui.model.CountMode
+// Provides enumeration sap.ui.core.mvc.OverrideExecution
 sap.ui.define(function() {
 	"use strict";
 
@@ -33,12 +33,12 @@ sap.ui.define(function() {
 
 		/**
 		 * The override function is called instead of the original function
-         *
-         * This is the default option for ControllerExtension overrides
+		 *
+		 * This is the default option for ControllerExtension overrides
 		 * @public
 		 */
 		Instead: "Instead"
-    };
+	};
 
 	return OverrideExecution;
 

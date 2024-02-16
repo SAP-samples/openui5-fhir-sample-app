@@ -1,10 +1,10 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2024 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
-sap.ui.define(["sap/ui/core/library", "sap/ui/core/InvisibleRenderer", "sap/ui/Device"], function(coreLibrary, InvisibleRenderer, Device) {
+sap.ui.define(["sap/ui/core/library", "sap/ui/core/InvisibleRenderer"], function(coreLibrary, InvisibleRenderer) {
 	'use strict';
 
 	// shortcut for sap.ui.core.Priority
@@ -22,7 +22,7 @@ sap.ui.define(["sap/ui/core/library", "sap/ui/core/InvisibleRenderer", "sap/ui/D
 	 * Renders the HTML for the given control, using the provided {@link sap.ui.core.RenderManager}.
 	 *
 	 * @param {sap.ui.core.RenderManager} rm The RenderManager that can be used for writing to the render output buffer
-	 * @param {sap.ui.core.Control} control An object representation of the control that should be rendered
+	 * @param {sap.m.NotificationListItem} control An object representation of the control that should be rendered
 	 */
 	NotificationListItemRenderer.render = function (rm, control) {
 
@@ -65,11 +65,11 @@ sap.ui.define(["sap/ui/core/library", "sap/ui/core/InvisibleRenderer", "sap/ui/D
 			rm.class('sapMNLINoAvatar');
 		}
 
-		rm.attr('tabindex', '0');
+		rm.attr('tabindex', '-1');
 
 		// ARIA
 		rm.accessibilityState(control, {
-			role: "option",
+			role: "listitem",
 			labelledby: {
 				value: sAriaLabelledBy
 			}
@@ -86,7 +86,6 @@ sap.ui.define(["sap/ui/core/library", "sap/ui/core/InvisibleRenderer", "sap/ui/D
 
 		// actions and close
 		rm.openStart('div')
-			.attr('aria-hidden', 'true')
 			.class('sapMNLIItem')
 			.class('sapMNLIItemAC')
 			.openEnd();
@@ -104,7 +103,6 @@ sap.ui.define(["sap/ui/core/library", "sap/ui/core/InvisibleRenderer", "sap/ui/D
 
 		// close button
 		if (control._shouldRenderCloseButton()) {
-
 			rm.openStart('div')
 				.class('sapMNLIItem')
 				.class('sapMNLICloseBtn')
@@ -200,10 +198,8 @@ sap.ui.define(["sap/ui/core/library", "sap/ui/core/InvisibleRenderer", "sap/ui/D
 
 		// content - footer - show more
 		if (!control.getHideShowMoreButton()) {
-			// aria-hidden stop show more button to read out the whole notification, when in a group
 			rm.openStart('div')
 				.class('sapMNLIShowMore')
-				.attr('aria-hidden', 'true')
 				.openEnd();
 
 			rm.renderControl(control._getShowMoreButton());

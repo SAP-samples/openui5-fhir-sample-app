@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2024 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -19,6 +19,10 @@ sap.ui.define([
 				return true;
 			}
 
+			var oAppWindow = this._getApplicationWindow(),
+			oAppWindowJQuery = oAppWindow.jQuery,
+			oStaticArea = oAppWindow.sap.ui.require("sap/ui/core/Core").getStaticAreaRef();
+
 			var oParent = oControl.getParent();
 			if (bDirect) {
 				return fnMatch(oParent);
@@ -28,7 +32,8 @@ sap.ui.define([
 				if (fnMatch(oParent)) {
 					return true;
 				}
-				oParent = oParent.getParent();
+				oParent = (oParent.isA("sap.ui.core.UIComponent") &&  !oAppWindowJQuery.contains(oStaticArea, oControl.getDomRef()))
+					? oParent.oContainer : oParent.getParent();
 			}
 
 			return false;

@@ -1,15 +1,14 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2024 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 sap.ui.define([
 	'sap/ui/core/library',
-	'sap/m/library',
-	'sap/ui/Device'
+	'sap/m/library'
 ],
-function(coreLibrary, library, Device) {
+function(coreLibrary, library) {
 	"use strict";
 
 
@@ -33,7 +32,7 @@ function(coreLibrary, library, Device) {
 	 * Renders the HTML for the given control, using the provided {@link sap.ui.core.RenderManager}.
 	 *
 	 * @param {sap.ui.core.RenderManager} rm The RenderManager that can be used for writing to the render output buffer
-	 * @param {sap.ui.core.Control} oControl An object representation of the control that should be rendered
+	 * @param {sap.m.Shell} oControl An object representation of the control that should be rendered
 	 */
 	ShellRenderer.render = function(rm, oControl) {
 		var sTitleLevel = (oControl.getTitleLevel() === TitleLevel.Auto) ? TitleLevel.H1 : oControl.getTitleLevel();
@@ -83,7 +82,7 @@ function(coreLibrary, library, Device) {
 		rm.openEnd();
 		rm.close("div");
 		// logo
-		ShellRenderer.getLogoImageHtml(rm, oControl);
+		ShellRenderer.renderLogoImage(rm, oControl);
 
 		// header title
 		if (oControl.getTitle()) {
@@ -136,30 +135,14 @@ function(coreLibrary, library, Device) {
 		rm.close("div");
 	};
 
-	ShellRenderer.getLogoImageHtml = function(rm, oControl) {
-		var sImage = oControl.getLogo(); // configured logo
-		if (!sImage) {
-			//TODO: global jquery call found
-			jQuery.sap.require("sap.ui.core.theming.Parameters");
-			sImage = sap.ui.core.theming.Parameters._getThemeImage(); // theme logo
-		}
-
-		if (sImage) {
-			var oRb = sap.ui.getCore().getLibraryResourceBundle("sap.m");
+	ShellRenderer.renderLogoImage = function(rm, oControl) {
+		if (oControl._getImageSrc()) {
 			rm.openStart("div");
 			rm.class("sapMShellLogo");
 			rm.openEnd();
-			if (Device.browser.msie) {
-				rm.openStart("span");
-				rm.class("sapMShellLogoImgAligner");
-				rm.openEnd();
-				rm.close("span");
-			}
-			rm.voidStart("img", oControl.getId() + "-logo");
-			rm.class("sapMShellLogoImg");
-			rm.attr("src", sImage);
-			rm.attr("alt", oRb.getText("SHELL_ARIA_LOGO"));
-			rm.voidEnd();
+
+			rm.renderControl(oControl._getImage());
+
 			rm.close("div");
 		}
 	};

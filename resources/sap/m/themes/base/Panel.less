@@ -10,6 +10,10 @@
 	position: relative;
 }
 
+.sapMPanel.sapMPanelHasStickyHeader {
+	overflow: visible;
+}
+
 .sapMPanelHdr {
 	box-sizing: border-box;
 	white-space: nowrap;
@@ -27,7 +31,7 @@
 	-webkit-text-size-adjust: none;
 
 	font-weight: @sapUiFontHeaderWeight;
-	font-size: @sapMFontHeader4Size;
+	font-size: @sapUiGroupTitleFontSize;
 	font-family: @sapUiFontHeaderFamily;
 	color: @sapUiGroupTitleTextColor;
 }
@@ -37,11 +41,12 @@
 	.sapMTB.sapMPanelHeaderTB {
 		padding-left: 1rem;
 		padding-right: 0.5rem;
+		background-color: @sapUiGroupTitleBackground;
 	}
 
 	&.sapMPanelExpandable {
 		.sapMPanelHdr, .sapMTB.sapMPanelHeaderTB {
-			padding-left: 0rem;
+			padding-left: 0;
 		}
 	}
 }
@@ -49,6 +54,13 @@
 .sapUiSizeCompact .sapMPanel .sapMPanelHdr {
 	line-height: 2rem;
 	height: 2rem;
+}
+
+.sapMPanelStickyHeadingDiv {
+	position: sticky;
+	top: 0;
+	z-index: 4; /* The z-index of the Table sticky header is 3, so we need bigger one to make the Panel header on top*/
+	background-color: @sapUiBaseBG;
 }
 
 .sapMPanelContent {
@@ -125,16 +137,6 @@ html.sap-desktop .sapUiFioriObjectPage > section > .sapMPanel {
 /* mixin call for creating container content padding classes (arguments: rootContainer, contentSelector) */
 .sapUiContainerContentPadding(~".sapMPanel", ~"> .sapMPanelContent");
 
-/* TODO remove after the end of support for Internet Explorer */
-/* workaround for drawing issue in IE - ensures that the content will be redrawn */
-html[data-sap-ui-animation='on'][data-sap-ui-browser^="ie"] .sapMPanelContent {
-	transform: translate(0, 0);
-}
-
-/* workaround for drawing issue in Edge - ensures that the content will be redrawn */
-html[data-sap-ui-animation='on'][data-sap-ui-browser^="ed"] .sapMPanelContent {
-	transform: translate(0, 0);
-}
 
 .sapMPanelExpandable .sapMPanelWrappingDiv {
 	&:focus {

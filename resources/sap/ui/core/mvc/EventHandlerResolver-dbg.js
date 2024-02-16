@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2024 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -15,7 +15,8 @@ sap.ui.define([
 	"sap/base/util/JSTokenizer",
 	"sap/base/util/ObjectPath",
 	"sap/base/util/resolveReference",
-	"sap/base/Log"
+	"sap/base/Log",
+	"sap/ui/base/DesignTime"
 ],
 	function(
 		BindingParser,
@@ -27,7 +28,8 @@ sap.ui.define([
 		JSTokenizer,
 		ObjectPath,
 		resolveReference,
-		Log
+		Log,
+		DesignTime
 	) {
 		"use strict";
 
@@ -78,7 +80,7 @@ sap.ui.define([
 				var fnHandler, iStartBracket, sFunctionName;
 				sName = sName.trim();
 
-				if (sap.ui.getCore().getConfiguration().getControllerCodeDeactivated()) {
+				if (DesignTime.isControllerCodeDeactivated()) {
 					// When design mode is enabled, controller code is not loaded. That is why we stub the handler functions.
 					fnHandler = function() {};
 				} else {
@@ -90,9 +92,10 @@ sap.ui.define([
 							if (oCommandExecution) {
 								oCommandExecution.trigger();
 							} else {
-								Log.error("Handler '" + sName + "' could not be resolved. No CommandExecution defined for command: " + sCommand);
+								Log.error("[FUTURE FATAL] Handler '" + sName + "' could not be resolved. No CommandExecution defined for command: " + sCommand);
 							}
 						};
+						fnHandler._sapui_commandName = sCommand;
 					} else {
 						// check for extended event handler syntax
 						iStartBracket = sName.indexOf("(");
@@ -122,7 +125,7 @@ sap.ui.define([
 						if (iEndBracket > iStartBracket) {
 
 							if (sName.substring(iStartBracket).indexOf("{=") > -1) {
-								Log.warning("It looks like an event handler parameter contains a binding expression ({=...}). This is not allowed and will cause an error later on " +
+								Log.warning("[FUTURE FATAL] It looks like an event handler parameter contains a binding expression ({=...}). This is not allowed and will cause an error later on " +
 									"because the entire event handler is already considered an expression: " + sName);
 							}
 
@@ -183,7 +186,7 @@ sap.ui.define([
 								};
 							})(sFunctionName, oController);
 						} else {
-							Log.error("Syntax error in event handler '" + sName + "': arguments must be enclosed in a pair of brackets");
+							Log.error("[FUTURE FATAL] Syntax error in event handler '" + sName + "': arguments must be enclosed in a pair of brackets");
 						}
 					}
 				}
@@ -196,7 +199,7 @@ sap.ui.define([
 					return [ fnHandler, oController ];
 				}
 
-				Log.warning("Event handler name '" + sName + "' could not be resolved to an event handler function");
+				Log.warning("[FUTURE FATAL] Event handler name '" + sName + "' could not be resolved to an event handler function");
 				// return undefined
 			},
 
@@ -214,7 +217,7 @@ sap.ui.define([
 			 * parse(".fnControllerMethod; .fnControllerMethod(${  path:'/someModelProperty', formatter: '.myFormatter', type: 'sap.ui.model.type.String'}    ); globalFunction")
 			 * => [".fnControllerMethod", ".fnControllerMethod(${  path:'/someModelProperty', formatter: '.myFormatter', type: 'sap.ui.model.type.String'}    )", "globalFunction"]
 			 *
-			 * @param [string] sValue - Incoming string
+			 * @param {string} [sValue] - Incoming string
 			 * @return {string[]} - Array of event handler definitions
 			 */
 			parse: function parse(sValue) {
@@ -242,6 +245,8 @@ sap.ui.define([
 							break;
 						case ")":
 							iParenthesesCounter--;
+							break;
+						default:
 							break;
 					}
 
@@ -303,7 +308,7 @@ sap.ui.define([
 				}
 			}
 
-			var clType, oContext, oBinding, aBindings = [];
+			var oContext, oBinding, aBindings = [];
 			oBindingInfo.parts.forEach(function(oPart) {
 				var oModel;
 				if (oPart.model === "$parameters") {
@@ -318,13 +323,6 @@ sap.ui.define([
 				}
 
 				oType = oPart.type;
-				if (typeof oType == "string") {
-					clType = ObjectPath.get(oType);
-					if (typeof clType !== "function") {
-						throw new Error("Cannot find type \"" + oType + "\" used for binding \"" + oPart.path + "\"!");
-					}
-					oType = new clType(oPart.formatOptions, oPart.constraints);
-				}
 
 				oBinding = oModel.bindProperty(oPart.path, oContext, oBindingInfo.parameters);
 				oBinding.setType(oType /* type that is able to parse etc. */, oPart.targetType /* string, boolean, etc. */ || "any");
@@ -337,10 +335,7 @@ sap.ui.define([
 			if (aBindings.length > 1 || ( oBindingInfo.formatter && oBindingInfo.formatter.textFragments )) {
 				// Create type instance if needed
 				oType = oBindingInfo.type;
-				if (typeof oType == "string") {
-					clType = ObjectPath.get(oType);
-					oType = new clType(oBindingInfo.formatOptions, oBindingInfo.constraints);
-				}
+
 				oBinding = new CompositeBinding(aBindings, oBindingInfo.useRawValues, oBindingInfo.useInternalValues);
 				oBinding.setType(oType /* type that is able to parse etc. */, oPart.targetType /* string, boolean, etc. */ || "any");
 				oBinding.setBindingMode(BindingMode.OneTime);

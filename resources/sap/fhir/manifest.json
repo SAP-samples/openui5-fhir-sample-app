@@ -5,7 +5,7 @@
         "type": "library",
         "embeds": [],
         "applicationVersion": {
-            "version": "2.2.8"
+            "version": "2.3.6"
         },
         "title": "The sap.fhir library provides a model to build state of the art UI5 applications in context of health industries.",
         "description": "The sap.fhir library provides a model to build state of the art UI5 applications in context of health industries.",

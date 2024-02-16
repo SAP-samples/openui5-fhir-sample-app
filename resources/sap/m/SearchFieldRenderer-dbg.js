@@ -1,13 +1,27 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2024 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
-sap.ui.define(["sap/ui/Device", "sap/ui/core/InvisibleText"],
-	function(Device, InvisibleText) {
+sap.ui.define([
+	"sap/ui/Device",
+	"sap/ui/core/InvisibleText",
+	"sap/ui/core/library",
+	"sap/ui/core/Lib"
+],
+	function(
+	Device,
+	InvisibleText,
+	coreLibrary,
+	Library
+) {
 	"use strict";
 
+	/**
+	 * @const Shortcut to sap.ui.core.library.aria.HasPopup
+	 */
+	var HasPopup = coreLibrary.aria.HasPopup;
 
 	/**
 	 * SearchField renderer.
@@ -21,7 +35,7 @@ sap.ui.define(["sap/ui/Device", "sap/ui/core/InvisibleText"],
 	 * Renders the HTML for the given control, using the provided {@link sap.ui.core.RenderManager}.
 	 *
 	 * @param {sap.ui.core.RenderManager} rm the RenderManager that can be used for writing to the Render-Output-Buffer
-	 * @param {sap.ui.core.Control} oSF an object representation of the control that should be rendered
+	 * @param {sap.m.SearchField} oSF an object representation of the control that should be rendered
 	 */
 	SearchFieldRenderer.render = function(rm, oSF){
 		// render nothing if control is invisible
@@ -29,16 +43,18 @@ sap.ui.define(["sap/ui/Device", "sap/ui/core/InvisibleText"],
 			return;
 		}
 
-		var sPlaceholder = oSF.getPlaceholder(),
+		var sPlaceholder = oSF.getPlaceholder() || Library.getResourceBundleFor("sap.m").getText("FACETFILTER_SEARCH", undefined, true),
 			sValue = oSF.getValue(),
 			sWidth = oSF.getProperty("width"),
 			sId = oSF.getId(),
 			bShowRefreshButton = oSF.getShowRefreshButton(),
 			bShowSearchBtn = oSF.getShowSearchButton(),
-			oAccAttributes = {}, // additional accessibility attributes
-			sToolTipValue,
-			sRefreshToolTip = oSF.getRefreshButtonTooltip(),
-			sResetToolTipValue;
+			oAccAttributes = {
+				describedby: {
+					value: SearchFieldRenderer._getDescribedBy(oSF),
+					append: true
+				}
+			};
 
 		// container
 		rm.openStart("div", oSF)
@@ -64,45 +80,41 @@ sap.ui.define(["sap/ui/Device", "sap/ui/core/InvisibleText"],
 				.class('sapMSFF');
 
 			if (!bShowSearchBtn) {
-				rm.class("sapMSFNS"); //no search button
+				rm.class("sapMSFNS"); // no search button
 			} else if (bShowRefreshButton) {
 				rm.class('sapMSFReload');
 			}
 
 			rm.openEnd();
 
-			// self-made placeholder
-			if (!oSF._hasPlaceholder && sPlaceholder) {
-				rm.openStart("label", sId + "-P")
-					.class("sapMSFPlaceholder")
-					.attr("for", sId + "-I")
-					.openEnd()
-					.text(sPlaceholder)
-					.close("label");
-			}
+			rm.openStart("span", sId + "-staticSearchIcon");
+			rm.attr("aria-hidden", true);
+			rm.class('sapMSFSSI'); // static search icon (needed for the Search Field in the Tool Header)
+			rm.openEnd().close("span");
 
-			rm.voidStart('input', oSF.getId() + "-I")
+			rm.voidStart('input', sId + "-I")
 				.class("sapMSFI")
 				.attr("type", "search")
+				.attr("aria-label", sPlaceholder)
 				.attr("autocomplete", "off");
+
+			if (oSF.getEnableSuggestions()) {
+				rm.attr("aria-haspopup", HasPopup.ListBox.toLowerCase());
+			}
 
 			if (Device.browser.safari) {
 				rm.attr("autocorrect", "off");
 			}
 
+			if (oSF.getEnableSuggestions() && Device.system.phone) {
+				// Always open a dialog on a phone if suggestions are on.
+				// avoid soft keyboard flickering
+				rm.attr("inputmode", "none");
+			}
+
 			var sTooltip = oSF.getTooltip_AsString();
 			if (sTooltip) {
 				rm.attr("title", sTooltip);
-			}
-
-			if (Device.os.android && Device.os.version >= 4 && Device.os.version < 4.1 ) {
-				rm.class("sapMSFIA4"); // specific CSS layout for Android 4.0x
-			}
-
-			if (oSF.getEnableSuggestions() && Device.system.phone) {
-				// Always open a dialog on a phone if suggestions are on.
-				// To avoid soft keyboard flickering, set the readonly attribute.
-				rm.attr("readonly", "readonly");
 			}
 
 			if (!oSF.getEnabled()) {
@@ -114,23 +126,10 @@ sap.ui.define(["sap/ui/Device", "sap/ui/core/InvisibleText"],
 			}
 
 			if (oSF.getMaxLength()) {
-				rm.attr("maxLength", oSF.getMaxLength());
+				rm.attr("maxlength", oSF.getMaxLength());
 			}
 
-			if (sValue) {
-				rm.attr("value", sValue);
-			}
-
-			// ARIA attributes
-			if (oSF.getEnabled() && bShowRefreshButton) {
-				var sAriaF5LabelId = InvisibleText.getStaticId("sap.m", "SEARCHFIELD_ARIA_F5");
-				if (sAriaF5LabelId) {
-					oAccAttributes.describedby = {
-						value: sAriaF5LabelId,
-						append: true
-					};
-				}
-			}
+			rm.attr("value", sValue);
 
 			oAccAttributes.disabled = null;
 
@@ -140,13 +139,10 @@ sap.ui.define(["sap/ui/Device", "sap/ui/core/InvisibleText"],
 
 			if (oSF.getEnabled()) {
 				// 2. Reset button
-				rm.openStart("div", oSF.getId() + "-reset")
+				rm.openStart("div", sId + "-reset")
 					.class("sapMSFR") // reset
 					.class("sapMSFB") // button
 					.attr("aria-hidden", true);
-
-				sResetToolTipValue = sValue === "" ? this.oSearchFieldToolTips.SEARCH_BUTTON_TOOLTIP : this.oSearchFieldToolTips.RESET_BUTTON_TOOLTIP;
-				rm.attr("title", sResetToolTipValue); // initial rendering reset is search when no value is set
 
 				if (Device.browser.firefox) {
 					rm.class("sapMSFBF"); // firefox, active state by preventDefault
@@ -161,7 +157,7 @@ sap.ui.define(["sap/ui/Device", "sap/ui/core/InvisibleText"],
 
 				// 3. Search/Refresh button
 				if (bShowSearchBtn) {
-					rm.openStart("div", oSF.getId() + "-search")
+					rm.openStart("div", sId + "-search")
 						.class("sapMSFS") // search
 						.class("sapMSFB") // button
 						.attr("aria-hidden", true);
@@ -170,14 +166,7 @@ sap.ui.define(["sap/ui/Device", "sap/ui/core/InvisibleText"],
 						rm.class("sapMSFBF"); // firefox, active state by preventDefault
 					}
 
-					if (bShowRefreshButton) {
-						sToolTipValue = sRefreshToolTip === "" ? this.oSearchFieldToolTips.REFRESH_BUTTON_TOOLTIP : sRefreshToolTip;
-					} else {
-						sToolTipValue = this.oSearchFieldToolTips.SEARCH_BUTTON_TOOLTIP;
-					}
-
-					rm.attr("title", sToolTipValue)
-						.openEnd()
+					rm.openEnd()
 						.close("div");
 				}
 			}
@@ -186,7 +175,7 @@ sap.ui.define(["sap/ui/Device", "sap/ui/core/InvisibleText"],
 
 			if (oSF.getEnableSuggestions()) {
 
-				rm.openStart("span", oSF.getId() + "-SuggDescr")
+				rm.openStart("span", sId + "-SuggDescr")
 					.class("sapUiPseudoInvisibleText")
 					.attr("role", "status")
 					.attr("aria-live", "polite")
@@ -195,6 +184,16 @@ sap.ui.define(["sap/ui/Device", "sap/ui/core/InvisibleText"],
 			}
 
 		rm.close("div");
+	};
+
+	SearchFieldRenderer._getDescribedBy = function (oSF) {
+		var sDescribedBy = InvisibleText.getStaticId("sap.m", "SEARCHFIELD_ARIA_DESCRIBEDBY");
+
+		if (oSF.getEnabled() && oSF.getShowRefreshButton()) {
+			sDescribedBy += " " + InvisibleText.getStaticId("sap.m", "SEARCHFIELD_ARIA_F5");
+		}
+
+		return sDescribedBy;
 	};
 
 	return SearchFieldRenderer;

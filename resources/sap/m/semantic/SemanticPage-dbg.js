@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2024 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -19,6 +19,7 @@ sap.ui.define([
 	'sap/ui/base/ManagedObjectObserver',
 	'sap/ui/core/Control',
 	'sap/ui/core/library',
+	"sap/ui/core/InvisibleText",
 	'sap/m/library',
 	"./SemanticPageRenderer",
 	"sap/base/Log",
@@ -39,6 +40,7 @@ function(
 	ManagedObjectObserver,
 	Control,
 	coreLibrary,
+	InvisibleText,
 	library,
 	SemanticPageRenderer,
 	Log,
@@ -109,13 +111,12 @@ function(
 	 * @abstract
 	 *
 	 * @author SAP SE
-	 * @version 1.79.0
+	 * @version 1.120.6
 	 *
 	 * @constructor
 	 * @public
 	 * @since 1.30.0
 	 * @alias sap.m.semantic.SemanticPage
-	 * @ui5-metamodel This control/element also will be described in the UI5 (legacy) designtime metamodel
 	 */
 	var SemanticPage = Control.extend("sap.m.semantic.SemanticPage", /** @lends sap.m.semantic.SemanticPage.prototype */ {
 		metadata: {
@@ -277,19 +278,33 @@ function(
 			},
 			dnd: { draggable: false, droppable: true },
 			designtime: "sap/m/designtime/semantic/SemanticPage.designtime"
-		}
+		},
+
+		renderer: SemanticPageRenderer
 	});
 
+	// Static members
+	SemanticPage._getResourceBundle = function () {
+		return sap.ui.getCore().getLibraryResourceBundle("sap.m");
+	};
+
+	SemanticPage.ARIA = {
+		TOOLBAR_HEADER_ACTIONS: SemanticPage._getResourceBundle().getText('ARIA_LABEL_TOOLBAR_HEADER_ACTIONS'),
+		TOOLBAR_FOOTER_ACTIONS: SemanticPage._getResourceBundle().getText('ARIA_LABEL_TOOLBAR_FOOTER_ACTIONS')
+	};
+
+	// Lifecycle methods
 	SemanticPage.prototype.init = function () {
+		this._aCachedInvisibleTexts = [];
+
 		this._oHeaderObserver = new ManagedObjectObserver(SemanticPage.prototype._updateHeaderVisibility.bind(this));
 
 		this._currentMode = SemanticConfiguration._PageMode.display;
 		this._getPage().setCustomHeader(this._getInternalHeader());
-		this._getPage().setFooter(new OverflowToolbar(this.getId() + "-footer"));
+		this._getPage().setFooter(this._getInternalOverflowToolbar());
 		this.setLandmarkInfo(new PageAccessibleLandmarkInfo());
 		this._getPage().setShowHeader(false);
 	};
-
 
 	/**
 	 * Function is called when exiting the control.
@@ -323,6 +338,7 @@ function(
 			this._oHeaderObserver = null;
 		}
 
+		this._destroyInvisibleTexts();
 		this._oPositionsMap = null;
 	};
 
@@ -594,7 +610,7 @@ function(
 		if (!this._oNavButton) {
 			this._oNavButton = new Button(this.getId() + "-navButton", {
 				type: ButtonType.Up,
-				tooltip: sap.ui.getCore().getLibraryResourceBundle("sap.m").getText("PAGE_NAVBUTTON_TEXT"),
+				tooltip: SemanticPage._getResourceBundle().getText("PAGE_NAVBUTTON_TEXT"),
 				press: jQuery.proxy(this.fireNavButtonPress, this)
 			});
 		}
@@ -736,7 +752,7 @@ function(
 	SemanticPage.prototype._getPage = function () {
 
 		var oPage = this.getAggregation("_page");
-		if (!oPage) {
+		if (!oPage && !this._bIsBeingDestroyed) {
 			this.setAggregation("_page", new Page(this.getId() + "-page"));
 			oPage = this.getAggregation("_page");
 		}
@@ -752,7 +768,12 @@ function(
 	SemanticPage.prototype._getInternalHeader = function () {
 
 		if (!this._oInternalHeader) {
-			this._oInternalHeader = new Bar(this.getId() + "-intHeader");
+			var sId = this.getId() + "-intHeader";
+
+			this._oInternalHeader = new Bar({
+				id: sId,
+				ariaLabelledBy: this._getInvisibleText(sId, SemanticPage.ARIA.TOOLBAR_HEADER_ACTIONS)
+			});
 
 			if (this._oHeaderObserver) {
 				this._oHeaderObserver.observe(this._oInternalHeader, {
@@ -764,6 +785,19 @@ function(
 		}
 
 		return this._oInternalHeader;
+	};
+
+	/**
+	 * @returns {sap.m.OverflowToolbar} The internal overflow toolbar.
+	 * @private
+	 */
+	SemanticPage.prototype._getInternalOverflowToolbar = function () {
+		var sId = this.getId() + "-footer";
+
+		return new OverflowToolbar({
+			id: sId,
+			ariaLabelledBy: this._getInvisibleText(sId, SemanticPage.ARIA.TOOLBAR_FOOTER_ACTIONS)
+		});
 	};
 
 	/**
@@ -848,6 +882,35 @@ function(
 
 		return this._oWrappedFooter;
 
+	};
+
+	/**
+	 * Creates and caches an instance of the {@link sap.ui.core.InvisibleText} control for the specified aria label.
+	 * @param {string} sId The ID for the invisible text control.
+	 * @param {string} sAriaLabel The aria label to set for the invisible text control.
+	 * @returns {sap.ui.core.InvisibleText} The created invisible text control.
+	 * @private
+	 */
+	SemanticPage.prototype._getInvisibleText = function(sId, sAriaLabel) {
+		var oInvisibleText = new InvisibleText({
+			id: sId + "-InvisibleText",
+			text: sAriaLabel
+		}).toStatic();
+
+		this._aCachedInvisibleTexts.push(oInvisibleText);
+		return oInvisibleText;
+	};
+
+	/**
+ 	 * Destroys all cached instances of the {@link sap.ui.core.InvisibleText} control.
+	 * @private
+ 	 */
+	SemanticPage.prototype._destroyInvisibleTexts = function () {
+		this._aCachedInvisibleTexts.forEach(function (oInvisibleText) {
+			oInvisibleText.destroy();
+		});
+
+		this._aCachedInvisibleTexts = [];
 	};
 
 	/*

@@ -1,13 +1,13 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2024 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 /*
  * IMPORTANT: This is a private module, its API must not be used and is subject to change.
  * Code other than the OpenUI5 libraries must not introduce dependencies to this module.
  */
-sap.ui.define(['sap/ui/Device', 'sap/base/Log', "sap/ui/thirdparty/jquery"], function(Device, Log, jQuery) {
+sap.ui.define(['sap/ui/Device', 'sap/base/Log', 'sap/base/util/extend', 'sap/ui/dom/_ready'], function(Device, Log, extend, _ready) {
 	"use strict";
 
 	/**
@@ -18,26 +18,28 @@ sap.ui.define(['sap/ui/Device', 'sap/base/Log', "sap/ui/thirdparty/jquery"], fun
 	 */
 	var Mobile = {};
 
-	// Windows Phone specific handling
-	if (Device.os.windows_phone) {
-		var oTag;
-		// Disable grey highlights over tapped areas.
-		// This meta tag works since Windows 8.1.
-		// Write in-place, otherwise IE ignores it:
-		oTag = document.createElement("meta");
-		oTag.setAttribute("name", "msapplication-tap-highlight");
-		oTag.setAttribute("content", "no");
-		document.head.appendChild(oTag);
+	var _bInitTriggered = false;
 
-		// Style for correct viewport size and scale definition.
-		// It works correctly since Windows 8.1.
-		// Older 8.0 patches return wrong device-width:
-		oTag = document.createElement("style");
-		oTag.appendChild(document.createTextNode('@-ms-viewport{width:device-width;}'));
-		document.head.appendChild(oTag);
+	function addElementToHead(sTag, mAttributes) {
+		if (sTag !== "meta" || (mAttributes && !document.querySelector("meta[name='" + mAttributes.name + "']"))) {
+			mAttributes = mAttributes || {};
+
+			var oTag = document.createElement(sTag);
+			for (var key in mAttributes) {
+				if (mAttributes[key]) {
+					oTag.setAttribute(key, mAttributes[key]);
+				}
+			}
+			document.head.appendChild(oTag);
+		}
 	}
 
-	var _bInitTriggered = false;
+	function removeFromHead(sSelector) {
+		var aElements = document.head.querySelectorAll(sSelector);
+		for (var i = 0, l = aElements.length; i < l; i++) {
+			aElements[i].remove(aElements[i]);
+		}
+	}
 
 	/**
 	 * Does some basic modifications to the HTML page that make it more suitable for mobile apps.
@@ -49,7 +51,8 @@ sap.ui.define(['sap/ui/Device', 'sap/base/Log', "sap/ui/thirdparty/jquery"], fun
 	 *
 	 * It can have the following properties:
 	 * <ul>
-	 * <li>viewport: whether to set the viewport in a way that disables zooming (default: true)</li>
+	 * <li>viewport: whether to set the viewport in a way that disables zooming (default: true). This does not
+	 * work in case there is already a meta tag with name 'viewport'.</li>
 	 * <li>statusBar: the iOS status bar color, "default", "black" or "black-translucent" (default: "default")</li>
 	 * <li>hideBrowser: whether the browser UI should be hidden as far as possible to make the app feel more native
 	 * (default: true)</li>
@@ -58,7 +61,7 @@ sap.ui.define(['sap/ui/Device', 'sap/base/Log', "sap/ui/thirdparty/jquery"], fun
 	 * <li>preventPhoneNumberDetection: whether Safari Mobile should be prevented from transforming any numbers
 	 * that look like phone numbers into clickable links; this should be left as "true", otherwise it might break
 	 * controls because Safari actually changes the DOM. This only affects all page content which is created after
-	 * init() is called.</li>
+	 * init() is called and only in case there is not already a meta tag with name 'format-detection'.</li>
 	 * <li>rootId: the ID of the root element that should be made fullscreen; only used when hideBrowser is set
 	 * (default: the document.body)</li>
 	 * <li>useFullScreenHeight: a boolean that defines whether the height of the html root element should be set to
@@ -91,12 +94,10 @@ sap.ui.define(['sap/ui/Device', 'sap/base/Log', "sap/ui/thirdparty/jquery"], fun
 	 * @public
 	 */
 	Mobile.init = function(options) {
-		var $head = jQuery("head");
-
 		if (!_bInitTriggered) { // only one initialization per HTML page
 			_bInitTriggered = true;
 
-			options = jQuery.extend({}, { // merge in the default values
+			options = extend({}, { // merge in the default values
 				viewport: true,
 				statusBar: "default",
 				hideBrowser: true,
@@ -107,43 +108,47 @@ sap.ui.define(['sap/ui/Device', 'sap/base/Log', "sap/ui/thirdparty/jquery"], fun
 				mobileWebAppCapable: "default"
 			}, options);
 
+			var bAppleMobileDevice = Device.os.ios || (Device.os.macintosh && Device.browser.mobile);
+
 			// en-/disable automatic link generation for phone numbers
-			if (Device.os.ios && options.preventPhoneNumberDetection) {
-				$head.append(jQuery('<meta name="format-detection" content="telephone=no">')); // this only works
-			                                                                                   // for all DOM
-			                                                                                   // created
-			                                                                                   // afterwards
-			} else if (Device.browser.msie) {
-				$head.append(jQuery('<meta http-equiv="cleartype" content="on">'));
-				$head.append(jQuery('<meta name="msapplication-tap-highlight" content="no">'));
+			if (options.preventPhoneNumberDetection) {
+				// iOS specific meta tag
+				addElementToHead("meta", {
+					name: "format-detection",
+					content: "telephone=no"
+				});// this only works for all DOM created afterwards
 			}
 
-			var bIsIOS7Safari = Device.os.ios && Device.os.version >= 7 && Device.os.version < 8 && Device.browser.name === "sf";
 			// initialize viewport
 			if (options.viewport) {
 				var sMeta;
 				var iInnerHeightBefore = Device.resize.height;
 				var iInnerWidthBefore = Device.resize.width;
-				if (bIsIOS7Safari && Device.system.phone) {
-					//if the softkeyboard is open in orientation change, we have to do this to solve the zoom bug
-					// on the phone - the phone zooms into the view although it shouldn't so these two lines will
-					// zoom out again see orientation change below the important part seems to be removing the
-					// device width
-					sMeta = 'minimal-ui, initial-scale=1.0, maximum-scale=1.0, user-scalable=0';
-				} else if (bIsIOS7Safari && Device.system.tablet) {
-					//remove the width = device width since it will not work correctly if the webside is embedded
-					// in a webview
-					sMeta = 'initial-scale=1.0, maximum-scale=1.0, user-scalable=no';
-				} else if ((Device.os.ios && Device.system.phone) && (Math.max(window.screen.height, window.screen.width) === 568)) {
-					// iPhone 5
-					sMeta = "user-scalable=0, initial-scale=1.0";
-				} else if (Device.os.android && Device.os.version < 3) {
-					sMeta = "width=device-width, height=device-height, initial-scale=1.0, maximum-scale=1.0, user-scalable=no";
-				} else {
-					// all other devices
-					sMeta = "width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no";
+
+				sMeta = "width=device-width, initial-scale=1.0";
+
+				// Setting maximum-scale=1.0 and user-scalable=no has effect to the manual zoom (user can pinch zoom the
+				// UI) and auto zoom (browser zooms in the UI automatically under some circumtances, for example when an
+				// input gets the focus and the font-size of the input is less than 16px on iOS) functionalities on the
+				// mobile platform, but there's some difference between the mobile platforms:
+				//  * Apple mobile device: This does not disable manual zoom in Safari and it only disables the auto
+				//    zoom function. In Chrome browser on iOS, it does disable the manual zoom but since Chrome on iOS
+				//    isn't in the support matrix, we can ignore this. The "Request Desktop Website" is turned on by
+				//    default on iPad, therefore we need to check the (macintosh + touch) combination to detect the iPad
+				//    with "Request Desktop Website" turned on to disable the auto zoom.
+				//  * other mobile platform: it does disable the manual zoom option but there's no auto zoom function.
+				//    So we need to remove the maximum-scale=1.0:
+				//
+				//  Therefore we need to add the additional settings (maximum-scale and user-scalable) only for iOS
+				//  platform
+				if (bAppleMobileDevice) {
+					sMeta += ", maximum-scale=1.0, user-scalable=no";
 				}
-				$head.append(jQuery('<meta name="viewport" content="' + sMeta + '">'));
+
+				addElementToHead("meta", {
+					name: "viewport",
+					content: sMeta
+				});
 
 				// Update Device API resize info, which is necessary in some scenarios after setting the viewport info
 				if ((iInnerHeightBefore !== window.innerHeight || iInnerWidthBefore !== window.innerWidth) && Device.resize._update){
@@ -151,32 +156,14 @@ sap.ui.define(['sap/ui/Device', 'sap/base/Log', "sap/ui/thirdparty/jquery"], fun
 				}
 			}
 
-
-			if (options.mobileWebAppCapable === "default") {
-				if (Device.os.ios) {
-					// keep the old behavior for compatibility
-					// enable fullscreen mode only when runs on iOS devices
-					$head.append(jQuery('<meta name="apple-mobile-web-app-capable" content="yes">')); // since iOS
-				                                                                                      // 2.1
-				}
-			}
-
-			if (Device.os.ios) {
-				// set the status bar style on Apple devices
-				$head.append(jQuery('<meta name="apple-mobile-web-app-status-bar-style" content="' + options.statusBar + '">')); // "default" or "black" or "black-translucent", since iOS 2.1
-
-				// splash screen
-				//<link rel="apple-touch-startup-image" href="/startup.png">
-			}
-
 			if (options.useFullScreenHeight) {
-				jQuery(function() {
+				_ready().then(function() {
 					document.documentElement.style.height = "100%"; // set html root tag to 100% height
 				});
 			}
 
-			if (options.preventScroll && Device.os.ios) {
-				jQuery(function() {
+			if (options.preventScroll && bAppleMobileDevice) {
+				_ready().then(function() {
 					document.documentElement.style.position = "fixed";
 					document.documentElement.style.overflow = "hidden";
 					document.documentElement.style.height = "100%";
@@ -185,23 +172,29 @@ sap.ui.define(['sap/ui/Device', 'sap/base/Log', "sap/ui/thirdparty/jquery"], fun
 			}
 		}
 
-		if (options && options.homeIcon) {
-			var oIcons;
+		if (options) {
+			if (options.homeIcon) {
+				var oIcons;
 
-			if (typeof options.homeIcon === "string") {
-				oIcons = {phone: options.homeIcon};
-			} else {
-				oIcons = jQuery.extend({}, options.homeIcon);
+				if (typeof options.homeIcon === "string") {
+					oIcons = {
+						phone: options.homeIcon,
+						favicon: options.homeIcon
+					};
+				} else {
+					oIcons = Object.assign({}, options.homeIcon);
+					oIcons.phone = options.homeIcon.phone || options.homeIcon.icon || oIcons.favicon;
+					oIcons.favicon = oIcons.favicon || options.homeIcon.icon || options.homeIcon.phone;
+					oIcons.icon = undefined;
+				}
+
+				oIcons.precomposed = options.homeIconPrecomposed || oIcons.precomposed;
+				Mobile.setIcons(oIcons);
 			}
 
-			oIcons.precomposed = options.homeIconPrecomposed || oIcons.precomposed;
-			oIcons.favicon = options.homeIcon.icon || oIcons.favicon;
-			oIcons.icon = undefined;
-			Mobile.setIcons(oIcons);
-		}
-
-		if (options && options.mobileWebAppCapable !== "default") {
-			Mobile.setWebAppCapable(options.mobileWebAppCapable);
+			if (options.hasOwnProperty("mobileWebAppCapable")) {
+				Mobile.setWebAppCapable(options.mobileWebAppCapable, options.statusBar);
+			}
 		}
 	};
 
@@ -215,17 +208,17 @@ sap.ui.define(['sap/ui/Device', 'sap/base/Log', "sap/ui/thirdparty/jquery"], fun
 	 * When at least one home icon is given, all existing home icons will be removed and new home icon tags for all
 	 * four resolutions will be created.
 	 *
-	 * The home icons must be in PNG format and given in different sizes for iPad/iPhone with and without retina
+	 * The home icons must be in PNG format and given in different sizes for iPad/iPhone with low and high pixel density
 	 * display. The favicon is used in the browser and for desktop shortcuts and should optimally be in ICO format:
-	 * PNG does not seem to be supported by Internet Explorer and ICO files can contain different image sizes for
-	 * different usage locations. E.g. a 16x16px version is used inside browsers.
+	 * ICO files can contain different image sizes for different usage locations. E.g. a 16x16px version is used
+	 * inside browsers.
 	 *
 	 * All icons are given in an an object holding icon URLs and other settings. The properties of this object are:
 	 * <ul>
-	 * <li>phone: a 60x60 pixel version for non-retina iPhones</li>
-	 * <li>tablet: a 76x76 pixel version for non-retina iPads</li>
-	 * <li>phone@2: a 120x120 pixel version for retina iPhones</li>
-	 * <li>tablet@2: a 152x152 pixel version for retina iPads</li>
+	 * <li>phone: a 120x120 pixel version for iPhones with low pixel density</li>
+	 * <li>tablet: a 152x152 pixel version for iPads with low pixel density</li>
+	 * <li>phone@2: a 180x180 pixel version for iPhones with high pixel density</li>
+	 * <li>tablet@2: a 167x167 pixel version for iPads with high pixel density</li>
 	 * <li>precomposed: whether the home icons already have some glare effect (otherwise iOS will add it) (default:
 	 * false)</li>
 	 * <li>favicon: the ICO file to be used inside the browser and for desktop shortcuts</li>
@@ -234,10 +227,10 @@ sap.ui.define(['sap/ui/Device', 'sap/base/Log', "sap/ui/thirdparty/jquery"], fun
 	 * One example is:
 	 * <pre>
 	 * {
-	 *    'phone':'phone-icon_60x60.png',
-	 *    'phone@2':'phone-retina_120x120.png',
-	 *    'tablet':'tablet-icon_76x76.png',
-	 *    'tablet@2':'tablet-retina_152x152.png',
+	 *    'phone':'phone-icon_120x120.png',
+	 *    'phone@2':'phone-retina_180x180.png',
+	 *    'tablet':'tablet-icon_152x152.png',
+	 *    'tablet@2':'tablet-retina_167x167.png',
 	 *    'precomposed':true,
 	 *    'favicon':'desktop.ico'
 	 * }
@@ -248,7 +241,14 @@ sap.ui.define(['sap/ui/Device', 'sap/base/Log', "sap/ui/thirdparty/jquery"], fun
 	 * icons with glare effect, so the "precomposed" property can be set to "true". Some Android devices may also
 	 * use the favicon for bookmarks instead of the home icons.</li>
 	 *
-	 * @param {object} oIcons
+	 * @param {object} oIcons Icon settings
+	 * @param {string} [oIcons.phone] a 120x120 pixel version for iPhones with low pixel density
+	 * @param {string} [oIcons.tablet] a 152x152 pixel version for iPads with low pixel density
+	 * @param {string} [oIcons."phone@2"] a 180x180 pixel version for iPhones with high pixel density
+	 * @param {string} [oIcons."tablet@2"] a 167x167 pixel version for iPads with high pixel density
+	 * @param {boolean} [oIcons.precomposed=false] whether the home icons already have some glare effect (otherwise iOS will add it)
+	 * @param {string} [oIcons.favicon] the ICO file to be used inside the browser and for desktop shortcuts
+	 *
 	 * @function
 	 * @static
 	 * @public
@@ -260,57 +260,44 @@ sap.ui.define(['sap/ui/Device', 'sap/base/Log', "sap/ui/thirdparty/jquery"], fun
 			return;
 		}
 
-		var $head = jQuery("head"),
-			precomposed = oIcons.precomposed ? "-precomposed" : "",
-			getBestFallback = function(res) {
-				return oIcons[res] || oIcons['tablet@2'] || oIcons['phone@2'] || oIcons['phone'] || oIcons['tablet']; // fallback logic
-			},
+		var precomposed = oIcons.precomposed ? "-precomposed" : "",
+			// Sizes according to https://developer.apple.com/library/archive/documentation/AppleApplications/Reference/SafariWebContent/ConfiguringWebApplications/ConfiguringWebApplications.html#//apple_ref/doc/uid/TP40002051-CH3-SW4
 			mSizes = {
 				"phone": "",
-				"tablet": "76x76",
-				"phone@2": "120x120",
-				"tablet@2": "152x152"
+				"tablet": "152x152",
+				"phone@2": "180x180",
+				"tablet@2": "167x167"
 			};
 
 		// desktop icon
 		if (oIcons["favicon"]) {
-
 			// remove any other favicons
-			var $fav = $head.find("[rel^=shortcut]"); // cannot search for "shortcut icon"
+			removeFromHead("link[rel=icon]");
 
-			$fav.each(function() {
-				if (this.rel === "shortcut icon") {
-					jQuery(this).remove();
-				}
+			// create favicon
+			addElementToHead("link", {
+				rel: "icon",
+				href: oIcons["favicon"]
 			});
-
-			// for IE two DOM updates are necessary to render the favicon properly
-			if (Device.browser.msie) {
-				// create favicon w/o an href attribute for a first DOM update
-				var $link = jQuery('<link rel="shortcut icon" />');
-				$head.append($link);
-
-				// add href attribute to force a second DOM
-				$link.attr("href", oIcons["favicon"]);
-			} else {
-				// create favicon
-				$head.append(jQuery('<link rel="shortcut icon" href="' + oIcons["favicon"] + '" />'));
-			}
 		}
 
+		var bMobileUpdateIcon = Object.keys(mSizes).some(function (sPlatform) {
+			return oIcons.hasOwnProperty(sPlatform);
+		});
 		// mobile home screen icons
-		if (getBestFallback("phone")) {
-
+		if (bMobileUpdateIcon) {
 			// if any home icon is given remove old ones
-			$head.find("[rel=apple-touch-icon]").remove();
-			$head.find("[rel=apple-touch-icon-precomposed]").remove();
+			removeFromHead("[rel=apple-touch-icon]");
+			removeFromHead("[rel=apple-touch-icon-precomposed]");
 		}
 
 		for (var platform in mSizes) {
-			oIcons[platform] = oIcons[platform] || getBestFallback(platform);
 			if (oIcons[platform]) {
-				var size = mSizes[platform];
-				$head.append(jQuery('<link rel="apple-touch-icon' + precomposed + '" ' + (size ? 'sizes="' + size + '"' : "") + ' href="' + oIcons[platform] + '" />'));
+				addElementToHead("link", {
+					rel: "apple-touch-icon" + precomposed,
+					href: oIcons[platform],
+					sizes: mSizes[platform]
+				});
 			}
 		}
 	};
@@ -334,24 +321,34 @@ sap.ui.define(['sap/ui/Device', 'sap/base/Log', "sap/ui/thirdparty/jquery"], fun
 	 * @static
 	 * @public
 	 */
-	Mobile.setWebAppCapable = function(bValue) {
+	Mobile.setWebAppCapable = function(bValue, sAppleStatusBarStyle) {
 		if (!Device.system.tablet && !Device.system.phone) {
 			return;
 		}
 
-		var $Head = jQuery("head"),
-			aPrefixes = ["", "apple"],
+		var aPrefixes = ["", "apple"],
 			sNameBase = "mobile-web-app-capable",
 			sContent = bValue ? "yes" : "no",
-			i, sName, $WebAppMeta;
+			i, sName, oWebAppMetaTag;
 
 		for (i = 0; i < aPrefixes.length; i++) {
 			sName = aPrefixes[i] ? (aPrefixes[i] + "-" + sNameBase) : sNameBase;
-			$WebAppMeta = $Head.children('meta[name="' + sName + '"]');
-			if ($WebAppMeta.length) {
-				$WebAppMeta.attr("content", sContent);
+			oWebAppMetaTag = document.head.querySelector('meta[name="' + sName + '"]');
+
+			if (oWebAppMetaTag) {
+				oWebAppMetaTag.setAttribute("content", sContent);
 			} else {
-				$Head.append(jQuery('<meta name="' + sName + '" content="' + sContent + '">'));
+				addElementToHead("meta", {
+					name: sName,
+					content: sContent
+				});
+				if (aPrefixes[i] === "apple") {
+					// iOS specific meta tag should be added only first time the corresponding apple-mobile-web-app-capable is added
+					addElementToHead("meta", {
+						name: "apple-mobile-web-app-status-bar-style",
+						content: sAppleStatusBarStyle ? sAppleStatusBarStyle : 'default'
+					});
+				}
 			}
 		}
 	};

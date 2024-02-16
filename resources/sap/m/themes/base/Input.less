@@ -3,20 +3,18 @@
 /* Base theme                   */
 /* ============================ */
 
-.sapMListFocus .sapMLIBFocused {
-	outline: 1px dotted @sapUiContentFocusColor;
-	outline-offset: -2px;
+:root {
+	--sPopoverMaxWidth: 640;
+}
 
-	/* IE ignores outline-offset */
-	&.sapMLIBLegacyOutline {
-		outline: none;
-		border: 1px dotted @sapUiContentFocusColor;
-	}
+.sapMListFocus .sapMLIBFocused {
+	outline: @sapUiContentFocusWidth @sapUiContentFocusStyle @sapUiContentFocusColor;
+	outline-offset: -0.125rem;
 }
 
 .sapMInputDescriptionText {
 	padding-left: 0.5rem;
-	font-size: @sapMFontMediumSize;
+	font-size: @sapFontSize;
 	line-height: normal;
 	color: @sapUiFieldTextColor;
 	font-family: @sapUiFontFamily;
@@ -94,4 +92,16 @@
 
 .sapMInputHighlight {
 	font-weight: bold;
+}
+
+/* Overrides due to experimental flex layouting after IE drop */
+
+.sapMInput.sapMInputBaseHasEndIcons .sapMInputBaseInner,
+.sapMInput.sapMInputBaseHasBeginIcons .sapMInputBaseInner {
+	width: auto;
+	flex: 1
+}
+
+.sapMInput .sapMInputBaseContentWrapper {
+	display: inline-flex;
 }

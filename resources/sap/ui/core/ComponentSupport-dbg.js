@@ -1,13 +1,12 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2024 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 // Provides class sap.ui.core.ComponentSupport
 sap.ui.define([
 	'sap/ui/base/DataType',
-	'sap/ui/core/Component',
 	'sap/ui/core/ComponentContainer',
 	'sap/ui/core/library',
 	"sap/base/Log",
@@ -16,7 +15,6 @@ sap.ui.define([
 ],
 	function(
 		DataType,
-		Component,
 		ComponentContainer,
 		library,
 		Log,
@@ -99,7 +97,7 @@ sap.ui.define([
 	 * @author SAP SE
 	 * @public
 	 * @since 1.58.0
-	 * @version 1.79.0
+	 * @version 1.120.6
 	 * @namespace
 	 * @alias module:sap/ui/core/ComponentSupport
 	 */
@@ -168,7 +166,7 @@ sap.ui.define([
 					var oProperty = ComponentContainerMetadata.getProperty(sKey);
 					var oEvent = !oProperty && ComponentContainerMetadata.getEvent(sKey);
 					if (!oProperty && !oEvent) {
-						Log.warning("Property or event \"" + sKey + "\" will be ignored as it does not exist in sap.ui.core.ComponentContainer");
+						Log.warning("[FUTURE FATAL] Property or event \"" + sKey + "\" will be ignored as it does not exist in sap.ui.core.ComponentContainer");
 						continue;
 					}
 					if (oProperty) {
@@ -212,7 +210,7 @@ sap.ui.define([
 		if (mSettings.manifest === undefined || mSettings.manifest === "true") {
 			mSettings.manifest = true;
 		} else if (mSettings.manifest === "false") {
-			Log.error("Ignoring \"manifest=false\" for ComponentContainer of component \"" + mSettings.name + "\" as it is not supported by ComponentSupport. " +
+			Log.error("[FUTURE FATAL] Ignoring \"manifest=false\" for ComponentContainer of component \"" + mSettings.name + "\" as it is not supported by ComponentSupport. " +
 				"Forcing \"manifest=true\"", "", "sap/ui/core/ComponentSupport");
 			mSettings.manifest = true;
 		}

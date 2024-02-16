@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2024 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -8,8 +8,8 @@
 sap.ui.define(['sap/ui/core/Element',
 	'sap/ui/core/IconPool',
 	'./TabStripItem',
-	'./library'],
-	function(Element, IconPool, TabStripItem, library) {
+	'sap/m/ImageHelper'],
+	function(Element, IconPool, TabStripItem, ImageHelper) {
 		"use strict";
 
 		/**
@@ -23,17 +23,15 @@ sap.ui.define(['sap/ui/core/Element',
 		 * @extends sap.ui.core.Element
 		 *
 		 * @author SAP SE
-		 * @version 1.79.0
+		 * @version 1.120.6
 		 *
 		 * @constructor
 		 * @public
 		 * @since 1.34
 		 * @alias sap.m.TabContainerItem
-		 * @ui5-metamodel This control/element also will be described in the UI5 (legacy) designtime metamodel
 		 */
 		var TabContainerItem = Element.extend("sap.m.TabContainerItem", /** @lends sap.m.TabContainerItem.prototype */ { metadata : {
 
-			library : "sap.ui.core",
 			properties : {
 
 				/**
@@ -121,7 +119,7 @@ sap.ui.define(['sap/ui/core/Element',
 		 * @param {string} sName Property name to be set
 		 * @param {boolean | string | object} vValue Property value to be set
 		 * @param {boolean} bSuppressInvalidation Whether invalidation to be suppressed
-		 * @return {sap.m.TabContainerItem} This instance for chaining
+		 * @return {this} This instance for chaining
 		 * @public
 		 */
 		TabContainerItem.prototype.setProperty = function(sName, vValue, bSuppressInvalidation) {
@@ -139,19 +137,44 @@ sap.ui.define(['sap/ui/core/Element',
 		 * Property setter for the icon
 		 *
 		 * @param {sap.ui.core.URI} sIcon new value of the Icon property
-		 * @return {sap.m.TabContainerItem} <code>this</code> to allow method chaining
+		 * @return {this} <code>this</code> to allow method chaining
 		 * @public
 		 */
-		TabContainerItem.prototype.setIcon = function(sIcon) {
-			return TabStripItem.prototype._setIcon.call(this, sIcon, true);
+		TabContainerItem.prototype.setIcon = function(sIcon, bSuppressRendering) {
+			var mProperties,
+				aCssClasses = ['sapMTabContIcon'],
+				oImage = this.getAggregation("_image"),
+				sImgId = this.getId() + "-img",
+				bDecorative = !!(this.getName() || this.getAdditionalText());
+
+			if (!sIcon) {
+				this.setProperty("icon", sIcon, bSuppressRendering);
+				if (oImage) {
+					this.destroyAggregation("_image");
+				}
+				return this;
+			}
+
+			if (this.getIcon() !== sIcon) {
+				this.setProperty("icon", sIcon, bSuppressRendering);
+
+				mProperties = {
+					src : sIcon,
+					id: sImgId,
+					decorative: bDecorative,
+					tooltip: this.getIconTooltip()
+				};
+
+				oImage = ImageHelper.getImageControl(sImgId, oImage, undefined, mProperties, aCssClasses);
+				this.setAggregation("_image", oImage, bSuppressRendering);
+			}
+			return this;
 		};
 
 		/**
 		 * Function is called when image control needs to be loaded.
 		 *
-		 * @param {string} sImgId - id to be used for the image
-		 * @param {sap.ui.core.URI} sSrc - URI indicating the image to use as image source
-		 * @return {sap.m.TabContainerItem} this to allow method chaining
+		 * @return {sap.ui.core.Control} The image
 		 * @private
 		 */
 		TabContainerItem.prototype._getImage = function () {

@@ -3,6 +3,8 @@
 @sapMGenericTagStatusIconWidth: 1rem;
 @sapMGenericTagIconPaddingRight: 0.5rem;
 @sapMGenericTagTextMinWidth: 1.5625rem;
+@sapMGenericTagHeightCompact: 1.625rem;
+@sapMGenericTagHeightCozy: 2.5rem;
 
 .sapMGenericTag {
 	margin-top: 0.1875rem;
@@ -59,16 +61,6 @@ html.sap-desktop .sapMGenericTag:focus {
 	}
 }
 
-/* FIX: IE and Edge - dotted line appears blurry. */
-html[data-sap-ui-browser^="ie"].sap-desktop,
-html[data-sap-ui-browser^="ed"].sap-desktop {
-	.sapMGenericTag:focus {
-		&:after{
-			border-style: dashed;
-		}
-	}
-}
-
 .sapMGenericTagWrap {
 	background: @sapUiListBackground;
 	box-shadow: @sapUiShadowLevel0;
@@ -82,7 +74,7 @@ html[data-sap-ui-browser^="ed"].sap-desktop {
 	flex-flow: row nowrap;
 	align-items: center;
 	page-break-after: auto;
-	height: 1.625rem;
+	height: @sapMGenericTagHeightCompact;
 	min-width: @sapMGenericTagBorderWidth + @sapMGenericTagPaddingLeft + @sapMGenericTagStatusIconWidth + @sapMGenericTagIconPaddingRight+ @sapMGenericTagTextMinWidth;
 
 	.sapMGenericTagIcon {
@@ -132,10 +124,11 @@ html[data-sap-ui-browser^="ed"].sap-desktop {
 
 	&:hover {
 		box-shadow: 0 0 0 0.0625rem fade(@sapUiContentShadowColor, 30);
+		cursor: pointer;
 	}
 
 	.sapMGenericTagActive &  {
-		background: @sapUiListActiveBackground;
+		background-color: @sapUiListActiveBackground;
 
 		.sapMGenericTagIcon,
 		.sapMGenericTagText,
@@ -188,7 +181,6 @@ html[data-sap-ui-browser^="ed"].sap-desktop {
 			}
 		}
 		.sapMObjectNumberUnit {
-			padding-top: 0.0625rem;
 			min-width: 0.75rem;
 		}
 	}
@@ -199,7 +191,7 @@ html[data-sap-ui-browser^="ed"].sap-desktop {
 		margin: 0.25rem 0;
 
 		.sapMGenericTagWrap {
-			height:  2.5rem;
+			height:  @sapMGenericTagHeightCozy;
 		}
 	}
 }

@@ -1,12 +1,12 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2024 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 // Provides default renderer for JSONView
-sap.ui.define(['./ViewRenderer', 'sap/ui/core/Control'],
-	function(ViewRenderer, Control) {
+sap.ui.define(['./ViewRenderer'],
+	function(ViewRenderer) {
 	"use strict";
 
 
@@ -14,6 +14,7 @@ sap.ui.define(['./ViewRenderer', 'sap/ui/core/Control'],
 	 * JSONView renderer.
 	 * @namespace
 	 * @alias sap.ui.core.mvc.JSONViewRenderer
+	 * @deprecated Since version 1.120.
 	 */
 	var JSONViewRenderer = {
 		apiVersion: 2
@@ -23,7 +24,7 @@ sap.ui.define(['./ViewRenderer', 'sap/ui/core/Control'],
 	 * Renders the HTML for the given control, using the provided {@link sap.ui.core.RenderManager}.
 	 *
 	 * @param {sap.ui.core.RenderManager} rm the RenderManager that can be used for writing to the Render-Output-Buffer
-	 * @param {sap.ui.core.Control} oControl an object representation of the control that should be rendered
+	 * @param {sap.ui.core.mvc.JSONView} oControl an object representation of the control that should be rendered
 	 */
 	JSONViewRenderer.render = function(rm, oControl){
 		rm.openStart("div", oControl);

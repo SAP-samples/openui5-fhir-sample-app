@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2024 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -8,8 +8,8 @@ sap.ui.define(["./ObjectImageHelper", "sap/ui/Device"], function (ObjectImageHel
 	"use strict";
 
 	/**
-	 * @class HeaderBase renderer.
-	 * @static
+	 * Header renderer.
+	 * @namespace
 	 */
 	var ObjectPageHeaderRenderer = {
 		apiVersion: 2
@@ -28,10 +28,12 @@ sap.ui.define(["./ObjectImageHelper", "sap/ui/Device"], function (ObjectImageHel
 				&& oParent.getHeaderContent().length > 0 && oParent.getShowHeaderContent()) ||
 			(oParent.getShowHeaderContent() && oParent.getShowTitleInHeaderContent()));
 
-		oRm.openStart("div", oControl)
-			.class('sapUxAPObjectPageHeader')
-			.class('sapUxAPObjectPageHeaderDesign-' + oControl.getHeaderDesign())
-			.openEnd();
+		oRm.openStart("div", oControl).class('sapUxAPObjectPageHeader');
+		/**
+		 * @deprecated As of version 1.40.1
+		 */
+		oRm.class('sapUxAPObjectPageHeaderDesign-' + oControl.getHeaderDesign());
+		oRm.openEnd();
 
 		// if a navigationBar has been provided display it
 		if (oNavigationBar) {
@@ -200,18 +202,20 @@ sap.ui.define(["./ObjectImageHelper", "sap/ui/Device"], function (ObjectImageHel
 
 		oRm.close("h2");
 
-		oRm.openStart("span", oControl.getId() + "-subtitle" + sIdSuffix)
-			.class('sapUxAPObjectPageHeaderIdentifierDescription');
+		if (oControl.getObjectSubtitle()) {
+			oRm.openStart("div", oControl.getId() + "-subtitle" + sIdSuffix)
+				.class('sapUxAPObjectPageHeaderIdentifierDescription');
 
-		if (oControl.getIsObjectSubtitleAlwaysVisible() && oControl.getObjectSubtitle()) {
-			oRm.class('sapUxAPObjectPageHeaderIdentifierDescriptionForce');
+			if (oControl.getIsObjectSubtitleAlwaysVisible()) {
+				oRm.class('sapUxAPObjectPageHeaderIdentifierDescriptionForce');
+			}
+			if (bTitleInContent) {
+				oRm.class('sapUxAPObjectPageHeaderIdentifierSubTitleInContent');
+			}
+			oRm.openEnd();
+			oRm.text(oControl.getObjectSubtitle());
+			oRm.close("div");
 		}
-		if (bTitleInContent) {
-			oRm.class('sapUxAPObjectPageHeaderIdentifierSubTitleInContent');
-		}
-		oRm.openEnd();
-		oRm.text(oControl.getObjectSubtitle());
-		oRm.close("span");
 	};
 	/**
 	 * Renders the SelectTitleArrow icon.

@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2024 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -22,13 +22,12 @@ sap.ui.define([
 	* @extends sap.ui.core.Element
 	*
 	* @author SAP SE
-	* @version 1.79.0
+	* @version 1.120.6
 	*
 	* @constructor
 	* @public
 	* @since 1.28.11
 	* @alias sap.m.QuickViewGroup
-	* @ui5-metamodel This control/element also will be described in the UI5 (legacy) designtime metamodel
 	*/
 	var Group = Element.extend("sap.m.QuickViewGroup", /** @lends sap.m.QuickViewGroup.prototype */ {
 		metadata: {
@@ -72,9 +71,8 @@ sap.ui.define([
 
 	["setModel", "bindAggregation", "setAggregation", "insertAggregation", "addAggregation",
 		"removeAggregation", "removeAllAggregation", "destroyAggregation"].forEach(function (sFuncName) {
-			Group.prototype["_" + sFuncName + "Old"] = Group.prototype[sFuncName];
 			Group.prototype[sFuncName] = function () {
-				var result = Group.prototype["_" + sFuncName + "Old"].apply(this, arguments);
+				var result = Element.prototype[sFuncName].apply(this, arguments);
 
 				var oPage = this.getParent();
 				if (oPage) {

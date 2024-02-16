@@ -20,7 +20,8 @@
 		line-height: 0.8125rem;
 	}
 
-	.sapUxAPObjectPageHeaderContentItem .sapMText {
+	.sapUxAPObjectPageHeaderContentItem .sapMText,
+	.sapUxAPObjectPageHeaderContentItem.sapMObjStatus:not(.sapMObjectStatusLarge) span {
 		line-height: 1.5rem;
 	}
 
@@ -95,10 +96,6 @@
 			}
 		}
 
-		/* ObjectAttribute will not truncate inside ObjectPage but rather will go on more lines */
-		.sapUxAPObjectPageHeaderContentItem.sapMObjectAttributeActive {
-			line-height:1rem;
-		}
 
 		.sapUxAPObjectPageHeaderContentItem {
 			.sapMObjectAttributeDiv .sapMText,
@@ -110,7 +107,7 @@
 		}
 
 		.sapUiVltCell > .sapMObjectAttributeDiv, .sapUiVltCell > .sapMObjStatus {
-			line-height: 1.5rem;
+			line-height: 1rem;
 		}
 
 		/* ProgressIndicator has display flex, but OPHeaderContent override it by setting display inline-block
@@ -134,31 +131,11 @@
 				width: 100% !important;
 			}
 		}
-		.sapMSlt {
-			height: 1.625rem;
-			margin-top: 0.1875rem;
-			margin-bottom: 0.1875rem;
-			.sapMSltLabel {
-				line-height: 1.5rem;
-				padding-right: 2.5rem;
-				padding-left: 0.5rem;
-			}
-			.sapMSltArrow {
-				width: 2rem;
-				line-height: 1.625rem;
-			}
-		}
 	}
 
-	.sapUxAPObjectPageHeaderDetails {
-		.sapMObjectNumberUnit {
-			font-weight: normal;
-			padding-left: 0.25rem;
-		}
-	}
-	.sapUxAPObjectPageLayout-Std-Desktop & .sapUxAPObjectPageHeaderLayoutHiddenL,
-	.sapUxAPObjectPageLayout-Std-Tablet & .sapUxAPObjectPageHeaderLayoutHiddenM,
-	.sapUxAPObjectPageLayout-Std-Phone & .sapUxAPObjectPageHeaderLayoutHiddenS {
+	.sapUxAPObjectPageHeaderLayoutHiddenL,
+	.sapUxAPObjectPageHeaderLayoutHiddenM,
+	.sapUxAPObjectPageHeaderLayoutHiddenS {
 		display: none;
 	}
 
@@ -167,12 +144,7 @@
 	}
 }
 
-/* TODO remove after the end of support for Internet Explorer */
-html[data-sap-ui-browser^='ie'] .sapUxAPObjectPageHeaderContent div.sapUxAPObjectPageHeaderContentItem {
-	vertical-align: top;
-}
-
-.sapUxAPObjectPageLayout-Std-Desktop .sapUxAPObjectPageHeaderContent {
+.sapUxAPObjectPageHeaderContent {
 	padding-left: 3rem;
 }
 
@@ -211,9 +183,7 @@ html .sapUiContainer-Narrow .sapUxAPObjectPageHeaderContent {
 	margin: 0;
 }
 
-.sapUxAPObjectPageLayout-Std-Desktop .sapUxAPObjectPageHeaderContentImageContainer .sapMImg,
-.sapUxAPObjectPageLayout-Std-Tablet .sapUxAPObjectPageHeaderContentImageContainer .sapMImg,
-html .sapUiContainer-Medium .sapUxAPObjectPageHeaderContentImageContainer .sapMImg {
+.sapUxAPObjectPageHeaderContentImageContainer .sapMImg {
 	height: 5rem;
 	width: 5rem;
 }

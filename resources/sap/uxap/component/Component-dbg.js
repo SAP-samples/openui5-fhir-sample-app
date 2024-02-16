@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2024 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -9,8 +9,9 @@ sap.ui.define([
 	"sap/ui/core/UIComponent",
 	"sap/ui/core/library",
 	"sap/base/Log",
+	"sap/ui/core/mvc/View",
 	"sap/ui/core/Component"
-], function (library, UIComponent, coreLibrary, Log) {
+], function (library, UIComponent, coreLibrary, Log, View) {
 	"use strict";
 
 	// shortcut for sap.ui.core.mvc.ViewType
@@ -21,6 +22,7 @@ sap.ui.define([
 
 	var Component = UIComponent.extend("sap.uxap.component.Component", {
 		metadata: {
+			"interfaces": ["sap.ui.core.IAsyncContentCreation"]
 			/* nothing new compared to a standard UIComponent */
 		},
 
@@ -66,22 +68,24 @@ sap.ui.define([
 			var oController;
 
 			//step3: create view
-			this._oView = sap.ui.view(this._oViewConfig);
+			var oPromise = View.create(this._oViewConfig);
+			oPromise.then(function (oView) {
+				this._oView = oView;
+				//step4: bind the view with the model
+				if (this._oModel) {
+					oController = this._oView.getController();
 
-			//step4: bind the view with the model
-			if (this._oModel) {
-				oController = this._oView.getController();
+					//some factory requires pre-processing once the view and model are created
+					if (oController && oController.connectToComponent) {
+						oController.connectToComponent(this._oModel);
+					}
 
-				//some factory requires pre-processing once the view and model are created
-				if (oController && oController.connectToComponent) {
-					oController.connectToComponent(this._oModel);
+					//can now apply the model and rely on the underlying factory logic
+					this._oView.setModel(this._oModel, "objectPageLayoutMetadata");
 				}
+			}.bind(this));
 
-				//can now apply the model and rely on the underlying factory logic
-				this._oView.setModel(this._oModel, "objectPageLayoutMetadata");
-			}
-
-			return this._oView;
+			return oPromise;
 		},
 
 		/**

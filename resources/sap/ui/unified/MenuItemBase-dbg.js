@@ -1,12 +1,12 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2024 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 // Provides control sap.ui.unified.MenuItemBase.
-sap.ui.define(['sap/ui/core/Element', './library'],
-	function(Element, library) {
+sap.ui.define(['sap/ui/core/Element', './library', 'sap/ui/core/IconPool'],
+	function(Element, library, IconPool) {
 	"use strict";
 
 
@@ -23,13 +23,12 @@ sap.ui.define(['sap/ui/core/Element', './library'],
 	 * @extends sap.ui.core.Element
 	 *
 	 * @author SAP SE
-	 * @version 1.79.0
+	 * @version 1.120.6
 	 * @since 1.21.0
 	 *
 	 * @constructor
 	 * @public
 	 * @alias sap.ui.unified.MenuItemBase
-	 * @ui5-metamodel This control/element will also be described in the UI5 (legacy) design time meta model
 	 */
 	var MenuItemBase = Element.extend("sap.ui.unified.MenuItemBase", /** @lends sap.ui.unified.MenuItemBase.prototype */ { metadata : {
 
@@ -158,6 +157,14 @@ sap.ui.define(['sap/ui/core/Element', './library'],
 			this.getParent().close(true);
 		}
 		oEvent.preventDefault(); //IE focuses the address bar
+	};
+
+
+	MenuItemBase.prototype._getIcon = function(oItem) {
+		return IconPool.createControlByURI({
+			src: oItem.getIcon(),
+			useIconTooltip: false
+		});
 	};
 
 	MenuItemBase.prototype.onsaphide = MenuItemBase.prototype.onsapshow;

@@ -3,31 +3,22 @@
 /* Quartz High Contrast Black theme  */
 /* ================================= */
 
-html.sap-desktop .sapMTBActive:focus {
+html.sap-desktop .sapMTBActive.sapMTBFocused {
 	outline: 0.125rem dotted @sapUiContentContrastFocusColor;
-	outline-offset: -0.3125rem;
+	outline-offset: -0.1875rem;
 }
 
 .sapMTB {
 	height: 2.75rem;
+	padding: 0 0.5rem;
 }
 
-/* IE ignores outline-offset. Use an overlay: */
-/* TODO remove after the end of support for Internet Explorer */
-html[data-sap-ui-browser^="ie"].sap-desktop {
-	.sapMTBActive:focus {
-		outline: none;
-		position: relative;
-	}
-	.sapMTBActive:focus:before {
-		content: " ";
-		box-sizing: border-box;
-		width: calc(~'100% - 0.0625rem');
-		height: calc(~'100% - 0.0625rem');
-		position: absolute;
-		left: 0;
-		top: 0;
-		border: 0.125rem dotted @sapUiContentContrastFocusColor;
-		pointer-events: none;
-	}
+/* Transparent Toolbar Context */
+.sapMTB-Transparent-CTX.sapMTB {
+	padding-left: 0.5rem;
+}
+
+/* Info Toolbar Context */
+.sapMIBar.sapMTB.sapMTB-Info-CTX {
+	padding-left: 0.5rem;
 }

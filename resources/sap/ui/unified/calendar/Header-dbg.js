@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2024 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -27,13 +27,12 @@ sap.ui.define([
 	 *
 	 * <b>Note:</b> This is used inside the calendar. Not for standalone usage
 	 * @extends sap.ui.core.Control
-	 * @version 1.79.0
+	 * @version 1.120.6
 	 *
 	 * @constructor
 	 * @public
 	 * @since 1.28.0
 	 * @alias sap.ui.unified.calendar.Header
-	 * @ui5-metamodel This control/element also will be described in the UI5 (legacy) designtime metamodel
 	 */
 	var Header = Control.extend("sap.ui.unified.calendar.Header", /** @lends sap.ui.unified.calendar.Header.prototype */ { metadata : {
 
@@ -118,7 +117,13 @@ sap.ui.define([
 			/**
 			 * Enables the Next button
 			 */
-			enabledNext : {type : "boolean", group : "Behavior", defaultValue : true}
+			enabledNext : {type : "boolean", group : "Behavior", defaultValue : true},
+
+			/**
+			 * If set, the Current date button will be displayed.
+			 * @since 1.95.0
+			 */
+			visibleCurrentDateButton : {type : "boolean", group : "Appearance", defaultValue : false}
 
 		},
 		events : {
@@ -132,6 +137,11 @@ sap.ui.define([
 			 * Next button pressed
 			 */
 			pressNext : {},
+
+			/**
+			 * Current date button pressed
+			 */
+			pressCurrentDate : {},
 
 			/**
 			 * First button pressed (normally day)
@@ -150,13 +160,13 @@ sap.ui.define([
 			pressButton2 : {}
 
 		}
-	}});
+	}, renderer: HeaderRenderer});
 
 	/**
 	 * If set, the third button will be displayed
 	 *
 	 * @param bVisible
-	 * @returns {sap.ui.unified.calendar.Header}
+	 * @returns {this}
 	 * @private
 	 */
 	Header.prototype._setVisibleButton3 = function (bVisible) {
@@ -179,7 +189,7 @@ sap.ui.define([
 	 * Text of the third button (normally month)
 	 *
 	 * @param sText
-	 * @returns {sap.ui.unified.calendar.Header}
+	 * @returns {this}
 	 * @private
 	 */
 	Header.prototype._setTextButton3 = function(sText){
@@ -200,7 +210,7 @@ sap.ui.define([
 	/**
 	 * Additional text of the third button (normally month)
 	 * @param sText
-	 * @returns {sap.ui.unified.calendar.Header}
+	 * @returns {this}
 	 */
 	Header.prototype._setAdditionalTextButton3 = function(sText){
 		_setAdditionalTextPrivateButton.call(this, 3, sText);
@@ -220,7 +230,7 @@ sap.ui.define([
 	/**
 	 * aria-label of the third button (normally month)
 	 * @param sText
-	 * @returns {sap.ui.unified.calendar.Header}
+	 * @returns {this}
 	 * @private
 	 */
 	Header.prototype._setAriaLabelButton3 = function(sText){
@@ -242,7 +252,7 @@ sap.ui.define([
 	 * If set, the fourth button will be displayed
 	 *
 	 * @param bVisible
-	 * @returns {sap.ui.unified.calendar.Header}
+	 * @returns {this}
 	 * @private
 	 */
 	Header.prototype._setVisibleButton4 = function (bVisible) {
@@ -264,7 +274,7 @@ sap.ui.define([
 	/**
 	 * Text of the fourth button (normally year)
 	 * @param sText
-	 * @returns {sap.ui.unified.calendar.Header}
+	 * @returns {this}
 	 * @private
 	 */
 	Header.prototype._setTextButton4 = function(sText){
@@ -285,7 +295,7 @@ sap.ui.define([
 	/**
 	 * Additional text of the fourth button (normally year)
 	 * @param sText
-	 * @returns {sap.ui.unified.calendar.Header}
+	 * @returns {this}
 	 * @private
 	 */
 	Header.prototype._setAdditionalTextButton4 = function(sText){
@@ -306,7 +316,7 @@ sap.ui.define([
 	/**
 	 * aria-label of the fourth button (normally year)
 	 * @param sText
-	 * @returns {sap.ui.unified.calendar.Header}
+	 * @returns {this}
 	 * @private
 	 */
 	Header.prototype._setAriaLabelButton4 = function(sText){
@@ -334,6 +344,8 @@ sap.ui.define([
 			this.firePressPrevious();
 		} else if (containsOrEquals(this.getDomRef("next"), oEvent.target) && this.getEnabledNext()){
 			this.firePressNext();
+		} else if (containsOrEquals(this.getDomRef("today"), oEvent.target) && this.getVisibleCurrentDateButton()){
+			this.firePressCurrentDate();
 		} else if (containsOrEquals(this.getDomRef("B0"), oEvent.target)){
 			this.firePressButton0();
 		} else if (containsOrEquals(this.getDomRef("B1"), oEvent.target)){

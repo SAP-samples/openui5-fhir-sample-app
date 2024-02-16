@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2024 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -32,40 +32,45 @@ sap.ui.define([
 	 * @extends sap.m.Button
 	 *
 	 * @author SAP SE
-	 * @version 1.79.0
+	 * @version 1.120.6
 	 *
 	 * @constructor
 	 * @public
 	 * @alias sap.m.ToggleButton
 	 * @see {@link fiori:https://experience.sap.com/fiori-design-web/button/ Toggle Button}
-	 * @ui5-metamodel This control/element also will be described in the UI5 (legacy) designtime metamodel
 	 */
-	var ToggleButton = Button.extend("sap.m.ToggleButton", /** @lends sap.m.ToggleButton.prototype */ { metadata : {
+	var ToggleButton = Button.extend("sap.m.ToggleButton", /** @lends sap.m.ToggleButton.prototype */ {
+		metadata : {
+			interfaces : [
+				"sap.m.IToolbarInteractiveControl"
+			],
+			library : "sap.m",
+			designtime: "sap/m/designtime/ToggleButton.designtime",
+			properties : {
 
-		library : "sap.m",
-		designtime: "sap/m/designtime/ToggleButton.designtime",
-		properties : {
+				/**
+				 * The property is “true” when the control is toggled. The default state of this property is "false".
+				 */
+				pressed : {type : "boolean", group : "Data", defaultValue : false}
+			},
+			events: {
+				/**
+				 * Fired when the user clicks or taps on the control.
+				 */
+				press: {
+					parameters: {
 
-			/**
-			 * The property is “true” when the control is toggled. The default state of this property is "false".
-			 */
-			pressed : {type : "boolean", group : "Data", defaultValue : false}
-		},
-		events: {
-			/**
-			 * Fired when the user clicks or taps on the control.
-			 */
-			press: {
-				parameters: {
-
-					/**
-					 * The current pressed state of the control.
-					 */
-					pressed: { type: "boolean" }
+						/**
+						 * The current pressed state of the control.
+						 */
+						pressed: { type: "boolean" }
+					}
 				}
 			}
-		}
-	}});
+		},
+
+		renderer: ToggleButtonRenderer
+	});
 
 	EnabledPropagator.call(ToggleButton.prototype);
 
@@ -101,8 +106,16 @@ sap.ui.define([
 	 */
 	ToggleButton.prototype.onkeydown = function(oEvent) {
 
-		if (oEvent.which === KeyCodes.ENTER) {
+		if (oEvent.which === KeyCodes.ENTER && !oEvent.ctrlKey && !oEvent.metaKey) {
 			this.ontap(oEvent);
+		}
+
+		if (oEvent.which === KeyCodes.SPACE) {
+			this._bPressedSpace = true;
+		}
+
+		if (oEvent.which === KeyCodes.SHIFT && this._bPressedSpace) {
+			this._bPressedShift = true;
 		}
 	};
 
@@ -111,18 +124,22 @@ sap.ui.define([
 	 * @param {jQuery.Event} oEvent The fired event
 	 */
 	ToggleButton.prototype.onkeyup = function(oEvent) {
-		if (oEvent.which === KeyCodes.SPACE || oEvent.which === KeyCodes.ENTER) {
+		if (!this._bPressedShift && oEvent.which === KeyCodes.SPACE || oEvent.which === KeyCodes.ENTER) {
 			oEvent.setMarked();
 		}
 
-		if (oEvent.which === KeyCodes.SPACE) {
+		if (!this._bPressedShift && oEvent.which === KeyCodes.SPACE) {
 			this.ontap(oEvent);
+		}
+
+		if (oEvent.which === KeyCodes.SPACE) {
+			this._bPressedShift = false;
 		}
 	};
 
 	/**
 	 * @see sap.ui.core.Control#getAccessibilityInfo
-	 * @returns {Object} Current accessibility state of the control.
+	 * @returns {sap.ui.core.AccessibilityInfo} Current accessibility state of the control.
 	 * @protected
 	 */
 	ToggleButton.prototype.getAccessibilityInfo = function() {
@@ -134,6 +151,20 @@ sap.ui.define([
 		return oInfo;
 	};
 
+	/**
+	 * Required by the {@link sap.m.IToolbarInteractiveControl} interface.
+	 * Determines if the Control is interactive.
+	 *
+	 * @returns {boolean} If it is an interactive Control
+	 *
+	 * @private
+	 * @ui5-restricted sap.m.OverflowToolBar, sap.m.Toolbar
+	 */
+	ToggleButton.prototype._getToolbarInteractive = function () {
+		return true;
+	};
+
+	ToggleButton.prototype._toggleLiveChangeAnnouncement = function() {};
 
 	return ToggleButton;
 

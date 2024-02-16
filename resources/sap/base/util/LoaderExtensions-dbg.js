@@ -1,19 +1,23 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2024 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 sap.ui.define([
-	'sap/ui/thirdparty/jquery',
+	'sap/ui/util/XMLHelper',
 	'sap/base/Log',
 	'sap/base/assert',
-	'sap/base/util/extend'
+	'sap/base/util/extend',
+	'sap/base/util/fetch',
+	'sap/base/util/mixedFetch'
 ], function(
-	jQuery,
+	XMLHelper,
 	Log,
 	assert,
-	extend
+	extend,
+	fetch,
+	mixedFetch
 ) {
 	"use strict";
 
@@ -23,7 +27,7 @@ sap.ui.define([
 	 * @namespace
 	 * @since 1.58
 	 * @private
-	 * @ui5-restricted sap.ui.core
+	 * @ui5-restricted sap.ui.core, sap.fe.placeholder
 	 * @alias module:sap/base/util/LoaderExtensions
 	 */
 	var LoaderExtensions = {};
@@ -163,6 +167,36 @@ sap.ui.define([
 	};
 
 	/**
+	 * Resolves the given <code>ui5://...</code> URL with <code>sap.ui.require.toURl</code>.
+	 * Strings which are not a ui5: URL are simply returned unchanged.
+	 *
+	 * @param {string} sUrl The URL string which should be resolved
+	 * @returns {string} The resolved URL or the input string if not a ui5: URL.
+	 *
+	 * @static
+	 * @private
+	 * @ui5-restricted sap.ui.core.Component
+	 */
+	LoaderExtensions.resolveUI5Url = function(sUrl) {
+		// check for ui5 scheme
+		if (sUrl.startsWith("ui5:")) {
+			var sNoScheme = sUrl.replace("ui5:", "");
+
+			// check for authority
+			if (!sNoScheme.startsWith("//")) {
+				throw new Error("URLs using the 'ui5' protocol must be absolute. Relative and server absolute URLs are reserved for future use.");
+			}
+
+			sNoScheme = sNoScheme.replace("//", "");
+
+			return sap.ui.loader._.resolveURL(sap.ui.require.toUrl(sNoScheme));
+		} else {
+			// not a ui5 url
+			return sUrl;
+		}
+	};
+
+	/**
 	 * Retrieves the resource with the given name, either from the preload cache or from
 	 * the server. The expected data type of the resource can either be specified in the
 	 * options (<code>dataType</code>) or it will be derived from the suffix of the <code>sResourceName</code>.
@@ -216,14 +250,8 @@ sap.ui.define([
 		var sType,
 			oData,
 			sUrl,
-			oError,
-			oDeferred,
-			fnDone,
+			fnDone = function() {},
 			iSyncCallBehavior;
-
-		if (LoaderExtensions.notifyResourceLoading) {
-			fnDone = LoaderExtensions.notifyResourceLoading();
-		}
 
 		if (typeof sResourceName === "string") {
 			mOptions = mOptions || {};
@@ -241,53 +269,30 @@ sap.ui.define([
 
 		assert(/^(xml|html|json|text)$/.test(sType), "type must be one of xml, html, json or text");
 
-		oDeferred = mOptions.async ? new jQuery.Deferred() : null;
-
-		function handleData(d, e) {
-			if (d == null && mOptions.failOnError) {
-				oError = e || new Error("no data returned for " + sResourceName);
-				if (mOptions.async) {
-					oDeferred.reject(oError);
-					Log.error(oError);
-				}
-				if (fnDone) {
-					fnDone();
-				}
-				return null;
-			}
-
-			if (mOptions.async) {
-				oDeferred.resolve(d);
-			}
-			if (fnDone) {
-				fnDone();
-			}
-			return d;
-		}
-
 		function convertData(d) {
-			var vConverter = jQuery.ajaxSettings.converters["text " + sType];
-			if (typeof vConverter === "function") {
-				d = vConverter(d);
+			switch (sType) {
+				case "json":
+					return JSON.parse(d);
+				case "xml":
+					return XMLHelper.parse(d);
+				default:
+					return d;
 			}
-			return handleData(d);
 		}
 
 		oData = sap.ui.loader._.getModuleContent(sResourceName, mOptions.url);
 
 		if (oData != undefined) {
+			// data available
+			oData = convertData(oData);
 
 			if (mOptions.async) {
-				//Use timeout to simulate async behavior for this sync case for easier usage
-				setTimeout(function() {
-					convertData(oData);
-				}, 0);
+				return Promise.resolve(oData);
 			} else {
-				oData = convertData(oData);
+				return oData;
 			}
-
 		} else {
-
+			// load data
 			iSyncCallBehavior = sap.ui.loader._.getSyncCallBehavior();
 			if (!mOptions.async && iSyncCallBehavior) {
 				if (iSyncCallBehavior >= 1) { // temp. raise a warning only
@@ -297,34 +302,64 @@ sap.ui.define([
 				}
 			}
 
-			jQuery.ajax({
-				url: sUrl = mOptions.url || sap.ui.loader._.getResourcePath(sResourceName),
-				async: mOptions.async,
-				dataType: sType,
-				headers: mOptions.headers,
-				success: function(data, textStatus, xhr) {
-					oData = handleData(data);
-				},
-				error: function(xhr, textStatus, error) {
-					oError = new Error("resource " + sResourceName + " could not be loaded from " + sUrl + ". Check for 'file not found' or parse errors. Reason: " + error);
-					oError.status = textStatus;
-					oError.error = error;
-					oError.statusCode = xhr.status;
-					oData = handleData(null, oError);
+			var oHeaders = {};
+			if (sType) {
+				oHeaders["Accept"] = fetch.ContentTypes[sType.toUpperCase()];
+			}
+
+			sUrl = mOptions.url || sap.ui.loader._.getResourcePath(sResourceName);
+
+			if (LoaderExtensions.notifyResourceLoading) {
+				fnDone = LoaderExtensions.notifyResourceLoading();
+			}
+
+			/**
+			 * @deprecated As of Version 1.120
+			 */
+			fetch = mixedFetch ? mixedFetch : fetch;
+			var pResponse = fetch(sUrl, {
+				headers: Object.assign(oHeaders, mOptions.headers)
+			}, !mOptions.async)
+			.then(function(response) {
+				if (response.ok) {
+					return response.text().then(function(responseText) {
+						return {
+							data: convertData(responseText)
+						};
+					});
+				} else {
+					var oError = new Error("resource " + sResourceName + " could not be loaded from " + sUrl +
+						". Check for 'file not found' or parse errors. Reason: " + response.statusText || response.status);
+					oError.status = response.statusText;
+					oError.statusCode = response.status;
+					throw oError;
+				}
+			})
+			.catch(function(error) {
+				return {
+					data: null,
+					error: error
+				};
+			})
+			.then(function(oInfo) {
+				fnDone();
+
+				if (oInfo.data !== null) {
+					return oInfo.data;
+				} else if (mOptions.failOnError) {
+					Log.error(oInfo.error);
+					throw oInfo.error;
+				} else {
+					return null;
 				}
 			});
 
+			if (mOptions.async) {
+				return pResponse;
+			} else {
+				return pResponse.unwrap();
+			}
 		}
-
-		if (mOptions.async) {
-			return Promise.resolve(oDeferred);
-		}
-
-		if (oError != null && mOptions.failOnError) {
-			throw oError;
-		}
-
-		return oData;
 	};
 
 	/**

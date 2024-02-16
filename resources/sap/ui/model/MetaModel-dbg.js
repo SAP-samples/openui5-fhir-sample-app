@@ -1,9 +1,9 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2024 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
-
+/*eslint-disable max-len */
 sap.ui.define(['./Model'],
 	function(Model) {
 	"use strict";
@@ -16,7 +16,7 @@ sap.ui.define(['./Model'],
 	 * @extends sap.ui.model.Model
 	 *
 	 * @author SAP SE
-	 * @version 1.79.0
+	 * @version 1.120.6
 	 *
 	 * @public
 	 * @alias sap.ui.model.MetaModel
@@ -39,14 +39,11 @@ sap.ui.define(['./Model'],
 	 * @param {boolean} [bReload]
 	 *   force reload even if data is already available. For server side models this should
 	 *   refetch the data from the server
-	 * @return {sap.ui.model.Context} the binding context, if it could be created synchronously
-
+	 * @return {sap.ui.model.Context|undefined} the binding context, if it could be created synchronously
 	 * @see sap.ui.model.Model.prototype.createBindingContext
 	 *
 	 */
 	MetaModel.prototype.createBindingContext = function(sPath, oContext, mParameters, fnCallBack) {
-		//TODO should come from a to be implemented read-only base class for ClientModels
-		// optional parameter handling
 		if (typeof oContext == "function") {
 			fnCallBack = oContext;
 			oContext = null;
@@ -68,12 +65,9 @@ sap.ui.define(['./Model'],
 	};
 
 	/**
-	 * @see sap.ui.model.Model.prototype.destroyBindingContext
-	 * @param {object}
-	 *         oContext to destroy
+	 * Does nothing.
 	 */
-	MetaModel.prototype.destroyBindingContext = function(oContext) {
-		// TODO: what todo here?
+	MetaModel.prototype.destroyBindingContext = function() {
 	};
 
 	return MetaModel;

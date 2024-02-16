@@ -14,7 +14,7 @@
 	text-align: left;
 	padding: 0 0 0 3rem;
 
-	&:not(.sapMCbBgDis) {
+	&:not(.sapMCbBgDis):not(.sapMCbDisplayOnly) {
 		&:hover,
 		.sapMCbLabel:hover {
 			cursor: pointer;
@@ -41,10 +41,6 @@
 			}
 		}
 	}
-}
-
-.sapUiForm .sapMCb {
-	display: table-cell;
 }
 
 .sapUiForm:not(.sapUiFormEdit-CTX) .sapMCb.sapMCbDisplayOnly {
@@ -88,6 +84,7 @@ html[dir="rtl"] .sapMCb {
 .sapMCb .sapMLabel {
 	cursor: default;
 	line-height: inherit;
+	display: block;
 
 	&.sapMLabelNoText {
 		position: absolute;
@@ -149,7 +146,6 @@ html[dir="rtl"] .sapMCb {
 	background-clip: padding-box;
 }
 
-.sapUiSizeCompact.sapMCb .sapMCbMarkChecked.sapMCbMarkPartiallyChecked:before,
 .sapUiSizeCompact .sapMCbBg.sapMCbMarkChecked.sapMCbMarkPartiallyChecked:before {
 	border-width: 0.125rem;
 }
@@ -157,17 +153,13 @@ html[dir="rtl"] .sapMCb {
 .sapMCbBg > input {
 	left: 0;
 	-webkit-appearance: none;
+	position: absolute;
 	visibility: hidden;
 }
 
 html[data-sap-ui-browser^=ff] .sapMCbBg > input {
 	/* in FF the input needs to be positioned exactly behind the visible checkbox for the focus outline */
 	position: absolute;
-}
-
-/* this needed for ie9 in multi select list */
-.sapMLIBSelectM > .sapMCb {
-	width: 3rem;
 }
 
 /* Read only */
@@ -236,7 +228,7 @@ html[data-sap-ui-browser^=ff] .sapMCbBg > input {
 		height: 0.75rem;
 		width: 0.75rem;
 		line-height: 0.75rem;
-		font-size: 0.625rem;
+		font-size: 0.75rem;
 		border-radius: 0;
 	}
 

@@ -1,6 +1,6 @@
-/*
- * ! OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+/*!
+ * OpenUI5
+ * (c) Copyright 2009-2024 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -30,7 +30,8 @@ sap.ui.define([
 	'sap/ui/core/Item',
 	'sap/ui/core/InvisibleText',
 	'sap/ui/core/IconPool',
-	"sap/ui/thirdparty/jquery"
+	"sap/ui/thirdparty/jquery",
+	"sap/ui/core/Configuration"
 ], function(
 	library,
 	P13nPanel,
@@ -56,7 +57,8 @@ sap.ui.define([
 	Item,
 	InvisibleText,
 	IconPool,
-	jQuery
+	jQuery,
+	Configuration
 ) {
 	"use strict";
 
@@ -87,12 +89,12 @@ sap.ui.define([
 	 *        dimensions and measures for table personalization.
 	 * @extends sap.m.P13nPanel
 	 * @author SAP SE
-	 * @version 1.79.0
+	 * @version 1.120.6
 	 * @constructor
 	 * @public
 	 * @since 1.34.0
 	 * @alias sap.m.P13nDimMeasurePanel
-	 * @ui5-metamodel This control/element also will be described in the UI5 (legacy) designtime metamodel
+     * @deprecated since 1.120
 	 */
 	var P13nDimMeasurePanel = P13nPanel.extend("sap.m.P13nDimMeasurePanel", /** @lends sap.m.P13nDimMeasurePanel.prototype */
 	{
@@ -522,7 +524,7 @@ sap.ui.define([
 			return;
 		}
 		sap.ui.getCore().applyChanges();
-		if (!!oItem.getDomRef()) {
+		if (oItem.getDomRef()) {
 			oItem.focus();
 		}
 	};
@@ -647,8 +649,7 @@ sap.ui.define([
 			},
 			selectionChange: jQuery.proxy(this._onChartTypeChange, this),
 			layoutData: new OverflowToolbarLayoutData({
-				moveToOverflow: false,
-				stayInOverflow: false
+				priority: OverflowToolbarPriority.NeverOverflow
 			})
 		});
 
@@ -674,8 +675,7 @@ sap.ui.define([
 						minWidth: "12.5rem",
 						maxWidth: "23.077rem",
 						shrinkable: true,
-						moveToOverflow: false,
-						stayInOverflow: false
+						priority: OverflowToolbarPriority.NeverOverflow
 					})
 				}), new Button({
 					text: {
@@ -693,7 +693,6 @@ sap.ui.define([
 					type: ButtonType.Transparent,
 					press: jQuery.proxy(this._onSwitchButtonShowSelected, this),
 					layoutData: new OverflowToolbarLayoutData({
-						moveToOverflow: true,
 						priority: OverflowToolbarPriority.High
 					})
 				}), new OverflowToolbarButton({
@@ -706,12 +705,11 @@ sap.ui.define([
 					},
 					press: jQuery.proxy(this.onPressButtonMoveToTop, this),
 					layoutData: new OverflowToolbarLayoutData({
-						moveToOverflow: true,
 						priority: OverflowToolbarPriority.Low,
 						group: 2
 					})
 				}), new OverflowToolbarButton({
-					icon: IconPool.getIconURI("slim-arrow-up"),
+					icon: IconPool.getIconURI("navigation-up-arrow"),
 					text: oRb.getText('COLUMNSPANEL_MOVE_UP'),
 					tooltip: oRb.getText('COLUMNSPANEL_MOVE_UP'),
 					type: ButtonType.Transparent,
@@ -720,12 +718,11 @@ sap.ui.define([
 					},
 					press: jQuery.proxy(this.onPressButtonMoveUp, this),
 					layoutData: new OverflowToolbarLayoutData({
-						moveToOverflow: true,
 						priority: OverflowToolbarPriority.High,
 						group: 1
 					})
 				}), new OverflowToolbarButton({
-					icon: IconPool.getIconURI("slim-arrow-down"),
+					icon: IconPool.getIconURI("navigation-down-arrow"),
 					text: oRb.getText('COLUMNSPANEL_MOVE_DOWN'),
 					tooltip: oRb.getText('COLUMNSPANEL_MOVE_DOWN'),
 					type: ButtonType.Transparent,
@@ -734,7 +731,6 @@ sap.ui.define([
 					},
 					press: jQuery.proxy(this.onPressButtonMoveDown, this),
 					layoutData: new OverflowToolbarLayoutData({
-						moveToOverflow: true,
 						priority: OverflowToolbarPriority.High,
 						group: 1
 					})
@@ -748,7 +744,6 @@ sap.ui.define([
 					},
 					press: jQuery.proxy(this.onPressButtonMoveToBottom, this),
 					layoutData: new OverflowToolbarLayoutData({
-						moveToOverflow: true,
 						priority: OverflowToolbarPriority.Low,
 						group: 2
 					})
@@ -887,7 +882,7 @@ sap.ui.define([
 	P13nDimMeasurePanel.prototype._sortModelItemsByPersistentIndex = function(aModelItems) {
         // BCP 0020751294 0000593415 2018
         var oCollator;
-        var sLanguage = sap.ui.getCore().getConfiguration().getLocale().toString();
+        var sLanguage = Configuration.getLocale().toString();
         try {
             if (typeof window.Intl !== 'undefined') {
                 oCollator = window.Intl.Collator(sLanguage, {
@@ -930,7 +925,7 @@ sap.ui.define([
 		if (iIndex < 0) {
 			return null;
 		}
-		return this._oTable.getBinding("items").getContexts()[iIndex].getObject().columnKey;
+		return this._oTable.getBinding("items").getContexts(undefined, undefined, undefined, true)[iIndex].getObject().columnKey;
 	};
 
 	P13nDimMeasurePanel.prototype._getModelItemIndexByColumnKey = function(sColumnKey) {

@@ -1,11 +1,15 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2024 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 // Provides class sap.uxap.BlockBaseMetadata
-sap.ui.define(["sap/ui/thirdparty/jquery", "sap/ui/core/ElementMetadata", "sap/base/Log"], function (jQuery, ElementMetadata, Log) {
+sap.ui.define([
+	"sap/ui/core/ElementMetadata",
+	"sap/base/Log",
+	"sap/base/util/isEmptyObject"
+], function (ElementMetadata, Log, isEmptyObject) {
 	"use strict";
 
 
@@ -17,7 +21,7 @@ sap.ui.define(["sap/ui/thirdparty/jquery", "sap/ui/core/ElementMetadata", "sap/b
 	 *
 	 * @class
 	 * @author SAP SE
-	 * @version 1.79.0
+	 * @version 1.120.6
 	 * @since 1.26
 	 * @alias sap.uxap.BlockBaseMetadata
 	 * @extends sap.ui.core.ElementMetadata
@@ -107,7 +111,7 @@ sap.ui.define(["sap/ui/thirdparty/jquery", "sap/ui/core/ElementMetadata", "sap/b
 	 * @returns {*} has views
 	 */
 	BlockBaseMetadata.prototype.hasViews = function () {
-		return !jQuery.isEmptyObject(this._mViews);
+		return !isEmptyObject(this._mViews);
 	};
 
 	return BlockBaseMetadata;

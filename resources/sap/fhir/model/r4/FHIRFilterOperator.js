@@ -1,6 +1,7 @@
 /*!
  * SAP SE
- * (c) Copyright 2009-2021 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2024 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.define(["sap/ui/model/FilterOperator"],function(i){"use strict";var s={Missing:"Missing",SA:"sa",EB:"eb",AP:"ap"};return Object.assign(s,i)});
+//# sourceMappingURL=FHIRFilterOperator.js.map

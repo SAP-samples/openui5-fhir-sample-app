@@ -9,6 +9,11 @@
 	display: inline-block;
 	vertical-align: baseline;
 	line-height: 1;
+	position: relative;
+}
+
+.sapUiTableCell > .sapUiTableCellInner > .sapUiIcon {
+	vertical-align: middle;
 }
 
 .sapUiIconPointer {
@@ -16,8 +21,8 @@
 }
 
 .sapUiIcon:focus {
-	outline-width: 1px;
-	outline-style: dotted;
+	outline-width: @sapUiContentFocusWidth;
+	outline-style: @sapUiContentFocusStyle;
 	outline-color: @sapUiContentFocusColor;
 }
 
@@ -26,6 +31,14 @@
 	speak: none;
 	font-weight: normal;
 	-webkit-font-smoothing: antialiased;
+}
+
+.sapUiIcon > .sapUiIconTitle {
+	position: absolute;
+	width: 100%;
+	height: 100%;
+	left: 0;
+	top: 0;
 }
 
 /*
@@ -84,34 +97,47 @@ html[dir=rtl] .sapUiIconMirrorInRTL:not(.sapUiIconSuppressMirrorInRTL) {
 	color: @sapUiContentMarkerIconColor;
 }
 
-.sapUiIconBGColorContrast {
+.sapUiIconBGColorDefault {
+	color: @sapUiGroupContentBackground;
 	background-color: @sapUiContentIconColor;
 }
 
+.sapUiIconBGColorContrast {
+	color: @sapUiContentIconColor;
+	background-color: @sapUiContentContrastIconColor;
+}
+
 .sapUiIconBGColorNeutral {
+	color: @sapUiGroupContentBackground;
 	background-color: @sapUiNeutralElement;
 }
 
 .sapUiIconBGColorCritical {
+	color: @sapUiGroupContentBackground;
 	background-color: @sapUiCriticalElement;
 }
 
 .sapUiIconBGColorPositive {
+	color: @sapUiGroupContentBackground;
 	background-color: @sapUiPositiveElement;
 }
 
 .sapUiIconBGColorNegative {
+	color: @sapUiGroupContentBackground;
 	background-color: @sapUiNegativeElement;
 }
 
 .sapUiIconBGColorNonInteractive {
-	color: @sapUiContentNonInteractiveIconColor;
+	color: @sapUiGroupContentBackground;
+	background-color: @sapUiContentNonInteractiveIconColor;
 }
 
 .sapUiIconBGColorTile {
-	color: @sapUiTileIconColor;
+	color: @sapUiGroupContentBackground;
+	background-color: @sapUiTileIconColor;
 }
 
 .sapUiIconBGColorMarker {
-	color: @sapUiContentMarkerIconColor;
+	color: @sapUiGroupContentBackground;
+	background-color: @sapUiContentMarkerIconColor;
 }

@@ -1,14 +1,19 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2024 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
-sap.ui.define(['sap/m/semantic/SemanticButton', 'sap/m/library', "sap/ui/events/KeyCodes"], function(SemanticButton, library, KeyCodes) {
+sap.ui.define([
+	"sap/m/semantic/SemanticButton",
+	"sap/m/ToggleButton",
+	"sap/m/semantic/SemanticOverflowToolbarToggleButton"
+], function(
+	SemanticButton,
+	ToggleButton,
+	SemanticOverflowToolbarToggleButton
+) {
 	"use strict";
-
-	// shortcut for sap.m.ButtonType
-	var ButtonType = library.ButtonType;
 
 	/**
 	 * Constructor for a new SemanticToggleButton.
@@ -22,13 +27,12 @@ sap.ui.define(['sap/m/semantic/SemanticButton', 'sap/m/library', "sap/ui/events/
 	 * @abstract
 	 *
 	 * @author SAP SE
-	 * @version 1.79.0
+	 * @version 1.120.6
 	 *
 	 * @constructor
 	 * @public
 	 * @since 1.30.0
 	 * @alias sap.m.semantic.SemanticToggleButton
-	 * @ui5-metamodel This control/element also will be described in the UI5 (legacy) designtime metamodel
 	 */
 
 	var SemanticToggleButton = SemanticButton.extend("sap.m.semantic.SemanticToggleButton", /** @lends sap.m.semantic.SemanticToggleButton.prototype */ {
@@ -49,42 +53,26 @@ sap.ui.define(['sap/m/semantic/SemanticButton', 'sap/m/library', "sap/ui/events/
 	});
 
 	/**
+	 * @override
+	 */
+	SemanticToggleButton.prototype._getClass = function(oConfig) {
+		return oConfig && oConfig.constraints === "IconOnly" ? SemanticOverflowToolbarToggleButton : ToggleButton;
+	};
+
+	/**
 	 * Change the toggle state of the button
 	 * @param {jQuery.Event} oEvent - the keyboard event.
 	 * @private
 	 */
-	SemanticToggleButton.prototype._onTap = function(oEvent) {
-
-		// mark the event for components that needs to know if the event was handled by the SemanticToggleButton
-		oEvent.setMarked();
+	SemanticToggleButton.prototype._onPress = function(oEvent) {
+		var bPressed;
 
 		if (this.getEnabled()) {
-			this.setPressed(!this.getPressed());
-			this.firePress({ pressed: this.getPressed() });
+			bPressed = oEvent.getParameter('pressed');
+
+			this.setPressed(bPressed);
+			this.firePress({ pressed: bPressed });
 		}
-	};
-
-	/**
-	 * Handle the key down event for SPACE and ENTER.
-	 * @param {jQuery.Event} oEvent - the keyboard event.
-	 * @private
-	 */
-	SemanticToggleButton.prototype._onKeydown = function(oEvent) {
-
-		if (oEvent.which === KeyCodes.SPACE || oEvent.which === KeyCodes.ENTER) {
-			this._onTap(oEvent);
-		}
-	};
-
-	/**
-	 * Handle the after rendering phase of the control.
-	 * @private
-	 */
-	SemanticToggleButton.prototype._onAfterRendering = function() {
-		var sType = this._getControl().getType(),
-			bPressed = sType === ButtonType.Emphasized;
-
-		this.$().attr("aria-pressed", bPressed);
 	};
 
 	/**
@@ -107,9 +95,13 @@ sap.ui.define(['sap/m/semantic/SemanticButton', 'sap/m/library', "sap/ui/events/
 	 * Can be overwritten in child classes to apply semantic-specific logic
 	 * @private
 	 */
-	SemanticToggleButton.prototype._setPressed = function(bPressed, bSuppressInvalidate) {
-		var oButtonType = bPressed ? ButtonType.Emphasized : ButtonType.Default;
-		this._getControl().setType(oButtonType, bSuppressInvalidate);
+	SemanticToggleButton.prototype._setPressed = function(bValue, bSuppressInvalidate) {
+		var oToggleButton = this._getControl(),
+			bPressed = Boolean(bValue);
+
+		if (oToggleButton.getPressed() !== bPressed) {
+			this._getControl().setPressed(bPressed, bSuppressInvalidate);
+		}
 	};
 
 	/**
@@ -120,11 +112,7 @@ sap.ui.define(['sap/m/semantic/SemanticButton', 'sap/m/library', "sap/ui/events/
 			id: this.getId() + "-toggleButton"
 		});
 
-		oInstance.addEventDelegate({
-			ontap: this._onTap,
-			onkeydown: this._onKeydown,
-			onAfterRendering: this._onAfterRendering
-		}, this);
+		oInstance.attachEvent("press", this._onPress, this);
 
 		return oInstance;
 	};

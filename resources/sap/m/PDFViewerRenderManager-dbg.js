@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2024 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -8,7 +8,8 @@ sap.ui.define([
 	"sap/m/library",
 	"sap/m/Dialog",
 	"sap/m/Button",
-	"sap/m/MessagePage",
+	"sap/m/IllustratedMessage",
+	"sap/m/IllustratedMessageType",
 	"sap/m/OverflowToolbar",
 	"sap/m/OverflowToolbarButton",
 	"sap/m/Title",
@@ -18,7 +19,8 @@ sap.ui.define([
 	library,
 	Dialog,
 	Button,
-	MessagePage,
+	IllustratedMessage,
+	IllustratedMessageType,
 	OverflowToolbar,
 	OverflowToolbarButton,
 	Title,
@@ -79,7 +81,7 @@ sap.ui.define([
 					}
 
 					var oPopup = new Dialog(sPopupId, oOptions);
-					oPopup.addStyleClass("sapUiPopupWithPadding");
+					oPopup.addStyleClass("sapUiContentPadding");
 
 					that._objectsRegister[sPopupFactoryFunctionName] = function () {
 						return oPopup;
@@ -110,32 +112,30 @@ sap.ui.define([
 				});
 
 				oPopup.setShowHeader(true);
-				if (!!this.getPopupHeaderTitle()) {
-					oPopup.setTitle(this.getPopupHeaderTitle());
-				}
-				if (!!this.getTitle()) {
+				if (this.getTitle()) {
 					oPopup.setTitle(this.getTitle());
 				}
 			};
 
-			PDFViewer.prototype._initPlaceholderMessagePageControl = function () {
+			PDFViewer.prototype._initPlaceholderIllustratedMessageControl = function () {
 				var that = this,
-				sPlaceholderMessagePageFactoryFunctionName = "getPlaceholderMessagePageControl";
+				sPlaceholderIllustratedMessageFactoryFunctionName = "getPlaceholderIllustratedMessageControl";
 
-				this._objectsRegister[sPlaceholderMessagePageFactoryFunctionName] = function () {
-					var oMessagePage = new MessagePage({
-						showHeader: false,
-						text: that._getMessagePageErrorMessage(),
-						description: ""
+				this._objectsRegister[sPlaceholderIllustratedMessageFactoryFunctionName] = function () {
+					var oIllustratedMessage = new IllustratedMessage({
+						title: that._getIllustratedMessageErrorMessage(),
+						illustrationType: IllustratedMessageType.SimpleError,
+						enableDefaultTitleAndDescription: false
 					});
-
-					that._objectsRegister[sPlaceholderMessagePageFactoryFunctionName] = function () {
-						oMessagePage.setText(that._getMessagePageErrorMessage());
-
-						return oMessagePage;
+					that.setAggregation("_illustratedMessage", oIllustratedMessage);
+					that._objectsRegister[sPlaceholderIllustratedMessageFactoryFunctionName] = function () {
+						oIllustratedMessage.setTitle(that._getIllustratedMessageErrorMessage());
+						oIllustratedMessage.setIllustrationType(IllustratedMessageType.SimpleError);
+						oIllustratedMessage.setEnableDefaultTitleAndDescription(false);
+						return oIllustratedMessage;
 					};
 
-					return oMessagePage;
+					return oIllustratedMessage;
 				};
 			};
 

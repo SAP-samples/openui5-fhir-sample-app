@@ -1,15 +1,13 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2024 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.define([
 	'./InputBaseRenderer',
-	'sap/ui/core/Renderer',
-	'sap/ui/core/LabelEnablement',
-	'sap/ui/Device'
+	'sap/ui/core/Renderer'
 ],
-	function(InputBaseRenderer, Renderer, LabelEnablement, Device) {
+	function(InputBaseRenderer, Renderer) {
 		"use strict";
 
 		/**
@@ -31,7 +29,7 @@ sap.ui.define([
 		 * Add attributes to the input element.
 		 *
 		 * @param {sap.ui.core.RenderManager} oRm The RenderManager that can be used for writing to the render output buffer.
-		 * @param {sap.ui.core.Control} oControl An object representation of the control that should be rendered.
+		 * @param {sap.m.ComboBoxTextField} oControl An object representation of the control that should be rendered.
 		 */
 		ComboBoxTextFieldRenderer.writeInnerAttributes = function(oRm, oControl) {
 			oRm.attr("role", "combobox");
@@ -51,29 +49,31 @@ sap.ui.define([
 		 */
 		ComboBoxTextFieldRenderer.getAriaRole = function() {};
 
-
-		/**
-		 * Returns the inner aria describedby ids for the accessibility.
-		 *
-		 * @param {sap.ui.core.Control} oControl an object representation of the control.
-		 * @returns {String|undefined}
-		 */
-		ComboBoxTextFieldRenderer.getAriaDescribedBy = function(oControl) {
-			var sAriaDescribedBy = InputBaseRenderer.getAriaDescribedBy.apply(this, arguments);
-			if (Device.browser.msie) {
-				return (sAriaDescribedBy || "") + " " + oControl.oInvisibleText.getId();
-			}
-			return sAriaDescribedBy;
-		};
-
 		/**
 		 * Add extra styles for input container.
 		 *
 		 * @param {sap.ui.core.RenderManager} oRm The RenderManager that can be used for writing to the render output buffer.
-		 * @param {sap.ui.core.Control} oControl An object representation of the control that should be rendered.
+		 * @param {sap.m.ComboBoxTextField} oControl An object representation of the control that should be rendered.
 		 */
 		ComboBoxTextFieldRenderer.addOuterStyles = function(oRm, oControl) {
 			oRm.style("max-width", oControl.getMaxWidth());
+		};
+
+		/**
+		 * Renders dropdown icon from the icon aggregations.
+		 *
+		 * @protected
+		 * @param {sap.ui.core.RenderManager} oRm The RenderManager that can be used for writing to the render output buffer.
+		 * @param {sap.ui.core.Icon[]} aIcons List of icons to render
+		 */
+		ComboBoxTextFieldRenderer.writeIcons = function (oRm, aIcons) {
+			oRm.openStart("div")
+				.attr("tabindex", "-1")
+				.attr("aria-hidden", "true")
+				.class("sapMInputBaseIconContainer")
+				.openEnd();
+			aIcons.forEach(oRm.renderControl, oRm);
+			oRm.close("div");
 		};
 
 		return ComboBoxTextFieldRenderer;

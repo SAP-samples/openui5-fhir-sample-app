@@ -1,57 +1,56 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2024 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
-/*global ActiveXObject, XMLHttpRequest, localStorage, alert, confirm, console, document, Promise */
-
 /**
- * Provides base functionality of the SAP jQuery plugin as extension of the jQuery framework.<br/>
- * See also <a href="http://api.jquery.com/jQuery/">jQuery</a> for details.<br/>
- * Although these functions appear as static ones, they are meant to be used on jQuery instances.<br/>
- * If not stated differently, the functions follow the fluent interface paradigm and return the jQuery instance for chaining of statements.
- *
- * Example for usage of an instance method:
- * <pre>
- *   var oRect = jQuery("#myDiv").rect();
- *   alert("Top Position: " + oRect.top);
- * </pre>
- *
- * @namespace jQuery
- * @public
+ * @fileoverview
+ * @deprecated As of version 1.120.0
  */
 sap.ui.define([
 	// new sap/base/* modules
 	"sap/base/util/now", "sap/base/util/Version", "sap/base/assert", "sap/base/Log",
 
 	// new sap/ui/* modules
-	"sap/ui/dom/getComputedStyleFix", "sap/ui/dom/activeElementFix", "sap/ui/dom/includeScript",
-	"sap/ui/dom/includeStylesheet", "sap/ui/core/support/Hotkeys", "sap/ui/test/RecorderHotkeyListener",
+	"sap/ui/dom/includeScript",
+	"sap/ui/dom/includeStylesheet",
 	"sap/ui/security/FrameOptions", "sap/ui/performance/Measurement", "sap/ui/performance/trace/Interaction",
-	"sap/ui/base/syncXHRFix", "sap/base/util/LoaderExtensions",
-	'sap/ui/events/PasteEventFix',
+	"sap/base/util/LoaderExtensions",
 
 	// former sap-ui-core.js dependencies
-	"sap/ui/Device", "sap/ui/thirdparty/URI",
+	"sap/ui/Device",
 
 	"sap/ui/thirdparty/jquery",
-	"sap/ui/thirdparty/jqueryui/jquery-ui-position",
 	"ui5loader-autoconfig",
 	"jquery.sap.stubs"
 ], function(now, Version, assert, Log,
 
-	getComputedStyleFix, activeElementFix, includeScript,
-	includeStylesheet, SupportHotkeys, TestRecorderHotkeyListener,
+	includeScript,
+	includeStylesheet,
 	FrameOptions, Measurement, Interaction,
-	syncXHRFix, LoaderExtensions,
-	PasteEventFix,
+	LoaderExtensions,
 
-	Device, URI,
+	Device,
 
-	jQuery /*, jqueryUiPosition, ui5loaderAutoconfig, jquerySapStubs */) {
-
+	jQuery /* , ui5loaderAutoconfig, jquerySapStubs */) {
 	"use strict";
+
+	/**
+ 	 * Provides base functionality of the SAP jQuery plugin as extension of the jQuery framework.<br/>
+	 * See also <a href="http://api.jquery.com/jQuery/">jQuery</a> for details.<br/>
+	 * Although these functions appear as static ones, they are meant to be used on jQuery instances.<br/>
+	 * If not stated differently, the functions follow the fluent interface paradigm and return the jQuery instance for chaining of statements.
+	 *
+	 * Example for usage of an instance method:
+	 * <pre>
+	 *   var oRect = jQuery("#myDiv").rect();
+	 *   alert("Top Position: " + oRect.top);
+	 * </pre>
+	 *
+	 * @namespace jQuery
+	 * @public
+	 */
 
 	if ( !jQuery ) {
 		throw new Error("Loading of jQuery failed");
@@ -65,17 +64,6 @@ sap.ui.define([
 
 	var _ui5loader = ui5loader._;
 
-	// early logging support
-	var _earlyLogs = [];
-	function _earlyLog(sLevel, sMessage) {
-		_earlyLogs.push({
-			level: sLevel,
-			message: sMessage
-		});
-	}
-
-	var oJQVersion = Version(jQuery.fn.jquery);
-
 	(function() {
 		/**
 		 * Holds information about the browser's capabilities and quirks.
@@ -88,7 +76,7 @@ sap.ui.define([
 		 * @name jQuery.support
 		 * @namespace
 		 * @private
-	 	 * @deprecated since 1.58 use {@link sap.ui.Device} instead
+		 * @deprecated since 1.58 use {@link sap.ui.Device} instead
 		 */
 		jQuery.support = jQuery.support || {};
 
@@ -168,14 +156,6 @@ sap.ui.define([
 		jQuery.support.newFlexBoxLayout = true;
 
 		/**
-		 * Whether the current browser supports the IE10 CSS3 Flexible Box Layout directly or via vendor prefixes
-		 * @type {boolean}
-		 * @private
-		 * @name jQuery.support.ie10FlexBoxLayout
-		 */
-		jQuery.support.ie10FlexBoxLayout = false;
-
-		/**
 		 * Whether the current browser supports any kind of Flexible Box Layout directly or via vendor prefixes
 		 * @type {boolean}
 		 * @private
@@ -184,243 +164,10 @@ sap.ui.define([
 		jQuery.support.hasFlexBoxSupport = true;
 	}());
 
-	// XHR overrides for IE
-	if ( Device.browser.msie ) {
-
-		// Fixes the CORS issue (introduced by jQuery 1.7) when loading resources
-		// (e.g. SAPUI5 script) from other domains for IE browsers.
-		// The CORS check in jQuery filters out such browsers who do not have the
-		// property "withCredentials" which is the IE and Opera and prevents those
-		// browsers to request data from other domains with jQuery.ajax. The CORS
-		// requests are simply forbidden nevertheless if it works. In our case we
-		// simply load our script resources from another domain when using the CDN
-		// variant of SAPUI5. The following fix is also recommended by jQuery:
-
-		jQuery.support.cors = true;
-
-		// Fixes XHR factory issue (introduced by jQuery 1.11). In case of IE
-		// it uses by mistake the ActiveXObject XHR. In the list of XHR supported
-		// HTTP methods PATCH and MERGE are missing which are required for OData.
-		// The related ticket is: #2068 (no downported to jQuery 1.x planned)
-		// the fix will only be applied to jQuery >= 1.11.0 (only for jQuery 1.x)
-		if ( window.ActiveXObject !== undefined && oJQVersion.inRange("1.11", "2") ) {
-			var fnCreateStandardXHR = function() {
-				try {
-					return new XMLHttpRequest();
-				} catch (e) { /* ignore */ }
-			};
-			var fnCreateActiveXHR = function() {
-				try {
-					return new ActiveXObject("Microsoft.XMLHTTP");
-				} catch (e) { /* ignore */ }
-			};
-			jQuery.ajaxSettings = jQuery.ajaxSettings || {};
-			jQuery.ajaxSettings.xhr = function() {
-				return !this.isLocal ? fnCreateStandardXHR() : fnCreateActiveXHR();
-			};
-		}
-
-	}
-
-	// getComputedStyle polyfill for firefox
-	if ( Device.browser.firefox ) {
-		getComputedStyleFix();
-	}
-
-	// document.activeElement iframe fix
-	if (Device.browser.msie || Device.browser.edge) {
-		activeElementFix();
-	}
-
-	// XHR proxy for Firefox
-	if ( Device.browser.firefox && window.Proxy ) {
-		syncXHRFix();
-	}
-
-	/*
-	 * Merged, raw (un-interpreted) configuration data from the following sources
-	 * (last one wins)
-	 * <ol>
-	 * <li>global configuration object <code>window["sap-ui-config"]</code> (could be either a string/url or a conffiguration object)</li>
-	 * <li><code>data-sap-ui-config</code> attribute of the bootstrap script tag</li>
-	 * <li>other <code>data-sap-ui-<i>xyz</i></code> attributes of the bootstrap tag</li>
-	 * </ol>
-	 */
-	var oCfgData = window["sap-ui-config"] = (function() {
-		function normalize(o) {
-			for (var i in o) {
-				var v = o[i];
-				var il = i.toLowerCase();
-				if ( !o.hasOwnProperty(il) ) {
-					o[il] = v;
-					delete o[i];
-				}
-			}
-			return o;
-		}
-
-		function loadExternalConfig(url) {
-			var sCfgFile = "sap-ui-config.json",
-				config;
-
-			Log.warning("Loading external bootstrap configuration from \"" + url + "\". This is a design time feature and not for productive usage!");
-			if (url !== sCfgFile) {
-				Log.warning("The external bootstrap configuration file should be named \"" + sCfgFile + "\"!");
-			}
-
-			var xhr = new XMLHttpRequest();
-			xhr.addEventListener('load', function(e) {
-				if ( xhr.status === 200 && xhr.responseText ) {
-					try {
-						config = JSON.parse( xhr.responseText );
-					} catch (error) {
-						Log.error("Parsing externalized bootstrap configuration from \"" + url + "\" failed! Reason: " + error + "!");
-					}
-				} else {
-					Log.error("Loading externalized bootstrap configuration from \"" + url + "\" failed! Response: " + xhr.status + "!");
-				}
-			});
-			xhr.open('GET', url, false);
-			try {
-				xhr.send();
-			} catch (error) {
-				Log.error("Loading externalized bootstrap configuration from \"" + url + "\" failed! Reason: " + error + "!");
-			}
-
-			config = config || {};
-			config.__loaded = true; // mark config as 'being loaded', needed to detect sync call
-
-			return config;
-		}
-
-		function getInfo() {
-			function check(oScript, rUrlPattern) {
-				var sUrl = oScript && oScript.getAttribute("src");
-				var oMatch = rUrlPattern.exec(sUrl);
-				if ( oMatch ) {
-					return {
-						tag: oScript,
-						url: sUrl,
-						resourceRoot: oMatch[1] || ""
-					};
-				}
-			}
-
-			var rResources = /^((?:.*\/)?resources\/)/,
-				rBootScripts, aScripts, i, oResult;
-
-			// Prefer script tags which have the sap-ui-bootstrap ID
-			// This prevents issues when multiple script tags point to files named
-			// "sap-ui-core.js", for example when using the cache buster for UI5 resources
-			oResult = check(document.querySelector('SCRIPT[src][id=sap-ui-bootstrap]'), rResources);
-
-			if ( !oResult ) {
-				aScripts = document.querySelectorAll('SCRIPT[src]');
-				rBootScripts = /^([^?#]*\/)?(?:sap-ui-(?:core|custom|boot|merged)(?:-[^?#/]*)?|jquery.sap.global|ui5loader(?:-autoconfig)?)\.js(?:[?#]|$)/;
-				for ( i = 0; i < aScripts.length; i++ ) {
-					oResult = check(aScripts[i], rBootScripts);
-					if ( oResult ) {
-						break;
-					}
-				}
-			}
-
-			return oResult || {};
-		}
-
-		var _oBootstrap = getInfo(),
-			oScriptTag = _oBootstrap.tag,
-			oCfg = window["sap-ui-config"];
-
-		// load the configuration from an external JSON file
-		if (typeof oCfg === "string") {
-			oCfg = loadExternalConfig(oCfg);
-		}
-
-		oCfg = normalize(oCfg || {});
-		oCfg.resourceroots = oCfg.resourceroots || {};
-		oCfg.themeroots = oCfg.themeroots || {};
-
-		// map loadall mode to sync preload mode
-		if ( /(^|\/)(sap-?ui5|[^\/]+-all).js([?#]|$)/.test(_oBootstrap.url) ) {
-			Log.error(
-				"The all-in-one file 'sap-ui-core-all.js' has been abandoned in favour of standard preloads." +
-				" Please migrate to sap-ui-core.js and consider to use async preloads.");
-			oCfg.preload = 'sync';
-		}
-
-		// if a script tag has been identified, collect its configuration info
-		if ( oScriptTag ) {
-			// evaluate the config attribute first - if present
-			var sConfig = oScriptTag.getAttribute("data-sap-ui-config");
-			if ( sConfig ) {
-				try {
-					var oParsedConfig;
-					try {
-						// first try to parse the config as a plain JSON
-						oParsedConfig = JSON.parse("{" + sConfig + "}");
-					} catch (e) {
-						// if the JSON.parse fails, we fall back to the more lenient "new Function" eval for compatibility reasons
-						Log.error("JSON.parse on the data-sap-ui-config attribute failed. Please check the config for JSON syntax violations.");
-						/*eslint-disable no-new-func */
-						oParsedConfig = (new Function("return {" + sConfig + "};"))();
-						/*eslint-enable no-new-func */
-					}
-					Object.assign(oCfg, normalize(oParsedConfig));
-				} catch (e) {
-					// no log yet, how to report this error?
-					Log.error("failed to parse data-sap-ui-config attribute: " + (e.message || e));
-				}
-			}
-
-			// merge with any existing "data-sap-ui-" attributes
-			for (var i = 0; i < oScriptTag.attributes.length; i++) {
-				var attr = oScriptTag.attributes[i];
-				var m = attr.name.match(/^data-sap-ui-(.*)$/);
-				if ( m ) {
-					// the following (deactivated) conversion would implement multi-word names like "resource-roots"
-					m = m[1].toLowerCase(); // .replace(/\-([a-z])/g, function(s,w) { return w.toUpperCase(); })
-					if ( m === 'resourceroots' ) {
-						// merge map entries instead of overwriting map
-						Object.assign(oCfg[m], JSON.parse(attr.value));
-					} else if ( m === 'theme-roots' ) {
-						// merge map entries, but rename to camelCase
-						Object.assign(oCfg.themeroots, JSON.parse(attr.value));
-					} else if ( m !== 'config' ) {
-						oCfg[m] = attr.value;
-					}
-				}
-			}
-		}
-
-		return oCfg;
-	}());
-
-	var syncCallBehavior = 0; // ignore
-	if ( oCfgData['xx-nosync'] === 'warn' || /(?:\?|&)sap-ui-xx-nosync=(?:warn)/.exec(window.location.search) ) {
-		syncCallBehavior = 1;
-	}
-	if ( oCfgData['xx-nosync'] === true || oCfgData['xx-nosync'] === 'true' || /(?:\?|&)sap-ui-xx-nosync=(?:x|X|true)/.exec(window.location.search) ) {
-		syncCallBehavior = 2;
-	}
-
-	ui5loader.config({
-		reportSyncCalls: syncCallBehavior
-	});
-
-	if ( syncCallBehavior && oCfgData.__loaded ) {
-		_earlyLog(syncCallBehavior === 1 ? "warning" : "error", "[nosync]: configuration loaded via sync XHR");
-	}
-
-	// check whether noConflict must be used...
-	if ( oCfgData.noconflict === true || oCfgData.noconflict === "true"  || oCfgData.noconflict === "x" ) {
-		jQuery.noConflict();
-	}
-
 	/**
 	 * Root Namespace for the jQuery plug-in provided by SAP SE.
 	 *
-	 * @version 1.79.0
+	 * @version 1.120.6
 	 * @namespace
 	 * @public
 	 * @static
@@ -563,7 +310,10 @@ sap.ui.define([
 	 */
 	jQuery.sap.now = now;
 
-	// Reads the value for the given key from the localStorage or writes a new value to it.
+	/**
+	 * Reads the value for the given key from the localStorage or writes a new value to it.
+	 * @deprecated Since 1.120
+	 */
 	var fnMakeLocalStorageAccessor = function(key, type, callback) {
 		return function(value) {
 			try {
@@ -583,6 +333,9 @@ sap.ui.define([
 		};
 	};
 
+	/**
+	 * @deprecated Since 1.120
+	 */
 	jQuery.sap.debug = fnMakeLocalStorageAccessor.call(this, 'sap-ui-debug', '', function(vDebugInfo) {
 		/*eslint-disable no-alert */
 		alert("Usage of debug sources is " + (vDebugInfo ? "on" : "off") + " now.\nFor the change to take effect, you need to reload the page.");
@@ -594,7 +347,7 @@ sap.ui.define([
 	 * (and depending on the browser, if cookies are enabled, even though cookies are not used).
 	 *
 	 * @param {string} sRebootUrl the URL to sap-ui-core.js, from which the application should load UI5 on next restart; undefined clears the restart URL
-	 * @returns {string} the current reboot URL or undefined in case of an error or when the reboot URL has been cleared
+	 * @returns {string|undefined} the current reboot URL or undefined in case of an error or when the reboot URL has been cleared
 	 *
 	 * @private
 	 * @function
@@ -1010,24 +763,6 @@ sap.ui.define([
 		}
 	};
 
-	// evaluate configuration
-	oCfgData.loglevel = (function() {
-		var m = /(?:\?|&)sap-ui-log(?:L|-l)evel=([^&]*)/.exec(window.location.search);
-		return m && m[1];
-	}()) || oCfgData.loglevel;
-	if ( oCfgData.loglevel ) {
-		Log.setLevel(Log.Level[oCfgData.loglevel.toUpperCase()] || parseInt(oCfgData.loglevel));
-	} else if (!window["sap-ui-optimized"]) {
-		Log.setLevel(Log.Level.DEBUG);
-	}
-
-	Log.info("SAP Logger started.");
-	// log early logs
-	jQuery.each(_earlyLogs, function(i,e) {
-		Log[e.level](e.message);
-	});
-	_earlyLogs = null;
-
 	// ------------------------------------------- OBJECT --------------------------------------------------------
 
 	/**
@@ -1143,7 +878,7 @@ sap.ui.define([
 			iEndCreate = isNaN(iNoCreates) ? 0 : l - iNoCreates,
 			i;
 
-		if ( syncCallBehavior && oContext === window ) {
+		if ( sap.ui.loader._.getSyncCallBehavior() && oContext === window ) {
 			Log.error("[nosync] getObject called to retrieve global name '" + sName + "'");
 		}
 
@@ -1532,20 +1267,11 @@ sap.ui.define([
 
 	// ---------------------- require/declare --------------------------------------------------------
 
-	var getModuleSystemInfo = (function() {
-
-		/**
-		 * Local logger for messages related to module loading.
-		 *
-		 * By default, the log level is the same as for the standard log, but not higher than <code>INFO</code>.
-		 * With the experimental config option <code>xx-debugModuleLoading</code>, it can be raised to <code>DEBUG</code>.
-		 * @private
-		 */
-		var oLog = _ui5loader.logger = Log.getLogger("sap.ui.ModuleSystem",
-				(/sap-ui-xx-debug(M|-m)odule(L|-l)oading=(true|x|X)/.test(location.search) || oCfgData["xx-debugModuleLoading"]) ? Log.Level.DEBUG : Math.min(Log.getLevel(), Log.Level.INFO)
-			),
-
-			mKnownSubtypes = LoaderExtensions.getKnownSubtypes(),
+	/**
+	 * @deprecated As of Version 1.120.0
+	 */
+	(function() {
+		var mKnownSubtypes = LoaderExtensions.getKnownSubtypes(),
 
 			rSubTypes;
 
@@ -1556,7 +1282,6 @@ sap.ui.define([
 				sSub = (sSub ? sSub + "|" : "") + "(?:(?:" + mKnownSubtypes[sType].join("\\.|") + "\\.)?" + sType + ")";
 			}
 			sSub = "\\.(?:" + sSub + "|[^./]+)$";
-			oLog.debug("constructed regexp for file sub-types :" + sSub);
 			rSubTypes = new RegExp(sSub);
 		}());
 
@@ -1737,6 +1462,7 @@ sap.ui.define([
 		 * @static
 		 * @deprecated since 1.58 set path mappings via {@link sap.ui.loader.config} instead.
 		 * @SecSink {1|PATH} Parameter is used for future HTTP requests
+		 * @function
 		 */
 		jQuery.sap.registerResourcePath = LoaderExtensions.registerResourcePath;
 
@@ -1759,8 +1485,9 @@ sap.ui.define([
 		 *              The modules will be loaded first before loading the module itself.
 		 *
 		 * @private
-		 * @ui5-restricted sap.ui.core sap.ui.export sap.ui.vk
-	  	 * @deprecated Since 1.58, use {@link sap.ui.loader.config} instead
+		 * @ui5-restricted sap.ui.core, sap.ui.export, sap.ui.vk
+		 * @deprecated Since 1.58, use {@link sap.ui.loader.config} instead
+		 * @function
 		 */
 		jQuery.sap.registerModuleShims = function(mShims) {
 			jQuery.sap.assert( typeof mShims === 'object', "mShims must be an object");
@@ -1818,23 +1545,9 @@ sap.ui.define([
 		 * @public
 		 * @static
 		 * @deprecated since 1.58
+		 * @function
 		 */
 		jQuery.sap.getAllDeclaredModules = LoaderExtensions.getAllRequiredModules;
-
-
-		// take resource roots from configuration
-		var paths = {};
-		for ( var n in oCfgData.resourceroots ) {
-			paths[ui5ToRJS(n)] = oCfgData.resourceroots[n] || ".";
-		}
-		ui5loader.config({paths: paths});
-
-		var mUrlPrefixes = _ui5loader.getUrlPrefixes();
-		// dump the URL prefixes
-		oLog.info("URL prefixes set to:");
-		for (var n in mUrlPrefixes) {
-			oLog.info("  " + (n ? "'" + n + "'" : "(default)") + " : " + mUrlPrefixes[n]);
-		}
 
 		/**
 		 * Declares a module as existing.
@@ -1930,11 +1643,14 @@ sap.ui.define([
 				vModuleName = ui5ToRJS(vModuleName);
 			}
 
-			sap.ui.requireSync(vModuleName);
+			sap.ui.requireSync(vModuleName); // legacy-relevant: deprecated jquery.sap.require
 
 		};
 
-		// propagate legacy require hook to ui5loader translate hook
+		/**
+		 * Propagate legacy require hook to ui5loader translate hook.
+		 * @deprecated since 1.54
+		 */
 		Object.defineProperty(jQuery.sap.require, "_hook", {
 			get: function() {
 				return _ui5loader.translate;
@@ -1947,7 +1663,7 @@ sap.ui.define([
 
 		/**
 		 * @private
-		 * @deprecated
+		 * @deprecated since 1.40
 		 */
 		jQuery.sap.preloadModules = function(sPreloadModule, bAsync, oSyncPoint) {
 			Log.error("jQuery.sap.preloadModules was never a public API and has been removed. Migrate to Core.loadLibrary()!");
@@ -1966,7 +1682,7 @@ sap.ui.define([
 		 *
 		 * @private
 		 * @ui5-restricted sap.ui.core,preloadfiles
-	  	 * @deprecated since 1.58
+		 * @deprecated since 1.58
 		 */
 		jQuery.sap.registerPreloadedModules = function(oData) {
 
@@ -1991,7 +1707,7 @@ sap.ui.define([
 		 * @experimental Since 1.16.3 API might change completely, apps must not develop against it.
 		 * @private
 		 * @function
-	  	 * @deprecated since 1.58
+		 * @deprecated since 1.58
 		 */
 		jQuery.sap.unloadResources = _ui5loader.unloadResources;
 
@@ -2008,7 +1724,7 @@ sap.ui.define([
 		 * @param {string} [sSuffix='.js'] Suffix to add to the final resource name
 		 * @private
 		 * @ui5-restricted sap.ui.core
-	  	 * @deprecated since 1.58
+		 * @deprecated since 1.58
 		 */
 		jQuery.sap.getResourceName = function(sModuleName, sSuffix) {
 			return ui5ToRJS(sModuleName) + (sSuffix == null ? ".js" : sSuffix);
@@ -2055,7 +1771,7 @@ sap.ui.define([
 		 * @private
 		 * @experimental API is not yet fully mature and may change in future.
 		 * @since 1.15.1
-	  	 * @deprecated since 1.58
+		 * @deprecated since 1.58
 		 */
 		jQuery.sap.loadResource = LoaderExtensions.loadResource;
 
@@ -2092,16 +1808,10 @@ sap.ui.define([
 		 * @experimental
 		 * @private
 		 * @ui5-restricted sap.ui.core,sap.ushell
-	  	 * @deprecated since 1.58
+		 * @deprecated since 1.58
+		 * @function
 		 */
 		jQuery.sap._loadJSResourceAsync = _ui5loader.loadJSResourceAsync;
-
-		return function() {
-			return {
-				modules : _ui5loader.getAllModules(),
-				prefixes : _ui5loader.getUrlPrefixes()
-			};
-		};
 
 	}());
 
@@ -2159,10 +1869,6 @@ sap.ui.define([
 	 *          [fnLoadCallback] callback function to get notified once the stylesheet has been loaded
 	 * @param {function}
 	 *          [fnErrorCallback] callback function to get notified once the stylesheet loading failed.
-	 *            In case of usage in IE the error callback will also be executed if an empty stylesheet
-	 *            is loaded. This is the only option how to determine in IE if the load was successful
-	 *            or not since the native onerror callback for link elements doesn't work in IE. The IE
-	 *            always calls the onload callback of the link element.
 	 * @return {void|Promise}
 	 *            When using the configuration object a <code>Promise</code> will be returned. The
 	 *            documentation for the <code>fnLoadCallback</code> applies to the <code>resolve</code>
@@ -2179,19 +1885,7 @@ sap.ui.define([
 
 	// --------------------- support hooks ---------------------------------------------------------
 
-	// TODO should be in core, but then the 'callback' could not be implemented
-	if ( !(oCfgData.productive === true || oCfgData.productive === "true"  || oCfgData.productive === "x") ) {
-		SupportHotkeys.init(getModuleSystemInfo, oCfgData);
-		TestRecorderHotkeyListener.init(getModuleSystemInfo, oCfgData);
-	}
-
 	// -----------------------------------------------------------------------
-
-	if ( oJQVersion.compareTo("2.2.3") != 0 ) {
-		// if the loaded jQuery version isn't SAPUI5's default version -> notify
-		// the application
-		Log.warning("SAPUI5's default jQuery version is 2.2.3; current version is " + jQuery.fn.jquery + ". Please note that we only support version 2.2.3.");
-	}
 
 	// --------------------- frame protection -------------------------------------------------------
 
@@ -2206,6 +1900,9 @@ sap.ui.define([
 	 * This is a synchronous replacement for <code>jQuery.globalEval</code> which in some
 	 * browsers (e.g. FireFox) behaves asynchronously.
 	 *
+	 * <b>Note:</b>
+	 * To avoid potential violations of your content security policy (CSP), this API should not be used.
+	 *
 	 * @type void
 	 * @public
 	 * @static
@@ -2219,6 +1916,9 @@ sap.ui.define([
 		/*eslint-enable no-eval */
 	};
 
+	/**
+	 * @deprecated As of version 1.112
+	 */
 	(function() {
 
 		var b = Device.browser;
@@ -2231,12 +1931,10 @@ sap.ui.define([
 
 				var rwebkit = /(webkit)[ \/]([\w.]+)/,
 					ropera = /(opera)(?:.*version)?[ \/]([\w.]+)/,
-					rmsie = /(msie) ([\w.]+)/,
 					rmozilla = /(mozilla)(?:.*? rv:([\w.]+))?/,
 					ua = ua.toLowerCase(),
 					match = rwebkit.exec(ua) ||
 						ropera.exec(ua) ||
-						rmsie.exec(ua) ||
 						ua.indexOf("compatible") < 0 && rmozilla.exec(ua) ||
 						[],
 					browser = {};
@@ -2270,5 +1968,4 @@ sap.ui.define([
 	}());
 
 	return jQuery;
-
 });

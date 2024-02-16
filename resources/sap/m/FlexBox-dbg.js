@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2024 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -9,6 +9,7 @@ sap.ui.define([
 	'./FlexBoxStylingHelper',
 	'./FlexItemData',
 	'./library',
+	'sap/ui/base/ManagedObjectObserver',
 	'sap/ui/core/Control',
 	'sap/ui/core/InvisibleRenderer',
 	'./FlexBoxRenderer',
@@ -18,6 +19,7 @@ function(
 	FlexBoxStylingHelper,
 	FlexItemData,
 	library,
+	ManagedObjectObserver,
 	Control,
 	InvisibleRenderer,
 	FlexBoxRenderer,
@@ -60,108 +62,111 @@ function(
 	 * @extends sap.ui.core.Control
 	 *
 	 * @author SAP SE
-	 * @version 1.79.0
+	 * @version 1.120.6
 	 *
 	 * @public
 	 * @alias sap.m.FlexBox
 	 * @see https://www.w3.org/TR/css-flexbox-1/
 	 * @see https://www.w3schools.com/css/css3_flexbox.asp
 	 * @see {@link topic:674890e6d8534eaba2eaf63242e077eb Flex Box}
-	 * @ui5-metamodel This control/element also will be described in the UI5 (legacy) designtime metamodel
 	 */
-	var FlexBox = Control.extend("sap.m.FlexBox", /** @lends sap.m.FlexBox.prototype */ { metadata : {
+	var FlexBox = Control.extend("sap.m.FlexBox", /** @lends sap.m.FlexBox.prototype */ {
+		metadata : {
 
-		library : "sap.m",
-		properties : {
+			library : "sap.m",
+			properties : {
 
-			/**
-			 * The height of the <code>sap.m.FlexBox</code>. Note that when a percentage is given, for the height to work as expected, the height of the surrounding container must be defined.
-			 * @since 1.9.1
-			 */
-			height : {type : "sap.ui.core.CSSSize", group : "Dimension", defaultValue : ''},
+				/**
+				 * The height of the <code>sap.m.FlexBox</code>. Note that when a percentage is given, for the height to work as expected, the height of the surrounding container must be defined.
+				 * @since 1.9.1
+				 */
+				height : {type : "sap.ui.core.CSSSize", group : "Dimension", defaultValue : ''},
 
-			/**
-			 * The width of the <code>sap.m.FlexBox</code>. Note that when a percentage is given, for the width to work as expected, the width of the surrounding container must be defined.
-			 * @since 1.9.1
-			 */
-			width : {type : "sap.ui.core.CSSSize", group : "Dimension", defaultValue : ''},
+				/**
+				 * The width of the <code>sap.m.FlexBox</code>. Note that when a percentage is given, for the width to work as expected, the width of the surrounding container must be defined.
+				 * @since 1.9.1
+				 */
+				width : {type : "sap.ui.core.CSSSize", group : "Dimension", defaultValue : ''},
 
-			/**
-			 * Determines whether the <code>sap.m.FlexBox</code> is in block or inline mode.
-			 *
-			 * @see http://www.w3.org/TR/css-flexbox-1/#flex-containers
-			 */
-			displayInline : {type : "boolean", group : "Appearance", defaultValue : false},
+				/**
+				 * Determines whether the <code>sap.m.FlexBox</code> is in block or inline mode.
+				 *
+				 * @see http://www.w3.org/TR/css-flexbox-1/#flex-containers
+				 */
+				displayInline : {type : "boolean", group : "Appearance", defaultValue : false},
 
-			/**
-			 * Determines the direction of the layout of child elements.
-			 *
-			 * @see http://www.w3.org/TR/css-flexbox-1/#flex-direction-property
-			 */
-			direction : {type : "sap.m.FlexDirection", group : "Appearance", defaultValue : FlexDirection.Row},
+				/**
+				 * Determines the direction of the layout of child elements.
+				 *
+				 * @see http://www.w3.org/TR/css-flexbox-1/#flex-direction-property
+				 */
+				direction : {type : "sap.m.FlexDirection", group : "Appearance", defaultValue : FlexDirection.Row},
 
-			/**
-			 * Determines whether the <code>sap.m.FlexBox</code> will be sized to completely fill its container. If the <code>sap.m.FlexBox</code> is inserted into a Page, the property 'enableScrolling' of the Page needs to be set to 'false' for the FlexBox to fit the entire viewport.
-			 */
-			fitContainer : {type : "boolean", group : "Appearance", defaultValue : false},
+				/**
+				 * Determines whether the <code>sap.m.FlexBox</code> will be sized to completely fill its container. If the <code>sap.m.FlexBox</code> is inserted into a Page, the property 'enableScrolling' of the Page needs to be set to 'false' for the FlexBox to fit the entire viewport.
+				 */
+				fitContainer : {type : "boolean", group : "Appearance", defaultValue : false},
 
-			/**
-			 * Determines whether the layout is rendered as a series of divs or as an unordered list (ul).<br>
-			 * <br>
-			 * We recommend to use <code>Bare</code> in most cases to avoid layout issues due to browser inconsistencies.
-			 */
-			renderType : {type : "sap.m.FlexRendertype", group : "Misc", defaultValue : FlexRendertype.Div},
+				/**
+				 * Determines whether the layout is rendered as a series of divs or as an unordered list (ul).<br>
+				 * <br>
+				 * We recommend to use <code>Bare</code> in most cases to avoid layout issues due to browser inconsistencies.
+				 */
+				renderType : {type : "sap.m.FlexRendertype", group : "Misc", defaultValue : FlexRendertype.Div},
 
-			/**
-			 * Determines the layout behavior along the main axis.
-			 *
-			 * @see http://www.w3.org/TR/css-flexbox-1/#justify-content-property
-			 */
-			justifyContent : {type : "sap.m.FlexJustifyContent", group : "Appearance", defaultValue : FlexJustifyContent.Start},
+				/**
+				 * Determines the layout behavior along the main axis.
+				 *
+				 * @see http://www.w3.org/TR/css-flexbox-1/#justify-content-property
+				 */
+				justifyContent : {type : "sap.m.FlexJustifyContent", group : "Appearance", defaultValue : FlexJustifyContent.Start},
 
-			/**
-			 * Determines the layout behavior of items along the cross-axis.
-			 *
-			 * @see http://www.w3.org/TR/css-flexbox-1/#align-items-property
-			 */
-			alignItems : {type : "sap.m.FlexAlignItems", group : "Appearance", defaultValue : FlexAlignItems.Stretch},
+				/**
+				 * Determines the layout behavior of items along the cross-axis.
+				 *
+				 * @see http://www.w3.org/TR/css-flexbox-1/#align-items-property
+				 */
+				alignItems : {type : "sap.m.FlexAlignItems", group : "Appearance", defaultValue : FlexAlignItems.Stretch},
 
-			/**
-			 * Determines the wrapping behavior of the flex container. This property has no effect in older browsers, e.g. Android Native 4.3 and below.
-			 *
-			 * @see http://www.w3.org/TR/css-flexbox-1/#flex-wrap-property
-			 *
-			 * @since 1.36.0
-			 */
-			wrap : {type : "sap.m.FlexWrap", group : "Appearance", defaultValue : FlexWrap.NoWrap},
+				/**
+				 * Determines the wrapping behavior of the flex container. This property has no effect in older browsers, e.g. Android Native 4.3 and below.
+				 *
+				 * @see http://www.w3.org/TR/css-flexbox-1/#flex-wrap-property
+				 *
+				 * @since 1.36.0
+				 */
+				wrap : {type : "sap.m.FlexWrap", group : "Appearance", defaultValue : FlexWrap.NoWrap},
 
-			/**
-			 * Determines the layout behavior of container lines when there's extra space along the cross-axis.
-			 *
-			 * @see http://www.w3.org/TR/css-flexbox-1/#align-content-property
-			 *
-			 * @since 1.36.0
-			 */
-			alignContent : {type : "sap.m.FlexAlignContent", group : "Appearance", defaultValue : FlexAlignContent.Stretch},
+				/**
+				 * Determines the layout behavior of container lines when there's extra space along the cross-axis.
+				 *
+				 * @see http://www.w3.org/TR/css-flexbox-1/#align-content-property
+				 *
+				 * @since 1.36.0
+				 */
+				alignContent : {type : "sap.m.FlexAlignContent", group : "Appearance", defaultValue : FlexAlignContent.Stretch},
 
-			/**
-			 * Defines the background style of the <code>sap.m.FlexBox</code>.
-			 *
-			 * @since 1.38.5
-			 */
-			backgroundDesign: {type: "sap.m.BackgroundDesign", group: "Appearance", defaultValue: BackgroundDesign.Transparent}
+				/**
+				 * Defines the background style of the <code>sap.m.FlexBox</code>.
+				 *
+				 * @since 1.38.5
+				 */
+				backgroundDesign: {type: "sap.m.BackgroundDesign", group: "Appearance", defaultValue: BackgroundDesign.Transparent}
+			},
+			defaultAggregation : "items",
+			aggregations : {
+
+				/**
+				 * Flex items within the flexible box layout
+				 */
+				items : {type : "sap.ui.core.Control", multiple : true, singularName : "item"}
+			},
+			designtime: "sap/m/designtime/FlexBox.designtime",
+			dnd: { draggable: false, droppable: true }
 		},
-		defaultAggregation : "items",
-		aggregations : {
 
-			/**
-			 * Flex items within the flexible box layout
-			 */
-			items : {type : "sap.ui.core.Control", multiple : true, singularName : "item"}
-		},
-		designtime: "sap/m/designtime/FlexBox.designtime",
-		dnd: { draggable: false, droppable: true }
-	}});
+		renderer: FlexBoxRenderer
+	});
 
 	/**
 	 * Initializes the control.
@@ -170,66 +175,28 @@ function(
 		this._oItemDelegate = {
 			onAfterRendering: this._onAfterItemRendering
 		};
+
+		this._oItemsObserver = new ManagedObjectObserver(this._onItemsChange.bind(this));
+		this._oItemsObserver.observe(this, { aggregations: ["items"] });
 	};
 
-	/**
-	 * Adds item in the FlexBox.
-	 *
-	 * @public
-	 * @param {object} oItem Added item.
-	 * @returns {sap.m.FlexBox} <code>this</code> FlexBox reference for chaining.
-	 */
-	FlexBox.prototype.addItem = function(oItem) {
-		this.addAggregation("items", oItem);
-		this._onItemInserted(oItem);
-
-		return this;
-	};
-
-	/**
-	 * Inserts single item.
-	 *
-	 * @public
-	 * @param {object} oItem Inserted item.
-	 * @param {int} iIndex Index of the inserted item.
-	 * @returns {sap.m.FlexBox} <code>this</code> FlexBox reference for chaining.
-	 */
-	FlexBox.prototype.insertItem = function(oItem, iIndex) {
-		this.insertAggregation("items", oItem, iIndex);
-		this._onItemInserted(oItem);
-
-		return this;
-	};
-
-	/**
-	 * Removes single item.
-	 *
-	 * @public
-	 * @param {any} vItem Item to be removed.
-	 * @returns {object} The removed item.
-	 */
-	FlexBox.prototype.removeItem = function(vItem) {
-		var oItem = this.removeAggregation("items", vItem);
-
-		this._onItemRemoved(oItem);
-
-		return oItem;
-	};
-
-	/**
-	 * Removes all items.
-	 *
-	 * @public
-	 * @returns {object} The removed items from flexbox.
-	 */
-	FlexBox.prototype.removeAllItems = function() {
-		var aItems = this.getItems();
-
-		for (var i = 0; i < aItems.length; i++) {
-			this._onItemRemoved(aItems[i]);
+	FlexBox.prototype.exit = function() {
+		if (this._oItemsObserver) {
+			this._oItemsObserver.disconnect();
+			this._oItemsObserver = null;
 		}
+	};
 
-		return this.removeAllAggregation("items");
+	FlexBox.prototype._onItemsChange = function(oChanges) {
+		if (oChanges.name === "items" && oChanges.child) {
+			if (oChanges.mutation === "insert") {
+				this._onItemInserted(oChanges.child);
+			} else if (oChanges.mutation === "remove") {
+				this._onItemRemoved(oChanges.child);
+			}
+		} else if (oChanges.name === "visible") {
+			this._onItemVisibilityChange(oChanges);
+		}
 	};
 
 	/**
@@ -240,7 +207,8 @@ function(
 	 */
 	FlexBox.prototype._onItemInserted = function(oItem) {
 		if (oItem && !(oItem instanceof FlexBox)) {
-			oItem.attachEvent("_change", this._onItemChange, this);
+			this._oItemsObserver.observe(oItem, { properties: ["visible"] });
+
 			if (this.getRenderType() === FlexRendertype.Bare) {
 				oItem.addEventDelegate(this._oItemDelegate, oItem);
 			}
@@ -255,7 +223,8 @@ function(
 	 */
 	FlexBox.prototype._onItemRemoved = function(oItem) {
 		if (oItem && !(oItem instanceof FlexBox)) {
-			oItem.detachEvent("_change", this._onItemChange, this);
+			this._oItemsObserver.unobserve(oItem, { properties: ["visible"] });
+
 			if (this.getRenderType() === FlexRendertype.Bare) {
 				oItem.removeEventDelegate(this._oItemDelegate, oItem);
 			}
@@ -263,21 +232,20 @@ function(
 	};
 
 	/**
-	 * Helper that gets called when an item is changed.
+	 * Helper that gets called when an item visibility is changed.
+	 * Syncs the visibility of flex item wrapper, if visibility changes.
 	 *
 	 * @private
-	 * @param {object} oControlEvent Onchange event.
 	 */
-	FlexBox.prototype._onItemChange = function(oControlEvent) {
+	FlexBox.prototype._onItemVisibilityChange = function(oChanges) {
+		var oItem = oChanges.object,
+			$wrapper;
+
 		// Early return conditions
-		if (oControlEvent.getParameter("name") !== "visible"
-			|| (this.getRenderType() !== FlexRendertype.List && this.getRenderType() !== FlexRendertype.Div)) {
+		if (this.getRenderType() !== FlexRendertype.List &&
+			this.getRenderType() !== FlexRendertype.Div) {
 			return;
 		}
-
-		// Sync visibility of flex item wrapper, if visibility changes
-		var oItem = sap.ui.getCore().byId(oControlEvent.getParameter("id")),
-			$wrapper = null;
 
 		if (oItem.getLayoutData()) {
 			$wrapper = jQuery(document.getElementById(oItem.getLayoutData().getId()));
@@ -285,7 +253,7 @@ function(
 			$wrapper = jQuery(document.getElementById(InvisibleRenderer.createInvisiblePlaceholderId(oItem))).parent();
 		}
 
-		if (oControlEvent.getParameter("newValue")) {
+		if (oChanges.current) {
 			$wrapper.removeClass("sapUiHiddenPlaceholder").removeAttr("aria-hidden");
 		} else {
 			$wrapper.addClass("sapUiHiddenPlaceholder").attr("aria-hidden", "true");
@@ -310,7 +278,7 @@ function(
 	 *
 	 * @public
 	 * @param {string} sValue Render type in string format.
-	 * @returns {sap.m.FlexBox} <code>this</code> FlexBox reference for chaining.
+	 * @returns {this} <code>this</code> FlexBox reference for chaining.
 	 */
 	FlexBox.prototype.setRenderType = function(sValue) {
 		var sOldValue = this.getRenderType(),
@@ -337,7 +305,7 @@ function(
 	 * Gets the accessibility information.
 	 *
 	 * @protected
-	 * @returns {object} The accessibility information.
+	 * @returns {sap.ui.core.AccessibilityInfo} The accessibility information.
 	 * @see sap.ui.core.Control#getAccessibilityInfo
 	 */
 	FlexBox.prototype.getAccessibilityInfo = function() {

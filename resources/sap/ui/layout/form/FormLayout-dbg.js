@@ -1,20 +1,22 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2024 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 // Provides control sap.ui.layout.form.FormLayout.
 sap.ui.define([
 	'sap/ui/core/Control',
+	'sap/ui/core/Element',
 	'sap/ui/layout/library',
 	'./FormLayoutRenderer',
-	"sap/ui/thirdparty/jquery",
+	'./FormHelper',
+	'sap/ui/core/theming/Parameters',
+	'sap/ui/thirdparty/jquery',
+	"sap/ui/core/Configuration",
 	// jQuery custom selectors ":sapFocusable"
-	'sap/ui/dom/jquery/Selectors',
-	// jQuery Plugin "control"
-	'sap/ui/dom/jquery/control'
-], function(Control, library, FormLayoutRenderer, jQuery) {
+	'sap/ui/dom/jquery/Selectors'
+], function(Control, Element, library, FormLayoutRenderer, FormHelper, Parameters, jQuery, Configuration) {
 	"use strict";
 
 	// shortcut for sap.ui.layout.BackgroundDesign
@@ -35,41 +37,64 @@ sap.ui.define([
 	 * @extends sap.ui.core.Control
 	 *
 	 * @author SAP SE
-	 * @version 1.79.0
+	 * @version 1.120.6
 	 *
 	 * @constructor
 	 * @public
 	 * @since 1.16.0
 	 * @alias sap.ui.layout.form.FormLayout
-	 * @ui5-metamodel This control/element also will be described in the UI5 (legacy) designtime metamodel
 	 */
-	var FormLayout = Control.extend("sap.ui.layout.form.FormLayout", /** @lends sap.ui.layout.form.FormLayout.prototype */ { metadata : {
+	var FormLayout = Control.extend("sap.ui.layout.form.FormLayout", /** @lends sap.ui.layout.form.FormLayout.prototype */ {
+		metadata : {
 
-		library : "sap.ui.layout",
-		properties : {
-			/**
-			 * Specifies the background color of the <code>Form</code> content.
-			 *
-			 * <b>Note:</b> The visualization of the different options depends on the theme used.
-			 *
-			 * @since 1.36.0
-			 */
-			backgroundDesign : {type : "sap.ui.layout.BackgroundDesign", group : "Appearance", defaultValue : BackgroundDesign.Translucent}
-		}
-	}});
+			library : "sap.ui.layout",
+			properties : {
+				/**
+				 * Specifies the background color of the <code>Form</code> content.
+				 *
+				 * <b>Note:</b> The visualization of the different options depends on the theme used.
+				 *
+				 * @since 1.36.0
+				 */
+				backgroundDesign : {type : "sap.ui.layout.BackgroundDesign", group : "Appearance", defaultValue : BackgroundDesign.Translucent}
+			}
+		},
+
+		renderer: FormLayoutRenderer
+	});
 
 	/* eslint-disable no-lonely-if */
 
+	FormLayout.prototype.init = function(){
+
+		this._oInitPromise = FormHelper.init();
+
+		this._sFormTitleSize = "H4"; // to have default as Theme parameter could be loaded async.
+		this._sFormSubTitleSize = "H5";
+
+	};
+
+	FormLayout.prototype.onBeforeRendering = function( oEvent ){
+
+		// get title sizes from theme
+		this.loadTitleSizes();
+
+	};
+
 	FormLayout.prototype.contentOnAfterRendering = function(oFormElement, oControl){
 
-		if (library.form.FormHelper.bArrowKeySupport) {
+		if (FormHelper.isArrowKeySupported()) { // no async call needed here
 			jQuery(oControl.getFocusDomRef()).data("sap.InNavArea", true);
 		}
 
-		// In the visual designed layouts, the controls should have the size of the Form cells to align
-		// -> The width must be set to 100% (if no other width set)
-		if (oControl.getWidth && ( !oControl.getWidth() || oControl.getWidth() == "auto" ) &&
+		if (this.renderControlsForSemanticElement() && oFormElement.isA("sap.ui.layout.form.SemanticFormElement") && !oFormElement._getEditable()) {
+			// If in SemanticFormElement in display mode controls are not concatenated but rendered as they are devided by delemitters they need to keep their own size,
+			// but must not be larger than the available space.
+			oControl.$().css("max-width", "100%");
+		} else if (oControl.getWidth && ( !oControl.getWidth() || oControl.getWidth() == "auto" ) &&
 				(!oControl.getFormDoNotAdjustWidth || !oControl.getFormDoNotAdjustWidth())) {
+			// In the visual designed layouts, the controls should have the size of the Form cells to align
+			// -> The width must be set to 100% (if no other width set)
 			oControl.$().css("width", "100%");
 		}
 
@@ -127,8 +152,8 @@ sap.ui.define([
 
 	FormLayout.prototype.onsapright = function(oEvent){
 
-		if (library.form.FormHelper.bArrowKeySupport) {
-			var bRtl = sap.ui.getCore().getConfiguration().getRTL();
+		if (FormHelper.isArrowKeySupported()) { // no async call needed here
+			var bRtl = Configuration.getRTL();
 
 			if (!bRtl) {
 				this.navigateForward(oEvent);
@@ -141,8 +166,8 @@ sap.ui.define([
 
 	FormLayout.prototype.onsapleft = function(oEvent){
 
-		if (library.form.FormHelper.bArrowKeySupport) {
-			var bRtl = sap.ui.getCore().getConfiguration().getRTL();
+		if (FormHelper.isArrowKeySupported()) { // no async call needed here
+			var bRtl = Configuration.getRTL();
 
 			if (!bRtl) {
 				this.navigateBack(oEvent);
@@ -155,7 +180,7 @@ sap.ui.define([
 
 	FormLayout.prototype.onsapdown = function(oEvent){
 
-		if (library.form.FormHelper.bArrowKeySupport) {
+		if (FormHelper.isArrowKeySupported()) { // no async call needed here
 			var oControl = oEvent.srcControl;
 			var oNewDomRef;
 			var oRoot = this.findElement(oControl);
@@ -178,7 +203,7 @@ sap.ui.define([
 
 	FormLayout.prototype.onsapup = function(oEvent){
 
-		if (library.form.FormHelper.bArrowKeySupport) {
+		if (FormHelper.isArrowKeySupported()) { // no async call needed here
 			var oControl = oEvent.srcControl;
 			var iCurrentIndex = 0;
 			var oNewDomRef;
@@ -204,7 +229,7 @@ sap.ui.define([
 
 	FormLayout.prototype.onsaphome = function(oEvent){
 
-		if (library.form.FormHelper.bArrowKeySupport) {
+		if (FormHelper.isArrowKeySupported()) { // no async call needed here
 			var oControl = oEvent.srcControl;
 			var iCurrentIndex = 0;
 			var oNewDomRef;
@@ -227,7 +252,7 @@ sap.ui.define([
 
 	FormLayout.prototype.onsaptop = function(oEvent){
 
-		if (library.form.FormHelper.bArrowKeySupport) {
+		if (FormHelper.isArrowKeySupported()) { // no async call needed here
 			var oControl = oEvent.srcControl;
 			var oRoot = this.findElement(oControl);
 			var oElement = oRoot.element;
@@ -254,7 +279,7 @@ sap.ui.define([
 
 	FormLayout.prototype.onsapend = function(oEvent){
 
-		if (library.form.FormHelper.bArrowKeySupport) {
+		if (FormHelper.isArrowKeySupported()) { // no async call needed here
 			var oControl = oEvent.srcControl;
 			var iCurrentIndex = 0;
 			var oNewDomRef;
@@ -276,7 +301,7 @@ sap.ui.define([
 
 	FormLayout.prototype.onsapbottom = function(oEvent){
 
-		if (library.form.FormHelper.bArrowKeySupport) {
+		if (FormHelper.isArrowKeySupported()) { // no async call needed here
 			var oControl = oEvent.srcControl;
 			var oRoot = this.findElement(oControl);
 			var oElement = oRoot.element;
@@ -407,7 +432,7 @@ sap.ui.define([
 
 	FormLayout.prototype.onBeforeFastNavigationFocus = function(oEvent){
 		if (jQuery.contains(this.getDomRef(), oEvent.source)) {
-			oEvent.srcControl = jQuery(oEvent.source).control(0);
+			oEvent.srcControl = Element.closestTo(oEvent.source);
 			if (oEvent.forward) {
 				this.onsapskipforward(oEvent);
 			} else {
@@ -880,14 +905,14 @@ sap.ui.define([
 	 * As Elements must not have a DOM reference it is not sure if one exists
 	 * In this basic <code>FormLayout</code> each <code>FormContainer</code> has its own DOM.
 	 * @param {sap.ui.layout.form.FormContainer} oContainer <code>FormContainer</code>
-	 * @return {Element} The Element's DOM representation or null
+	 * @return {Element|null} The Element's DOM representation or null
 	 * @private
 	 */
 	FormLayout.prototype.getContainerRenderedDomRef = function(oContainer) {
 
 		if (this.getDomRef()) {
-			return (oContainer.getId() ? window.document.getElementById(oContainer.getId()) : null);
-		}else {
+			return oContainer.getDomRef();
+		} else  {
 			return null;
 		}
 
@@ -903,9 +928,98 @@ sap.ui.define([
 	FormLayout.prototype.getElementRenderedDomRef = function(oElement) {
 
 		if (this.getDomRef()) {
-			return (oElement.getId() ? window.document.getElementById(oElement.getId()) : null);
-		}else {
+			return oElement.getDomRef();
+		} else  {
 			return null;
+		}
+
+	};
+
+	/**
+	 * In {@link sap.ui.layout.SemanticFormElement SemanticFormElement}, delimiters are rendered.
+	 * They should use only a small space. So <code>Layout</code>-dependent <code>LayoutData</code>
+	 * are needed.
+	 *
+	 * This function needs to be implemented by the specific <code>Layout</code>.
+	 *
+	 * @return {sap.ui.core.LayoutData | Promise} LayoutData or promise retuning LayoutData
+	 * @protected
+	 * @since: 1.86.0
+	 */
+	FormLayout.prototype.getLayoutDataForDelimiter = function() {
+	};
+
+	/**
+	 * In {@link sap.ui.layout.SemanticFormElement SemanticFormElement}, delimiters are rendered.
+	 * The fields should be rendered per default in a way, the field and the corresponding delimiter filling one row in
+	 * phone mode. In desktop mode they should all be in one row.
+	 *
+	 * This function needs to be implemented by the specific <code>Layout</code>.
+	 *
+	 * @param {int} iFields Number of field in the <code>SemanticFormElement</code>
+	 * @param {int} iIndex Index of field in the <code>SemanticFormElement</code>
+	 * @param {sap.ui.core.LayoutData} [oLayoutData] existing <code>LayoutData</code> that might be just changed
+	 * @return {sap.ui.core.LayoutData | Promise} LayoutData or promise retuning LayoutData
+	 * @protected
+	 * @since: 1.86.0
+	 */
+	FormLayout.prototype.getLayoutDataForSemanticField = function(iFields, iIndex, oLayoutData) {
+	};
+
+	/**
+	 * For {@link sap.ui.layout.SemanticFormElement SemanticFormElement}, all text-based controls should be concatenated in display mode.
+	 * If the <code>Layout</code> supports rendering of single controls, they are rendered divided by delimiters.
+	 * If the <code>Layout</code> doesn't support this, one concatenated text is rendered. Here only text is supported, no links or other special rendering.
+	 *
+	 * This function needs to be implemented by the specific <code>Layout</code>.
+	 *
+	 * @return {boolean} <code>true</code> if layout allows to render single controls for {@link sap.ui.layout.SemanticFormElement SemanticFormElement}
+	 * @protected
+	 * @since: 1.117.0
+	 */
+	FormLayout.prototype.renderControlsForSemanticElement = function() {
+
+		return false;
+
+	};
+
+	/**
+	 * Determines the sizes for <code>Form</code> and <code>FormContainer</code> from the theme
+	 *
+	 * @private
+	 * @since: 1.92.0
+	 */
+	FormLayout.prototype.loadTitleSizes = function() {
+
+		// read theme parameters to get current header sizes
+		var oSizes = Parameters.get({
+			name: ['sap.ui.layout.FormLayout:_sap_ui_layout_FormLayout_FormTitleSize', 'sap.ui.layout.FormLayout:_sap_ui_layout_FormLayout_FormSubTitleSize'],
+			callback: this.applyTitleSizes.bind(this)
+		});
+		if (oSizes && oSizes.hasOwnProperty('sap.ui.layout.FormLayout:_sap_ui_layout_FormLayout_FormTitleSize')) { // sync case
+			this.applyTitleSizes(oSizes, true);
+		}
+
+	};
+
+	/**
+	 * Applies the sizes for <code>Form</code> and <code>FormContainer</code> from the theme
+	 *
+	 * @param {object} oSizes Sizes from theme parameters
+	 * @param {boolean} bSync If set, the paramters are determines synchronously. (No re-rendering needed.)
+	 * @private
+	 * @since: 1.92.0
+	 */
+	FormLayout.prototype.applyTitleSizes = function(oSizes, bSync) {
+
+		if (oSizes && (this._sFormTitleSize !== oSizes["sap.ui.layout.FormLayout:_sap_ui_layout_FormLayout_FormTitleSize"] ||
+				this._sFormSubTitleSize !== oSizes["sap.ui.layout.FormLayout:_sap_ui_layout_FormLayout_FormSubTitleSize"])) {
+			this._sFormTitleSize = oSizes["sap.ui.layout.FormLayout:_sap_ui_layout_FormLayout_FormTitleSize"];
+			this._sFormSubTitleSize = oSizes["sap.ui.layout.FormLayout:_sap_ui_layout_FormLayout_FormSubTitleSize"];
+
+			if (!bSync) {
+				this.invalidate(); // re-render
+			}
 		}
 
 	};

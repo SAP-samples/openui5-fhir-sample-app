@@ -6,15 +6,7 @@
 .sapUxAPObjectPageSection {
 	margin-left: 0;
 	margin-bottom: 0;
-	overflow-anchor: none;
-}
-
-html[data-sap-ui-browser^="ff"] section.sapUxAPObjectPageSection {
-	overflow-anchor: none;
-
-	&[tabindex="0"]:last-of-type {
-		overflow-anchor: auto;
-	}
+	position: relative;
 }
 
 .sapUxAPObjectPageSectionTitleUppercase {
@@ -26,6 +18,10 @@ html[data-sap-ui-browser^="ff"] section.sapUxAPObjectPageSection {
 	height: 3rem;
 	line-height: 3rem;
 	padding: 0 3rem 0 3rem;
+}
+
+.sapUxAPObjectPageSectionHeading {
+	padding: 0.5rem 3rem;
 }
 
 /* header height is involved in calculation of the scroll position
@@ -42,9 +38,17 @@ html .sapUiContainer-Medium .sapUxAPObjectPageSectionHeader {
 	padding: 0 0 0.5rem 2rem;
 }
 
+.sapUxAPObjectPageLayout-Std-Tablet .sapUxAPObjectPageSectionHeading {
+	padding: 0.5rem 0 0.5rem 2rem;
+}
+
 .sapUxAPObjectPageLayout-Std-Phone .sapUxAPObjectPageSectionHeader,
 html .sapUiContainer-Narrow .sapUxAPObjectPageSectionHeader {
 	padding: 0 0 0.5rem 1rem;
+}
+
+.sapUxAPObjectPageLayout-Std-Phone .sapUxAPObjectPageSectionHeading {
+	padding: 0.5rem 0 0.5rem 1rem;
 }
 
 .sapUxAPObjectPageSectionTitle {
@@ -64,6 +68,13 @@ html .sapUiContainer-Narrow .sapUxAPObjectPageSectionHeader {
 .sapUxAPSectionShowHideButton:not(:last-child) {
 	float: right;
 	margin-left: 0.5rem;
+}
+
+.sapUxAPObjectPageSection .sapUxAPObjectPageSectionContainer > .sapUiRespGrid,
+.sapUxAPObjectPageSection .sapUxAPObjectPageSectionContainer > .sapUiRespGrid > .sapUiRespGridSpanXL12.sapUiRespGridSpanL12.sapUiRespGridSpanM12.sapUiRespGridSpanS12  {
+	padding: 0;
+	margin: 0;
+	width: 100%;
 }
 
 .sapUiSizeCompact .sapUxAPSectionShowHideButton {
@@ -103,4 +114,21 @@ html[data-sap-ui-browser^="ie"].sap-desktop {
 		border: 0.0625rem dashed @sapUiContentFocusColor;
 		pointer-events: none;
 	}
+}
+
+// Styles needed for wrapTitle property
+.sapUxAPObjectPageSection.sapUxAPObjectPageSectionWrapTitle
+.sapUxAPObjectPageSectionHeader
+.sapUxAPObjectPageSectionTitle  {
+	height: auto;
+	word-break: break-word;
+	white-space: break-spaces;
+	overflow: auto;
+	line-height: inherit;
+	border-bottom: none;
+}
+
+.sapUxAPObjectPageSection.sapUxAPObjectPageSectionWrapTitle
+.sapUxAPObjectPageSectionHeader {
+	height: auto;
 }

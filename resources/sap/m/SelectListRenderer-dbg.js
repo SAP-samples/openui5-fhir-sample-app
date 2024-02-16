@@ -1,11 +1,14 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2024 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
-sap.ui.define(["sap/ui/core/Element", "sap/ui/core/Icon", "sap/ui/core/IconPool", "sap/ui/Device"],
-	function(Element, Icon, IconPool, Device) {
+sap.ui.define(["sap/ui/core/Element", "sap/ui/core/library", "sap/ui/core/IconPool", "sap/ui/Device"],
+	function(Element, coreLibrary, IconPool, Device) {
 		"use strict";
+
+		// shortcut for sap.ui.core.TextDirection
+		var TextDirection = coreLibrary.TextDirection;
 
 		/**
 		 * SelectList renderer.
@@ -28,7 +31,7 @@ sap.ui.define(["sap/ui/core/Element", "sap/ui/core/Icon", "sap/ui/core/IconPool"
 		 * Renders the HTML for the given control, using the provided {@link sap.ui.core.RenderManager}.
 		 *
 		 * @param {sap.ui.core.RenderManager} oRm The RenderManager that can be used for writing to the render output buffer.
-		 * @param {sap.ui.core.Control} oList An object representation of the control that should be rendered.
+		 * @param {sap.m.SelectionList} oList An object representation of the control that should be rendered.
 		 */
 		SelectListRenderer.render = function(oRm, oList) {
 			this.writeOpenListTag(oRm, oList, { elementData: true });
@@ -37,7 +40,8 @@ sap.ui.define(["sap/ui/core/Element", "sap/ui/core/Icon", "sap/ui/core/IconPool"
 		};
 
 		SelectListRenderer.writeOpenListTag = function(oRm, oList, mStates) {
-			var CSS_CLASS = SelectListRenderer.CSS_CLASS;
+			var CSS_CLASS = SelectListRenderer.CSS_CLASS,
+				tabIndex = oList.getProperty("_tabIndex");
 
 			if (mStates.elementData) {
 				oRm.openStart("ul", oList);
@@ -55,8 +59,11 @@ sap.ui.define(["sap/ui/core/Element", "sap/ui/core/Icon", "sap/ui/core/IconPool"
 				oRm.class(CSS_CLASS + "Disabled");
 			}
 
+			if (tabIndex) {
+				oRm.attr("tabindex", tabIndex);
+			}
+
 			oRm.style("width", oList.getWidth());
-			oRm.style("max-width", oList.getMaxWidth());
 			this.writeAccessibilityState(oRm, oList);
 			oRm.openEnd();
 		};
@@ -69,27 +76,39 @@ sap.ui.define(["sap/ui/core/Element", "sap/ui/core/Icon", "sap/ui/core/IconPool"
 		 * Renders the HTML for the given control, using the provided {@link sap.ui.core.RenderManager}.
 		 *
 		 * @param {sap.ui.core.RenderManager} oRm The RenderManager that can be used for writing to the render output buffer.
-		 * @param {sap.ui.core.Control} oList An object representation of the control that should be rendered.
+		 * @param {sap.m.SelectionList} oList An object representation of the control that should be rendered.
 		 */
 		SelectListRenderer.renderItems = function(oRm, oList) {
 			var iSize = oList._getNonSeparatorItemsCount(),
-				aItems = oList.getItems(),
+				aItems = oList.getHideDisabledItems() ? oList.getEnabledItems() : oList.getItems(),
 				oSelectedItem = oList.getSelectedItem(),
 				iCurrentPosInSet = 1,
-				oItemStates;
+				oItemStates,
+				bForceSelectedVisualState;
 
 			for (var i = 0; i < aItems.length; i++) {
+				// should force selected state when there is no selected item for the
+				// visual focus to be set on the first item when popover is opened
+				bForceSelectedVisualState = i === 0 && !oSelectedItem;
+
 				oItemStates = {
 					selected: oSelectedItem === aItems[i],
 					setsize: iSize,
 					elementData: true
 				};
 
-				if (!(aItems[i] instanceof sap.ui.core.SeparatorItem)) {
+				if (!(aItems[i] && aItems[i].isA("sap.ui.core.SeparatorItem")) && aItems[i].getEnabled()) {
 					oItemStates.posinset = iCurrentPosInSet++;
 				}
 
-				this.renderItem(oRm, oList, aItems[i], oItemStates);
+				this.renderItem(oRm, oList, aItems[i], oItemStates, bForceSelectedVisualState);
+			}
+		};
+
+		SelectListRenderer.renderDirAttr = function(oRm, sTextDir) {
+			// check if textDirection property is not set to default "Inherit" and add "dir" attribute
+			if (sTextDir !== TextDirection.Inherit) {
+				oRm.attr("dir", sTextDir.toLowerCase());
 			}
 		};
 
@@ -97,11 +116,12 @@ sap.ui.define(["sap/ui/core/Element", "sap/ui/core/Icon", "sap/ui/core/IconPool"
 		 * Renders the HTML for the given control, using the provided {@link sap.ui.core.RenderManager}.
 		 *
 		 * @param {sap.ui.core.RenderManager} oRm The RenderManager that can be used for writing to the render output buffer.
-		 * @param {sap.ui.core.Control} oList An object representation of the control that should be rendered.
+		 * @param {sap.m.SelectionList} oList An object representation of the control that should be rendered.
 		 * @param {sap.ui.core.Element} oItem An object representation of the element that should be rendered.
 		 * @param {object} mStates
+		 * @param {boolean} bForceSelectedVisualState Forces the visual focus (selected state) to be se on the item.
 		 */
-		SelectListRenderer.renderItem = function(oRm, oList, oItem, mStates) {
+		SelectListRenderer.renderItem = function(oRm, oList, oItem, mStates, bForceSelectedVisualState) {
 
 			if (!(oItem instanceof Element)) {
 				return;
@@ -111,15 +131,21 @@ sap.ui.define(["sap/ui/core/Element", "sap/ui/core/Icon", "sap/ui/core/IconPool"
 				oSelectedItem = oList.getSelectedItem(),
 				CSS_CLASS = SelectListRenderer.CSS_CLASS,
 				sTooltip = oItem.getTooltip_AsString(),
-				bShowSecondaryValues = oList.getShowSecondaryValues();
+				sTextDir = oItem.getTextDirection(),
+				bShowSecondaryValues = oList.getShowSecondaryValues(),
+				oColumnsProportions;
 
 			oRm.openStart("li", mStates.elementData ? oItem : null);
+
+			if (!bShowSecondaryValues) {
+				this.renderDirAttr(oRm, sTextDir);
+			}
 
 			if (oItem.getIcon && oItem.getIcon()) {
 				oRm.class("sapMSelectListItemWithIcon");
 			}
 
-			if (oItem instanceof sap.ui.core.SeparatorItem) {
+			if (oItem.isA("sap.ui.core.SeparatorItem")) {
 				oRm.class(CSS_CLASS + "SeparatorItem");
 
 				if (bShowSecondaryValues) {
@@ -147,7 +173,7 @@ sap.ui.define(["sap/ui/core/Element", "sap/ui/core/Icon", "sap/ui/core/IconPool"
 					oRm.class(CSS_CLASS + "ItemBaseHoverable");
 				}
 
-				if (oItem === oSelectedItem) {
+				if (oItem === oSelectedItem || bForceSelectedVisualState) {
 					oRm.class(CSS_CLASS + "ItemBaseSelected");
 				}
 
@@ -156,7 +182,6 @@ sap.ui.define(["sap/ui/core/Element", "sap/ui/core/Icon", "sap/ui/core/IconPool"
 				}
 			}
 
-			oRm.style("max-width", oList.getMaxWidth());
 
 			if (sTooltip) {
 				oRm.attr("title", sTooltip);
@@ -167,11 +192,17 @@ sap.ui.define(["sap/ui/core/Element", "sap/ui/core/Icon", "sap/ui/core/IconPool"
 			oRm.openEnd();
 
 			if (bShowSecondaryValues) {
+				oColumnsProportions = oList._getColumnsPercentages();
 
 				oRm.openStart("span");
 				oRm.class(CSS_CLASS + "Cell");
 				oRm.class(CSS_CLASS + "FirstCell");
+				if (oColumnsProportions) {
+					oRm.style("width", oColumnsProportions.firstColumn);
+				}
 				oRm.attr("disabled", "disabled"); // fixes span obtaining focus in IE
+				this.renderDirAttr(oRm, sTextDir);
+
 				oRm.openEnd();
 
 				this._renderIcon(oRm, oItem);
@@ -182,6 +213,9 @@ sap.ui.define(["sap/ui/core/Element", "sap/ui/core/Icon", "sap/ui/core/IconPool"
 				oRm.openStart("span");
 				oRm.class(CSS_CLASS + "Cell");
 				oRm.class(CSS_CLASS + "LastCell");
+				if (oColumnsProportions) {
+					oRm.style("width", oColumnsProportions.secondColumn);
+				}
 				oRm.attr("disabled", "disabled"); // fixes span obtaining focus in IE
 				oRm.openEnd();
 
@@ -204,7 +238,7 @@ sap.ui.define(["sap/ui/core/Element", "sap/ui/core/Icon", "sap/ui/core/IconPool"
 		 * To be overwritten by subclasses.
 		 *
 		 * @param {sap.ui.core.RenderManager} oRm The RenderManager that can be used for writing to the render output buffer.
-		 * @param {sap.ui.core.Control} oList An object representation of the control that should be rendered.
+		 * @param {sap.m.SelectionList} oList An object representation of the control that should be rendered.
 		 */
 		SelectListRenderer.writeAccessibilityState = function(oRm, oList) {
 			oRm.accessibilityState(oList, {
@@ -217,7 +251,7 @@ sap.ui.define(["sap/ui/core/Element", "sap/ui/core/Icon", "sap/ui/core/IconPool"
 		 * To be overwritten by subclasses.
 		 *
 		 * @param {sap.ui.core.RenderManager} oRm The RenderManager that can be used for writing to the render output buffer.
-		 * @param {sap.ui.core.Control} oList An object representation of the control that should be rendered.
+		 * @param {sap.m.SelectionList} oList An object representation of the control that should be rendered.
 		 * @param {sap.ui.core.Element} oItem An object representation of the element that should be rendered.
 		 * @param {object} mStates
 		 */

@@ -1,11 +1,13 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2024 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 /*global Math */
 sap.ui.define([
+	"sap/base/util/deepExtend",
+	"sap/base/util/extend",
 	'sap/ui/Device',
 	"sap/ui/thirdparty/jquery",
 	'sap/ui/test/_LogCollector',
@@ -14,7 +16,7 @@ sap.ui.define([
 	'sap/ui/test/_UsageReport',
 	'sap/ui/test/_OpaUriParameterParser',
 	'sap/ui/test/_ValidationParameters'
-], function(Device, $, _LogCollector, _OpaLogger, _ParameterValidator, _UsageReport, _OpaUriParameterParser, _ValidationParameters) {
+], function(deepExtend, extend, Device, $, _LogCollector, _OpaLogger, _ParameterValidator, _UsageReport, _OpaUriParameterParser, _ValidationParameters) {
 	"use strict";
 
 	///////////////////////////////
@@ -114,13 +116,15 @@ sap.ui.define([
 	}
 
 	function getMessageForException (oError) {
-		var sExceptionText = oError.toString();
+		return "Exception thrown by the testcode:'" + getErrorMessage(oError) + "'";
+	}
+
+	function getErrorMessage(oError) {
+		var sErrorMessage = oError.toString();
 		// Some browsers don't have the stack property it will be added later for those browsers
 		if (oError.stack) {
-			sExceptionText += "\n" + oError.stack;
+			sErrorMessage += "\n" + oError.stack;
 		}
-
-		var sErrorMessage = "Exception thrown by the testcode:'" + sExceptionText + "'";
 		return sErrorMessage;
 	}
 
@@ -207,14 +211,59 @@ sap.ui.define([
 	 * @param {object} [extensionObject] An object containing properties and functions. The newly created Opa will be extended by these properties and functions using jQuery.extend.
 	 */
 	var Opa = function(extensionObject) {
+		/**
+		 * "and" property for chaining actions and assertions
+		 * @type {this}
+		 * @public
+		 */
 		this.and = this;
-		$.extend(this, extensionObject);
+		extend(this, extensionObject);
 	};
 
 	/**
+	 * @typedef {object} sap.ui.test.Opa.BaseParameters
+	 * @description Configuration parameters for Opa.
+	 * @property {int} [timeout=15] (seconds) Specifies how long the waitFor function polls before it fails. The default value is 15 seconds, 0 means it will wait forever.
+	 * @property {int} [debugTimeout=0] (seconds) @since 1.47 Specifies how long the waitFor function polls before it fails in debug mode. 0 means it will wait forever.
+	 * @property {int} [pollingInterval=400] (milliseconds) Specifies how often the waitFor function polls. The default is 400ms.
+	 * @property {boolean} [asyncPolling=false] @since 1.55 Enable asynchronous polling after success() call. This allows more stable autoWaiter synchronization with event flows originating from within success(). Especially useful to stabilize synchronization with overflow toolbars. False by default.
+	 * @public
+	 */
+
+	/**
+	 * @typedef {sap.ui.test.Opa.BaseParameters} sap.ui.test.Opa.Config
+	 * @description The global configuration of Opa.
+	 * @property {sap.ui.test.Opa} [arrangements] A new Opa instance
+	 * @property {sap.ui.test.Opa} [actions] A new Opa instance
+	 * @property {sap.ui.test.Opa} [assertions] A new Opa instance
+	 * @property {int} [executionDelay] The value is a number representing milliseconds. The default values are 0 or 50 (depending on the browser).
+	 * The executionDelay will slow down the execution of every single waitFor statement to be delayed by the number of milliseconds.
+	 * This does not effect the polling interval it just adds an initial pause.
+	 * Use this parameter to slow down OPA when you want to watch your test during development or checking the UI of your app.
+	 * It is not recommended to use this parameter in any automated test executions.
+	 * @public
+	 */
+
+	/**
+	 * @typedef {sap.ui.test.Opa.BaseParameters} sap.ui.test.Opa.WaitForOptions
+	 * @description Configuration parameters for an individual {@link sap.ui.test.Opa#waitFor} call.
+	 * @property {function(any):boolean} [check] Will get invoked in every polling interval.
+	 * If it returns true, the check is successful and the polling will stop.
+	 * The first parameter passed into the function is the same value that gets passed to the success function.
+	 * Returning something other than boolean in the check will not change the first parameter of success.
+	 * @property {function} [success] Will get invoked after the check function returns true.
+	 * If there is no check function defined, it will be directly invoked.
+	 * waitFor statements added in the success handler will be executed before previously added waitFor statements.
+	 * @property {string} [errorMessage] Will be displayed as an errorMessage depending on your unit test framework.
+	 * Currently the only adapter for Opa is QUnit.
+	 * This message is displayed there if Opa has reached its timeout but QUnit has not yet reached it.
+	 * @public
+	 */
+
+	/**
 	 * The global configuration of Opa.
-	 * All of the global values can be overwritten in an individual <code>waitFor</code> call.
-	 * The default values are:
+	 * The subset of the global values defined in {@link sap.ui.test.Opa.BaseParameters}.can be overwritten in an individual <code>waitFor</code> call.
+	 * The default values for the global configuration are:
 	 * <ul>
 	 * 		<li>arrangements: A new Opa instance</li>
 	 * 		<li>actions: A new Opa instance</li>
@@ -225,6 +274,7 @@ sap.ui.define([
 	 * 		<li>asyncPolling: false</li>
 	 * </ul>
 	 * You can either directly manipulate the config, or extend it using {@link sap.ui.test.Opa.extendConfig}.
+	 * @type sap.ui.test.Opa.Config
 	 * @public
 	 */
 	Opa.config = {};
@@ -290,7 +340,7 @@ sap.ui.define([
 	 * @since 1.48 All config parameters could be overwritten from URL. Should be prefixed with 'opa'
 	 * and have uppercase first character. Like 'opaExecutionDelay=1000' will overwrite 'executionDelay'
 	 *
-	 * @param {object} options The values to be added to the existing config
+	 * @param {sap.ui.test.Opa.Config} options The values to be added to the existing config
 	 * @public
 	 */
 	Opa.extendConfig = function (oOptions) {
@@ -325,11 +375,9 @@ sap.ui.define([
 		// URI params overwrite other config params
 		// if any action, assertion or arrangement is already defined in OPA, it will be overwritten
 		// deep extend is necessary so plain object configs like appParams are properly merged
-		Opa.config = $.extend(true, Opa.config, oOptions, opaUriParams);
+		Opa.config = deepExtend(Opa.config, oOptions, Opa._uriParams);
 		_OpaLogger.setLevel(Opa.config.logLevel);
 	};
-
-	var opaUriParams = _OpaUriParameterParser._getOpaParams();
 
 	// These browsers are not executing Promises as microtasks so slow down OPA a bit to let mircotasks before other tasks.
 	// TODO: A proper solution would be waiting for all the active timeouts in the synchronization part until then this is a workaround
@@ -340,7 +388,7 @@ sap.ui.define([
 	// I don't have a proper explanation for this.
 	var executionDelayDefault = 0;
 
-	if (Device.browser.msie || Device.browser.edge || Device.browser.safari) {
+	if (Device.browser.safari) {
 		executionDelayDefault = 50;
 	}
 
@@ -370,7 +418,7 @@ sap.ui.define([
 	 * @since 1.25
 	 */
 	Opa.resetConfig = function () {
-		Opa.config = $.extend({
+		Opa.config = extend({
 			arrangements : new Opa(),
 			actions : new Opa(),
 			assertions : new Opa(),
@@ -380,14 +428,14 @@ sap.ui.define([
 			_stackDropCount : 0, //Internal use. Specify numbers of additional stack frames to remove for logging
 			executionDelay: executionDelayDefault,
 			asyncPolling: false
-		},opaUriParams);
+		}, Opa._uriParams);
 	};
 
 	/**
 	 * Gives access to a singleton object you can save values in.
 	 * Same as {@link sap.ui.test.Opa#getContext}
 	 * @since 1.29.0
-	 * @returns {object} the context object
+	 * @returns {Object<string,any>} the context object
 	 * @public
 	 * @function
 	 */
@@ -461,6 +509,8 @@ sap.ui.define([
 		}
 	};
 
+	Opa._uriParams = _OpaUriParameterParser._getOpaParams();
+
 	//create the default config
 	Opa.resetConfig();
 
@@ -474,12 +524,12 @@ sap.ui.define([
 	 * Contains all methods available on QUnit.assert for the running QUnit version.
 	 * Available assertions are: ok, equal, propEqual, deepEqual, strictEqual and their negative counterparts.
 	 *
-	 * For more information, see  {@link sap.ui.test.opaQunit}.
+	 * For more information, see  {@link module:sap/ui/test/opaQunit}.
 	 *
 	 * @name sap.ui.test.Opa.assert
 	 * @public
 	 * @static
-	 * @type map
+	 * @type QUnit.Assert
 	*/
 
 	Opa.prototype = {
@@ -498,7 +548,7 @@ sap.ui.define([
 		/**
 		 * Queues up a waitFor command for Opa.
 		 * The Queue will not be emptied until {@link sap.ui.test.Opa.emptyQueue} is called.
-		 * If you are using {@link sap.ui.test.opaQunit}, emptyQueue will be called by the wrapped tests.
+		 * If you are using {@link module:sap/ui/test/opaQunit}, emptyQueue will be called by the wrapped tests.
 		 *
 		 * If you are using Opa5, waitFor takes additional parameters.
 		 * They can be found here: {@link sap.ui.test.Opa5#waitFor}.
@@ -507,23 +557,8 @@ sap.ui.define([
 		 *
 		 *
 		 * @public
-		 * @param {object} options These contain check, success and error functions
-		 * @param {int} [options.timeout] default: 15 - (seconds) Specifies how long the waitFor function polls before it fails.O means it will wait forever.
-		 * @param {int} [options.debugTimeout] @since 1.47 default: 0 - (seconds) Specifies how long the waitFor function polls before it fails in debug mode.O means it will wait forever.
-		 * @param {int} [options.pollingInterval] default: 400 - (milliseconds) Specifies how often the waitFor function polls.
-		 * @param {boolean} [options.asyncPolling] @since 1.55 default: false Enable asynchronous polling after success() call. This allows more stable autoWaiter synchronization with event flows originating from within success(). Especially usefull to stabilize synchronization with overflow toolbars.
-		 * @param {function} [options.check] Will get invoked in every polling interval.
-		 * If it returns true, the check is successful and the polling will stop.
-		 * The first parameter passed into the function is the same value that gets passed to the success function.
-		 * Returning something other than boolean in the check will not change the first parameter of success.
-		 * @param {function} [options.success] Will get invoked after the check function returns true.
-		 * If there is no check function defined, it will be directly invoked.
-		 * waitFor statements added in the success handler will be executed before previously added waitFor statements.
-		 * @param {string} [options.errorMessage] Will be displayed as an errorMessage depending on your unit test framework.
-		 * Currently the only adapter for Opa is QUnit.
-		 * This message is displayed there if Opa has reached its timeout but QUnit has not yet reached it.
-		 *
-		 * @returns {object} an object extending a jQuery promise.
+		 * @param {sap.ui.test.Opa.WaitForOptions} options configuration options
+		 * @returns {this} an object extending a jQuery promise.
 		 * The object is essentially a jQuery promise with an additional "and" method that can be used for chaining waitFor statements.
 		 * The promise is resolved when the waitFor completes successfully.
 		 * The promise is rejected with the options object, if an error occurs. In this case, options.errorMessage will contain a detailed error message containing the stack trace and Opa logs.
@@ -532,7 +567,7 @@ sap.ui.define([
 			var deferred = $.Deferred(),
 				oFilteredConfig = Opa._createFilteredConfig(Opa._aConfigValuesForWaitFor);
 
-			options = $.extend({},
+			options = extend({},
 				oFilteredConfig,
 				options);
 
@@ -543,7 +578,7 @@ sap.ui.define([
 
 			// create a new deferred for each new queue element and decorate a copy of this which will be returned in the end
 			// this way a promise result handler can be attached to any waitFor statement at any time
-			var _this = $.extend({}, this);
+			var _this = extend({}, this);
 			deferred.promise(_this);
 
 			queue.push({
@@ -616,7 +651,7 @@ sap.ui.define([
 		 * This means that any "thenable" should be acceptable.
 		 * @public
 		 * @param {jQuery.promise|Promise} oPromise promise to schedule on the OPA queue
-		 * @returns {jQuery.promise} promise which is the result of a {@link sap.ui.test.Opa.waitFor}
+		 * @returns {jQuery.promise} promise which is the result of a {@link sap.ui.test.Opa#waitFor}
 		 */
 		iWaitForPromise: function (oPromise) {
 			return this._schedulePromiseOnFlow(oPromise);
@@ -635,7 +670,7 @@ sap.ui.define([
 						mPromiseState.done = true;
 					}, function (error) {
 						mPromiseState.errorMessage = "Error while waiting for promise scheduled on flow" +
-							(error ? ", details: " + error : "");
+							(error ? ", details: " + getErrorMessage(error) : "");
 					});
 				}
 				if (mPromiseState.errorMessage) {
@@ -684,14 +719,7 @@ sap.ui.define([
 	};
 
 	/* config values from opa.config that will be used in waitFor */
-	Opa._aConfigValuesForWaitFor = [
-		"errorMessage",
-		"timeout",
-		"debugTimeout",
-		"pollingInterval",
-		"_stackDropCount",
-		"asyncPolling"
-	];
+	Opa._aConfigValuesForWaitFor = Object.keys(_ValidationParameters.OPA_WAITFOR_CONFIG);
 
 
 	return Opa;

@@ -1,17 +1,17 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2024 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 // Provides the Design Time Metadata for the sap.ui.layout.form.FormContainer control
 sap.ui.define([
-	'sap/ui/fl/changeHandler/ChangeHandlerMediator',
 	"sap/ui/thirdparty/jquery",
-	'sap/ui/layout/form/Form'
+	"sap/ui/core/Element",
+	"sap/ui/layout/form/Form"
 ], function (
-	ChangeHandlerMediator,
 	jQuery,
+	UI5Element,
 	Form
 ) {
 	"use strict";
@@ -33,7 +33,7 @@ sap.ui.define([
 		var oForm = fnFindForm(oFormContainer);
 		if (oForm &&
 			oForm.getLayout() &&
-			oForm.getLayout().getMetadata().getName() === "sap.ui.layout.form.GridLayout") {
+			oForm.getLayout().isA("sap.ui.layout.form.GridLayout")) {
 			return false;
 		}
 		return true;
@@ -92,7 +92,7 @@ sap.ui.define([
 						return oDomRef;
 					}
 					if (oFormContainer.getFormElements().length === 0 || _allFormElementsInvisible(oFormContainer)) {
-						if (oHeader instanceof sap.ui.core.Element) {
+						if (oHeader instanceof UI5Element) {
 							return oHeader.getDomRef();
 						}
 						if (typeof oHeader === "string") {
@@ -111,29 +111,18 @@ sap.ui.define([
 							return null;
 						}
 					},
+					remove : {
+						removeLastElement: true
+					},
 					add: {
 						delegate: function (oFormContainer) {
 							if (fnIsLayoutSupported(oFormContainer)) {
 								return {
 									changeType: "addFormField",
-									changeOnRelevantContainer: true
-								};
-							}
-						}
-					},
-					addODataProperty: function (oFormContainer) {
-						if (fnIsLayoutSupported(oFormContainer)) {
-							var mChangeHandlerSettings = ChangeHandlerMediator.getAddODataFieldWithLabelSettings(oFormContainer);
-
-							if (mChangeHandlerSettings) {
-								return {
-									changeType: "addFormField",
 									changeOnRelevantContainer: true,
-									changeHandlerSettings: mChangeHandlerSettings
+									supportsDefaultDelegate: true
 								};
 							}
-						} else {
-							return null;
 						}
 					}
 				}

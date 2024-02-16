@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2024 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -19,7 +19,40 @@ sap.ui.define([
 	'sap/ui/test/matchers/LabelFor',
 	'sap/ui/test/matchers/Properties',
 	'sap/ui/test/matchers/PropertyStrictEquals',
+	'sap/ui/test/matchers/Sibling',
 	'sap/ui/test/matchers/Visible'
-], function () {
+], function (
+	AggregationContainsPropertyEqual,
+	AggregationEmpty,
+	AggregationFilled,
+	AggregationLengthEquals,
+	Ancestor,
+	BindingPath,
+	Descendant,
+	I18NText,
+	Interactable,
+	LabelFor,
+	Properties,
+	PropertyStrictEquals,
+	Sibling,
+	Visible
+) {
 	"use strict";
+
+	return {
+		aggregationContainsPropertyEqual: AggregationContainsPropertyEqual,
+		aggregationEmpty: AggregationEmpty,
+		aggregationFilled: AggregationFilled,
+		aggregationLengthEquals: AggregationLengthEquals,
+		ancestor: Ancestor,
+		bindingPath: BindingPath,
+		descendant: Descendant,
+		i18NText: I18NText,
+		interactable: Interactable,
+		labelFor: LabelFor,
+		properties: Properties,
+		propertyStrictEquals: PropertyStrictEquals,
+		sibling: Sibling,
+		visible: Visible
+	};
 });

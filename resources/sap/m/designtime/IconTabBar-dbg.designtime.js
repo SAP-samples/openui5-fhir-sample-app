@@ -1,13 +1,84 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2024 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 // Provides the Design Time Metadata for the sap.m.IconTabBar control
-sap.ui.define([],
-	function () {
+sap.ui.define([
+	"sap/ui/model/json/JSONModel",
+	"sap/ui/core/Core",
+	"sap/ui/core/Fragment"
+],
+	function (JSONModel, Core, Fragment) {
 		"use strict";
+
+		var oTextResources = Core.getLibraryResourceBundle("sap.m.designtime");
+
+		var oSelectIconTabBarFilter = function (oControl, mPropertyBag) {
+			return new Promise(function (fnResolve) {
+				var aItemsList = [];
+				var aItems = oControl.getItems();
+
+				aItems.forEach(function (oItem) {
+					if (!oItem.isA("sap.m.IconTabSeparator")){
+						aItemsList.push({
+							'text': oItem.getText() || oItem.getKey(),
+							'key': oItem.getKey()
+						});
+					}
+				});
+
+				var oData = {
+					selectedKey: oControl.getSelectedKey(),
+					titleText: oTextResources.getText("ICON_TAB_BAR_SELECT_TAB"),
+					cancelBtn: oTextResources.getText("ICON_TAB_BAR_CANCEL_BTN"),
+					okBtn: oTextResources.getText("ICON_TAB_BAR_SELECT_BTN"),
+					items: aItemsList
+				};
+				var oModel = new JSONModel();
+				oModel.setData(oData);
+
+				Fragment.load({
+						name:"sap.m.designtime.IconTabBarSelectTab",
+						controller: this
+					}).then(function(oDialog){
+					oDialog.setModel(oModel);
+
+					oDialog.getBeginButton().attachPress(function (oEvent) {
+						var sNewSelectedKey = sap.ui.getCore().byId("targetCombo").getSelectedKey();
+
+						fnResolve(sNewSelectedKey);
+						oDialog.close();
+					});
+
+					oDialog.getEndButton().attachPress(function (oEvent) {
+						oDialog.close();
+					});
+
+					oDialog.attachEventOnce("afterClose", function (oEvent) {
+						oDialog.destroy();
+					});
+
+					oDialog.addStyleClass(mPropertyBag.styleClass);
+					oDialog.open();
+				});
+			}).then(
+				function (sNewSelectedKey) {
+					return [{
+						selectorControl: oControl,
+						changeSpecificData: {
+							changeType: "selectIconTabBarFilter",
+							content: {
+								selectedKey: sNewSelectedKey,
+								previousSelectedKey: oControl.getSelectedKey(),
+								fireEvent: true
+							}
+						}
+					}];
+				}
+			);
+		};
 
 		return {
 			name: {
@@ -25,14 +96,33 @@ sap.ui.define([],
 					domRef: ":sap-domref > .sapMITH",
 					actions: {
 						move: "moveControls"
+					},
+					propagateMetadata: function (oFilter) {
+						if (oFilter.isA("sap.m.IconTabFilter")) {
+							return {
+								aggregations: {
+									content: {
+										domRef: function () {
+											return ":sap-domref > .sapMITBContainerContent";
+										},
+										actions: {
+											move: "moveControls"
+										}
+									}
+								}
+							};
+						}
+
+						return null;
 					}
 				},
 				content: {
 					domRef: function(oControl) {
 						var oSelectedItem = oControl._getIconTabHeader().oSelectedItem;
 
+						// item with own content
 						if (oSelectedItem && oSelectedItem.getContent().length) {
-							return;
+							return null;
 						}
 
 						return oControl.getDomRef("content");
@@ -40,6 +130,19 @@ sap.ui.define([],
 					actions: {
 						move: "moveControls"
 					}
+				}
+			},
+			actions: {
+				settings: function () {
+					return {
+						"selectIconTabBarFilter": {
+							name: oTextResources.getText("ICON_TAB_BAR_SELECT_TAB"),
+							isEnabled: function (oControl) {
+								return !!oControl._getIconTabHeader().oSelectedItem;
+							},
+							handler: oSelectIconTabBarFilter
+						}
+					};
 				}
 			},
 			templates: {

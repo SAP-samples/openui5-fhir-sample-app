@@ -1,16 +1,17 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2024 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 sap.ui.define([
-	"jquery.sap.sjax",
 	"sap/base/Log",
-	"sap/base/util/UriParameters",
-	"sap/ui/core/Core",
-	"sap/ui/thirdparty/URI"
-], function (jQuery, Log, UriParameters, Core, URI) {
+	"sap/base/util/merge",
+	"sap/ui/base/SyncPromise",
+	"sap/ui/core/Lib",
+	"sap/ui/core/Rendering",
+	"sap/ui/thirdparty/jquery"
+], function (Log, merge, SyncPromise, Library, Rendering, jQuery) {
 	"use strict";
 	/*global QUnit, sinon */
 	// Note: The dependency to Sinon.JS has been omitted deliberately. Most test files load it via
@@ -24,16 +25,15 @@ sap.ui.define([
 		sMimeHeaders = "\r\nContent-Type: application/http\r\n"
 			+ "Content-Transfer-Encoding: binary\r\n",
 		rMultipartHeader = /^Content-Type:\s*multipart\/mixed;\s*boundary=/i,
-		oUriParameters = UriParameters.fromQuery(window.location.search),
+		oUriParameters = new URLSearchParams(window.location.search),
 		sAutoRespondAfter = oUriParameters.get("autoRespondAfter"),
 		sRealOData = oUriParameters.get("realOData"),
 		rRequestKey = /^(\S+) (\S+)$/,
 		rRequestLine = /^(GET|DELETE|MERGE|PATCH|POST) (\S+) HTTP\/1\.1$/,
 		mData = {},
-		rODataHeaders = /^(OData-Version|DataServiceVersion)$/i,
-		bProxy = sRealOData === "true" || sRealOData === "proxy",
-		bRealOData = bProxy || sRealOData === "direct",
-		bSupportAssistant = oUriParameters.get("supportAssistant") === "true",
+		rODataHeaders = /^(OData-Version|DataServiceVersion)$/,
+		bRealOData = sRealOData === "true" || sRealOData === "direct",
+		fnOnRequest = null,
 		TestUtils;
 
 	if (bRealOData) {
@@ -136,23 +136,105 @@ sap.ui.define([
 		 * If the UI5 core is dirty, the function returns a promise that waits until the rendering
 		 * is finished.
 		 *
-		 * @returns {Promise|undefined}
-		 *   An optional promise that is resolved when the UI5 core is no longer dirty
+		 * @returns {Promise}
+		 *   A promise that is resolved when the UI5 core is no longer dirty
+		 *
+		 * @public
 		 */
 		awaitRendering : function () {
-			if (sap.ui.getCore().getUIDirty()) {
-				return new Promise(function (resolve) {
-					function check() {
-						if (sap.ui.getCore().getUIDirty()) {
-							setTimeout(check, 1);
-						} else {
-							resolve();
-						}
+			return new Promise(function (resolve) {
+				function check() {
+					if (Rendering.isPending()) {
+						setTimeout(check, 1);
+					} else {
+						resolve();
 					}
+				}
 
-					check();
-				});
+				check();
+			});
+		},
+
+		/**
+		 * Checks for a given object its "get*" and "request*" methods, corresponding to the named
+		 * "fetch*" method, using the given arguments.
+		 *
+		 * @param {object} oTestContext
+		 *   The QUnit "test" object
+		 * @param {object} oTestee
+		 *   The test candidate having the get<sMethodName> created via
+		 *   sap.ui.model.odata.v4.lib._Helper.createGetMethod and request<sMethodName> created via
+		 *   sap.ui.model.odata.v4.lib._Helper.createRequestMethod for the corresponding
+		 *   fetch<sMethodName>
+		 * @param {object} assert
+		 *   The QUnit "assert" object
+		 * @param {string} sMethodName
+		 *   Method name "fetch*"
+		 * @param {object[]} aArguments
+		 *   Method arguments
+		 * @param {boolean} [bThrow]
+		 *   Whether the "get*" method throws if the promise is not fulfilled
+		 * @returns {Promise}
+		 *   The "request*" method's promise
+		 *
+		 * @see sap.ui.model.odata.v4.lib._Helper.createGetMethod
+		 * @see sap.ui.model.odata.v4.lib._Helper.createRequestMethod
+		 * @ui5-restricted sap.ui.model.odata.v4
+		 */
+		checkGetAndRequest: function (oTestContext, oTestee, assert, sMethodName, aArguments,
+				bThrow) {
+			var oExpectation,
+				sGetMethodName = sMethodName.replace("fetch", "get"),
+				oPromiseMock = oTestContext.mock(Promise),
+				oReason = new Error("rejected"),
+				oRejectedPromise = Promise.reject(oReason),
+				sRequestMethodName = sMethodName.replace("fetch", "request"),
+				oResult = {},
+				oSyncPromise = SyncPromise.resolve(oRejectedPromise);
+
+			// resolve...
+			oExpectation = oTestContext.mock(oTestee).expects(sMethodName).exactly(4);
+			oExpectation = oExpectation.withExactArgs.apply(oExpectation, aArguments);
+			oExpectation.returns(SyncPromise.resolve(oResult));
+
+			// get: fulfilled
+			assert.strictEqual(oTestee[sGetMethodName].apply(oTestee, aArguments), oResult);
+
+			// reject...
+			oExpectation.returns(oSyncPromise);
+			oPromiseMock.expects("resolve")
+				.withExactArgs(sinon.match.same(oSyncPromise))
+				.returns(oRejectedPromise); // return any promise (this is not unwrapping!)
+
+			// request (promise still pending!)
+			assert.strictEqual(oTestee[sRequestMethodName].apply(oTestee, aArguments),
+				oRejectedPromise);
+
+			// restore early so that JS coding executed from Selenium Webdriver does not cause
+			// unexpected calls on the mock when it uses Promise.resolve and runs before automatic
+			// mock reset in afterEach
+			oPromiseMock.restore();
+
+			// get: pending
+			if (bThrow) {
+				assert.throws(function () {
+					oTestee[sGetMethodName].apply(oTestee, aArguments);
+				}, new Error("Result pending"));
+			} else {
+				assert.strictEqual(oTestee[sGetMethodName].apply(oTestee, aArguments),
+					undefined, "pending");
 			}
+			return oSyncPromise.catch(function () {
+				// get: rejected
+				if (bThrow) {
+					assert.throws(function () {
+						oTestee[sGetMethodName].apply(oTestee, aArguments);
+					}, oReason);
+				} else {
+					assert.strictEqual(oTestee[sGetMethodName].apply(oTestee, aArguments),
+						undefined, "rejected");
+				}
+			});
 		},
 
 		/**
@@ -168,6 +250,8 @@ sap.ui.define([
 		 *   actual value
 		 * @param {string} [sMessage]
 		 *   message text
+		 *
+		 * @public
 		 */
 		deepContains : function (oActual, oExpected, sMessage) {
 			pushDeeplyContains(oActual, oExpected, sMessage, true);
@@ -183,6 +267,8 @@ sap.ui.define([
 		 *   the actual value
 		 * @param {string} [sMessage]
 		 *   message text
+		 *
+		 * @public
 		 */
 		notDeepContains : function (oActual, oExpected, sMessage) {
 			pushDeeplyContains(oActual, oExpected, sMessage, false);
@@ -190,34 +276,34 @@ sap.ui.define([
 
 		/**
 		 * Activates a sinon fake server in the given sandbox. The fake server responds to those
-		 * requests given in the fixture, and to all DELETE, PATCH and POST requests regardless
-		 * of the path. It is automatically restored when the sandbox is restored.
+		 * requests given in the fixture, and to all DELETE, MERGE, PATCH, and POST requests
+		 * regardless of the path. It is automatically restored when the sandbox is restored.
 		 *
 		 * The function uses <a href="http://sinonjs.org/docs/">Sinon.js</a> and expects that it
 		 * has been loaded.
 		 *
 		 * POST requests ending on "/$batch" are handled automatically. They are expected to be
-		 * multipart-mime requests where each part is a DELETE, GET, PATCH, MERGE or POST request.
+		 * multipart-mime requests where each part is a DELETE, GET, PATCH, MERGE, or POST request.
 		 * The response has a multipart-mime message containing responses to these inner requests.
-		 * If an inner request is not a DELETE, a PATCH or a POST and it is not found in the
-		 * fixture, or its message is not JSON, it is responded with an error code.
+		 * If an inner request is not a DELETE, a MERGE, a PATCH, or a POST, and it is not found in
+		 * the fixture, or its message is not JSON, it is responded with an error code.
 		 * The batch itself is always responded with code 200.
 		 *
 		 * "$batch" requests with an OData change set are supported, too. For each request in the
 		 * change set a response is searched in the fixture. As long as all responses are success
-		 * responses (code less than 400) a change set response is returned. Otherwise the first
+		 * responses (code less than 400) a change set response is returned. Otherwise, the first
 		 * error message is the response for the whole change set.
 		 *
 		 * All other POST requests with no matching response in the fixture are responded with code
 		 * 200, the body is simply echoed.
 		 *
-		 * DELETE and PATCH requests with no matching response in the fixture are responded with
-		 * code 204 ("No Content").
+		 * DELETE, MERGE, and PATCH requests with no matching response in the fixture are responded
+		 * with code 204 ("No Content").
 		 *
 		 * Direct HEAD requests with no matching response in the fixture are responded with code 200
 		 * and no content.
 		 *
-		 * The headers "OData-Version" and "DataserviceVersion" are copied from the request to the
+		 * The headers "OData-Version" and "DataServiceVersion" are copied from the request to the
 		 * response unless specified in the fixture.
 		 *
 		 * @param {object} oSandbox
@@ -231,26 +317,44 @@ sap.ui.define([
 		 *   "METHOD URL". The method "GET" may be omitted. The value is an array or single response
 		 *   object that may have the following properties:
 		 *   <ul>
-		 *   <li>{number} <code>code</code>: The response code (<code>200</code> if not given)
-		 *   <li>{map} <code>headers</code>: A map of headers to set in the response
-		 *   <li>{RegExp|function} <code>ifMatch</code>: A filter to select the response. If not
-		 *     given, all requests match. The first match in the list wins. A regular expression is
-		 *     matched against the request body. A function is called with a request object having
-		 *     properties method, url, requestHeaders and requestBody; it must return truthy to
-		 *     indicate a match.
-		 *   <li>{object|string} <code>message</code>: The response message, either as a string or
-		 *     as an object which is serialized via <code>JSON.stringify</code> (the header
-		 *     <code>Content-Type</code> will be set appropriately in this case)
-		 *   <li>{string} <code>source</code>: The path of a file relative to <code>sBase</code> to
-		 *     be used for the response message. It will be read synchronously in advance. In this
-		 *     case the header <code>Content-Type</code> is determined from the source name's
-		 *     extension unless specified. This has precedence over <code>message</code>.
+		 *     <li> {number} <code>code</code>: The response code (<code>200</code> if not given)
+		 *     <li> {map} <code>headers</code>: A map of headers to set in the response
+		 *     <li> {RegExp|function} <code>ifMatch</code>: A filter to select the response. If not
+		 *       given, all requests match. The first match in the list wins. A regular expression
+		 *       is matched against the request body. A function is called with a request object
+		 *       having properties method, url, requestHeaders and requestBody; it must return
+		 *       truthy to indicate a match.
+		 *     <li> {object|string} <code>message</code>: The response message, either as a string
+		 *       or as an object which is serialized via <code>JSON.stringify</code> (the header
+		 *       <code>Content-Type</code> will be set appropriately in this case)
+		 *     <li> {string} <code>source</code>: The path of a file relative to <code>sBase</code>
+		 *       to be used for the response message. It will be read synchronously in advance. In
+		 *       this case the header <code>Content-Type</code> is determined from the source name's
+		 *       extension unless specified. This has precedence over <code>message</code>.
 		 *   </ul>
+		 * @param {object[]} [aRegExps]
+		 *    An array containing regular expressions in the regExp property and the corresponding
+		 *    response(s) objects in the response property. If no match for a request was found in
+		 *    the normal fixture, the regular expressions are checked. The response object looks
+		 *    exactly the same as in the fixture and may additionally contain a method
+		 *    <code>buildResponse(aMatch, oResponse, oRequest)</code> which gets passed the match
+		 *    object, the response, and the request in order to allow modification of the response
+		 *   before sending.
+		 * @param {string} [sServiceUrl]
+		 *   The service URL which determines a prefix for all requests the fake server responds to;
+		 *   it responds with an error for requests not given in the fixture, except DELETE, MERGE,
+		 *   PATCH, or POST. A missing URL is ignored.
+		 * @param {boolean} [bStrict]
+		 *   Whether responses are created from the given fixture only, without defaults per method.
+		 * @returns {object}
+		 *   The SinonJS fake server instance
+		 *
+		 * @public
 		 */
-		useFakeServer : function (oSandbox, sBase, mFixture) {
+		useFakeServer : function (oSandbox, sBase, mFixture, aRegExps, sServiceUrl, bStrict) {
 			// a map from "method path" incl. service URL to a list of response objects with
 			// properties code, headers, ifMatch and message
-			var mUrlToResponses;
+			var aRegexpResponses, mUrlToResponses;
 
 			/*
 			 * OData batch handler
@@ -264,6 +368,10 @@ sap.ui.define([
 				var oMultipart = multipart(sServiceBase, oRequest.requestBody),
 					mODataHeaders = getODataHeaders(oRequest);
 
+				if (fnOnRequest) {
+					fnOnRequest(oRequest.requestBody);
+				}
+
 				oRequest.respond(200,
 					jQuery.extend({}, mODataHeaders, {
 						"Content-Type" : "multipart/mixed;boundary=" + oMultipart.boundary
@@ -272,11 +380,13 @@ sap.ui.define([
 			}
 
 			/*
-			 * Builds a responses from mFixture. Reads the source synchronously and caches it.
+			 * Builds a responses from <code>mFixture</code>. Reads the source synchronously and
+			 * caches it.
 			 * @returns {object} a resource object with code, headers, ifMatch and message
 			 */
 			function buildResponse(oFixtureResponse) {
 				var oResponse = {
+						buildResponse : oFixtureResponse.buildResponse,
 						code : oFixtureResponse.code || 200,
 						headers : oFixtureResponse.headers || {},
 						ifMatch : oFixtureResponse.ifMatch
@@ -296,7 +406,8 @@ sap.ui.define([
 			}
 
 			/*
-			 * Builds the responses from mFixture. Reads the sources synchronously and caches them.
+			 * Builds the responses from <code>mFixture</code>. Reads the sources synchronously and
+			 * caches them.
 			 * @returns {map}
 			 *   a map from "method path" (incl. service URL) to a list of response objects (with
 			 *   properties code, headers, ifMatch and message)
@@ -320,7 +431,7 @@ sap.ui.define([
 				return mUrls;
 			}
 
-			// calculates the context type from the given resource name
+			// calculates the content type from the given resource name
 			function contentType(sName) {
 				if (/\.xml$/.test(sName)) {
 					return "application/xml";
@@ -333,7 +444,8 @@ sap.ui.define([
 
 			// Logs and returns a response for the given error
 			function error(iCode, oRequest, sMessage) {
-				Log.error(oRequest.requestLine, sMessage, "sap.ui.test.TestUtils");
+				Log.error(oRequest.requestLine || oRequest.method + " " + oRequest.url, sMessage,
+					"sap.ui.test.TestUtils");
 
 				return {
 					code : iCode,
@@ -356,11 +468,14 @@ sap.ui.define([
 			function formatMultipart(oMultipart, mODataHeaders) {
 				var aResponseParts = [""];
 
-				oMultipart.parts.forEach(function (oPart) {
+				oMultipart.parts.every(function (oPart) {
 					aResponseParts.push(oPart.boundary
 						? "\r\nContent-Type: multipart/mixed;boundary=" + oPart.boundary
 							+ "\r\n\r\n" + formatMultipart(oPart, mODataHeaders)
 						: formatResponse(oPart, mODataHeaders));
+					// change set, success response or V2 request (continue on error by default)
+					return !oPart.code || oPart.code < 400
+						|| mODataHeaders.DataServiceVersion === "2.0";
 				});
 				aResponseParts.push("--\r\n");
 				return aResponseParts.join("--" + oMultipart.boundary);
@@ -384,6 +499,50 @@ sap.ui.define([
 							return sHeader + ": " + mHeaders[sHeader];
 						}).join("\r\n")
 					+ "\r\n\r\n" + (oResponse.message || "") + "\r\n";
+			}
+
+			/**
+			 * Gets matching responses to the URL and request method from the fixture. First, checks
+			 * if a matching response is in the <code>mUrlToResponse</code> map. If that's not the
+			 * case, it goes on to check the regular expressions for a match.
+			 * @param {string} sMethod The request method
+			 * @param {string} sUrl The URL of the request
+			 * @returns {object} An object with the properties <code>responses</code> and
+			 *   <code>match</code>
+			 */
+			function getMatchingResponse(sMethod, sUrl) {
+				var aMatches, aMatchingResponses,
+					sRequestLine = sMethod + " " + sUrl;
+
+				if (mUrlToResponses[sRequestLine]) {
+					return {
+						responses: mUrlToResponses[sRequestLine]
+					};
+				}
+
+				if (!aRegexpResponses) {
+					return undefined;
+				}
+
+				aMatches = [];
+				aMatchingResponses = aRegexpResponses.filter(function (oResponse) {
+					var aMatch = sRequestLine.match(oResponse.regExp);
+					if (aMatch) {
+						aMatches.push(aMatch);
+					}
+					return aMatch;
+				});
+
+				if (aMatchingResponses.length > 1) {
+					Log.warning("Multiple matches found for " + sRequestLine, undefined,
+						"sap.ui.test.TestUtils");
+
+					return undefined;
+				}
+				return aMatchingResponses.length ? {
+					responses : aMatchingResponses[0].response,
+					match : aMatches[0]
+				} : undefined;
 			}
 
 			/*
@@ -412,8 +571,10 @@ sap.ui.define([
 			 * @param {string} [sContentId] The content ID
 			 */
 			function getResponseFromFixture(oRequest, sContentId) {
-				var oResponse,
-					aResponses = mUrlToResponses[oRequest.method + " " + oRequest.url];
+				var iAlternative,
+					oMatch = getMatchingResponse(oRequest.method, oRequest.url),
+					oResponse,
+					aResponses = oMatch && oMatch.responses;
 
 				aResponses = (aResponses || []).filter(function (oResponse) {
 					if (typeof oResponse.ifMatch === "function") {
@@ -423,7 +584,18 @@ sap.ui.define([
 				});
 				if (aResponses.length) {
 					oResponse = aResponses[0];
-				} else {
+					if (typeof oResponse.buildResponse === "function") {
+						oResponse = merge({}, oResponse);
+						try {
+							oResponse.buildResponse(oMatch.match, oResponse, oRequest);
+						} catch (oError) {
+							oResponse = error(500, oRequest, oError.stack);
+						}
+					}
+					if (oMatch.responses.length > 1) {
+						iAlternative = oMatch.responses.indexOf(oResponse);
+					}
+				} else if (!bStrict) {
 					switch (oRequest.method) {
 						case "HEAD":
 							oResponse = {code : 200};
@@ -446,7 +618,10 @@ sap.ui.define([
 					}
 				}
 				if (oResponse) {
-					Log.info(oRequest.method + " " + oRequest.url,
+					Log.info(oRequest.method + " " + oRequest.url
+						+ (iAlternative !== undefined
+							? ", alternative (ifMatch) #" + iAlternative
+							: ""),
 						// Note: JSON.stringify(oRequest.requestHeaders) outputs too much for now
 						'{"If-Match":' + JSON.stringify(oRequest.requestHeaders["If-Match"]) + '}',
 						"sap.ui.test.TestUtils");
@@ -562,6 +737,9 @@ sap.ui.define([
 			function respondFromFixture(oRequest) {
 				var oResponse = getResponseFromFixture(oRequest);
 
+				if (fnOnRequest) {
+					fnOnRequest(oRequest.requestBody);
+				}
 				oRequest.respond(oResponse.code, oResponse.headers, oResponse.message);
 			}
 
@@ -571,9 +749,24 @@ sap.ui.define([
 				// build the fixture
 				mUrlToResponses = buildResponses();
 
+				if (aRegExps) {
+					aRegexpResponses = aRegExps.map(function (oRegExpFixture) {
+						return {
+							regExp : oRegExpFixture.regExp,
+							response : Array.isArray(oRegExpFixture.response)
+								? oRegExpFixture.response.map(buildResponse)
+								: [buildResponse(oRegExpFixture.response)]
+						};
+					});
+				}
+
 				// set up the fake server
 				oServer = sinon.fakeServer.create();
-				oSandbox.add(oServer);
+				if (oSandbox.getFakes) { // Sinon.JS version >= 5
+					oSandbox.getFakes().push(oServer); // not a public API of Sinon.JS
+				} else {
+					oSandbox.add(oServer); // not a public API of Sinon.JS
+				}
 				oServer.autoRespond = true;
 				if (sAutoRespondAfter) {
 					oServer.autoRespondAfter = parseInt(sAutoRespondAfter);
@@ -600,24 +793,32 @@ sap.ui.define([
 				sinon.xhr.supportsCORS = jQuery.support.cors;
 				sinon.FakeXMLHttpRequest.useFilters = true;
 				sinon.FakeXMLHttpRequest.addFilter(function (sMethod, sUrl) {
+					var bOurs = getMatchingResponse(sMethod, sUrl)
+						|| (sServiceUrl
+							? sUrl.startsWith(sServiceUrl) || rBatch.test(sUrl)
+							: sMethod === "DELETE" || sMethod === "HEAD" || sMethod === "MERGE"
+								|| sMethod === "PATCH" || sMethod === "POST"
+							);
+
 					// must return true if the request is NOT processed by the fake server
-					return sMethod !== "DELETE" && sMethod !== "HEAD" && sMethod !== "MERGE"
-						&& sMethod !== "PATCH"	&& sMethod !== "POST"
-						&& !(sMethod + " " + sUrl in mUrlToResponses);
+					return !bOurs;
 				});
+
+				return oServer;
 			}
 
 			// ensure to always search the fake data in test-resources, remove cache buster token
 			sBase = sap.ui.require.toUrl(sBase)
 				.replace(/(^|\/)resources\/(~[-a-zA-Z0-9_.]*~\/)?/, "$1test-resources/") + "/";
-			setupServer();
+			return setupServer();
 		},
 
 		/**
 		 * If a test is wrapped by this function, you can test that locale-dependent texts are
 		 * created as expected, but avoid checking against the real message text. The function
 		 * ensures that every message retrieved using
-		 * <code>sap.ui.getCore().getLibraryResourceBundle().getText()</code> consists of the key
+		 * <code>sap.ui.getCore().getLibraryResourceBundle().getText()</code> or
+		 * <code>sap.ui.core.Lib#getResourceBundle().getText()</code> consists of the key
 		 * followed by all parameters referenced in the bundle's text in order of their numbers.
 		 *
 		 * The function uses <a href="http://sinonjs.org/docs/">Sinon.js</a> and expects that it
@@ -657,27 +858,37 @@ sap.ui.define([
 		 * @param {function} fnCodeUnderTest
 		 *   the code under test
 		 * @since 1.27.1
+		 *
+		 * @public
 		 */
 		withNormalizedMessages : function (fnCodeUnderTest) {
-			var oSandbox = sinon.sandbox.create();
+			var oSandbox;
+
+			if (sinon.createSandbox) {
+				oSandbox = sinon.createSandbox();
+			} else {
+				oSandbox = sinon.sandbox.create();
+			}
 
 			try {
-				var oCore = sap.ui.getCore(),
-					fnGetBundle = oCore.getLibraryResourceBundle;
+				var fnGetBundle = Library.prototype._loadResourceBundle;
 
-				oSandbox.stub(oCore, "getLibraryResourceBundle").returns({
-					getText : function (sKey, aArgs) {
-						var sResult = sKey,
-							sText = fnGetBundle.call(oCore).getText(sKey),
-							i;
+				oSandbox.stub(Library.prototype, "_loadResourceBundle").callsFake(function() {
+					var oResourceBundle = fnGetBundle.apply(this, [arguments[0], true /* sync */]);
+					return {
+						getText : function (sKey, aArgs) {
+							var sResult = sKey,
+								sText = oResourceBundle.getText(sKey),
+								i;
 
-						for (i = 0; i < 10; i += 1) {
-							if (sText.indexOf("{" + i + "}") >= 0) {
-								sResult += " " + (i >= aArgs.length ? "{" + i + "}" : aArgs[i]);
+							for (i = 0; i < 10; i += 1) {
+								if (sText.indexOf("{" + i + "}") >= 0) {
+									sResult += " " + (i >= aArgs.length ? "{" + i + "}" : aArgs[i]);
+								}
 							}
+							return sResult;
 						}
-						return sResult;
-					}
+					};
 				});
 
 				fnCodeUnderTest.apply(this);
@@ -689,17 +900,14 @@ sap.ui.define([
 		/**
 		 * @returns {boolean}
 		 *   <code>true</code> if the real OData service is used.
+		 *
+		 * @public
 		 */
 		isRealOData : function () {
+			if (sRealOData === "proxy") {
+				throw new Error("realOData=proxy is no longer supported");
+			}
 			return bRealOData;
-		},
-
-		/**
-		 * @returns {boolean}
-		 *   <code>true</code> if the support assistant shall be used.
-		 */
-		isSupportAssistant : function () {
-			return bSupportAssistant;
 		},
 
 		/**
@@ -707,31 +915,41 @@ sap.ui.define([
 		 *
 		 * @returns {string}
 		 *  the realOData query parameter or "" if none was given
+		 *
+		 * @public
 		 */
 		getRealOData : function () {
 			return sRealOData ? "&realOData=" + sRealOData : "";
 		},
 
 		/**
-		 * Adjusts the given absolute path so that (in case of "realOData=proxy" or
-		 * "realOData=true") the request is passed through the SimpleProxyServlet.
+		 * Sets a callback function which is called when the fake server responds with a fake
+		 * request. The function will be called with the request body as first parameter.
+		 *
+		 * Pass <code>null</code> to remove the listener.
+		 *
+		 * @param {function(string)} [fnCallback] - The function
+		 *
+		 * @ui5-restricted sap.ui.model.odata.v4
+		 */
+		onRequest : function (fnCallback) {
+			fnOnRequest = fnCallback;
+		},
+
+		/**
+		 * Simply returns <code>sAbsolutePath</code>.
 		 *
 		 * @param {string} sAbsolutePath
 		 *   some absolute path
 		 * @returns {string}
-		 *   the absolute path transformed in a way that invokes a proxy, but still absolute,
-		 *   with query parameters preserved
+		 *   <code>sAbsolutePath</code>
+		 * @deprecated since 1.93.0
+		 *   This function adjusted the path for the Maven/Java environment. Use a reverse proxy
+		 *   that forwards this path accordingly.
 		 */
 		proxy : function (sAbsolutePath) {
-			var sProxyUrl, iQueryPos;
-
-			if (!bProxy) {
-				return sAbsolutePath;
-			}
-			iQueryPos = sAbsolutePath.indexOf("?");
-			sProxyUrl = sap.ui.require.toUrl("sap/ui").replace("resources/sap/ui", "proxy");
-			return new URI(sProxyUrl + sAbsolutePath, document.baseURI).pathname().toString()
-				+ (iQueryPos >= 0 ? sAbsolutePath.slice(iQueryPos) : "");
+			Log.warning("#proxy is no longer supported", null, "sap.ui.test.TestUtils");
+			return sAbsolutePath;
 		},
 
 		/**
@@ -742,6 +960,8 @@ sap.ui.define([
 		 *   The key
 		 * @returns {object}
 		 *   The value
+		 *
+		 * @public
 		 */
 		retrieveData : function (sKey) {
 			var vValue = mData[sKey];
@@ -758,6 +978,8 @@ sap.ui.define([
 		 *   The key
 		 * @param {object} vValue
 		 *   The value
+		 *
+		 * @public
 		 */
 		setData : function (sKey, vValue) {
 			mData[sKey] = vValue;
@@ -766,35 +988,29 @@ sap.ui.define([
 		/**
 		 * Sets up the fake server for OData responses unless real OData responses are requested.
 		 *
-		 * The behavior is controlled by the request property "realOData". If the property has any
-		 * of the following values, the fake server is <i>not</i> set up.
-		 * <ul>
-		 * <li>"realOData=proxy" (or "realOData=true"): The test must be part of the UI5 Java
-		 *   Servlet. Set the system property "com.sap.ui5.proxy.REMOTE_LOCATION" to a server
-		 *   containing the Gateway test service.
-		 * <li>"realOData=direct": The test and the Gateway service must be reachable via the same
-		 *   host. This can be reached either by deploying the test code to the Gateway host or by
-		 *   using a reverse proxy like the SAP Web Dispatcher.
-		 * </ul>
+		 * The behavior is controlled by the request property "realOData". If the property has the
+		 * value "direct" or "true", the fake server is <i>not</i> set up. You will need a reverse
+		 * proxy to forward the requests to the correct remote server then.
 		 *
 		 * @param {object} oSandbox
 		 *   a Sinon sandbox as created using <code>sinon.sandbox.create()</code>
 		 * @param {map} mFixture
-		 *   the fixture for {@link sap.ui.test.TestUtils.useFakeServer}.
+		 *   the fixture for {@link sap.ui.test.TestUtils.useFakeServer}, automatically run through
+		 *   {@link sap.ui.test.TestUtils.normalizeFixture}.
 		 * @param {string} [sSourceBase="sap/ui/core/qunit/odata/v4/data"]
 		 *   The base path for <code>source</code> values in the fixture. The path must be in the
 		 *   project's test folder, typically it should start with "sap".
 		 *   Example: <code>"sap/ui/core/qunit/model"</code>
 		 * @param {string} [sFilterBase="/"]
 		 *   A base path for relative filter URLs in <code>mFixture</code>.
+		 * @param {object[]} [aRegExps]
+		 *   The regular expression array for {@link sap.ui.test.TestUtils.useFakeServer}
 		 *
+		 * @public
 		 * @see #.isRealOData
-		 * @see #.proxy
 		 */
-		setupODataV4Server : function (oSandbox, mFixture, sSourceBase, sFilterBase) {
-			var mResultingFixture = {};
-
-			if (bRealOData) {
+		setupODataV4Server : function (oSandbox, mFixture, sSourceBase, sFilterBase, aRegExps) {
+			if (this.isRealOData()) {
 				return;
 			}
 			if (!sFilterBase) {
@@ -802,6 +1018,24 @@ sap.ui.define([
 			} else if (sFilterBase.slice(-1) !== "/") {
 				sFilterBase += "/";
 			}
+			TestUtils.useFakeServer(oSandbox, sSourceBase || "sap/ui/core/qunit/odata/v4/data",
+				TestUtils.normalizeFixture(mFixture, sFilterBase), aRegExps,
+				sFilterBase !== "/" ? sFilterBase : undefined);
+		},
+
+		/**
+		 * Normalizes the given fixture by adding method "GET" and prefix for relative filter URLs.
+		 *
+		 * @param {map} mFixture
+		 *   the fixture for {@link sap.ui.test.TestUtils.useFakeServer}.
+		 * @param {string} [sFilterBase="/"]
+		 *   A base path for relative filter URLs in <code>mFixture</code>.
+		 * @returns {map}
+		 *   The normalized fixture
+		 */
+		normalizeFixture : function (mFixture, sFilterBase) {
+			var mResultingFixture = {};
+
 			Object.keys(mFixture).forEach(function (sRequest) {
 				var aMatches = rRequestKey.exec(sRequest),
 					sMethod,
@@ -819,8 +1053,31 @@ sap.ui.define([
 				}
 				mResultingFixture[sMethod + " " + sUrl] = mFixture[sRequest];
 			});
-			TestUtils.useFakeServer(oSandbox, sSourceBase || "sap/ui/core/qunit/odata/v4/data",
-				mResultingFixture);
+
+			return mResultingFixture;
+		},
+
+		/**
+		 * Creates and returns a spy for <code>XMLHttpRequest.prototype.open</code> which is
+		 * used in {@link module:sap/base/util/fetch}.
+		 *
+		 * @param {object} oSandbox
+		 *   a Sinon sandbox as created using <code>sinon.sandbox.create()</code>
+		 * @return {object} Returns the spy
+		 */
+		spyFetch : function(oSandbox) {
+			var spy = oSandbox.spy(XMLHttpRequest.prototype, "open");
+
+			/**
+			 * Returns the request URL
+			 * @param  {number} iCall The 'nth' call
+			 * @return {string} Returns the request URL
+			 */
+			spy.calledWithUrl = function(iCall) {
+				return spy.getCall(iCall).args[1];
+			};
+
+			return spy;
 		}
 	};
 

@@ -1,18 +1,18 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2024 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 // Provides Mixin sap.m.HyphenationSupport
 sap.ui.define([
-		"sap/ui/core/Core",
+		"sap/base/config",
 		"./library",
 		"sap/ui/core/hyphenation/Hyphenation",
 		"sap/base/Log"
 	],
 	function (
-		Core,
+		BaseConfig,
 		library,
 		Hyphenation,
 		Log
@@ -21,6 +21,15 @@ sap.ui.define([
 
 		// shortcut for sap.m.WrappingType
 		var WrappingType = library.WrappingType;
+
+		// get xx-hyphenation config
+		function getHyphenation() {
+			return BaseConfig.get({
+				name: "sapUiXxHyphenation",
+				type: BaseConfig.Type.String,
+				external: true
+			});
+		}
 
 		/**
 		 * Checks if the given control implements IHyphenation.
@@ -67,7 +76,7 @@ sap.ui.define([
 		 * first tries to set the <code>nodeValue</code> of the first child if it exists.
 		 *
 		 * @param {HTMLElement} oDomRef DOM reference of the text node container.
-		 * @param {String} [sNodeValue] new Node value.
+		 * @param {string} [sNodeValue] new Node value.
 		 * @private
 		 */
 		function setNodeValue(oDomRef, sNodeValue) {
@@ -105,7 +114,7 @@ sap.ui.define([
 		 * @private
 		 */
 		function shouldUseThirdParty() {
-			var sHyphenationConfig = Core.getConfiguration().getHyphenation(),
+			var sHyphenationConfig = getHyphenation(),
 				oHyphenationInstance = Hyphenation.getInstance();
 
 			if (sHyphenationConfig === "native" || sHyphenationConfig === "disable") {
@@ -129,16 +138,12 @@ sap.ui.define([
 		 * @private
 		 */
 		function shouldControlHyphenate(oControl) {
-			var sHyphenationConfig = Core.getConfiguration().getHyphenation();
+			var sHyphenationConfig = getHyphenation();
 			if (sHyphenationConfig === 'disable') {
 				return false;
 			}
 
-			if (oControl.getWrappingType() === WrappingType.Hyphenated && !oControl.getWrapping()) {
-				Log.warning("[UI5 Hyphenation] The property wrappingType=Hyphenated will not take effect unless wrapping=true.", oControl.getId());
-			}
-
-			return oControl.getWrapping() && oControl.getWrappingType() === WrappingType.Hyphenated;
+			return (!oControl.getWrapping || oControl.getWrapping()) && oControl.getWrappingType() === WrappingType.Hyphenated;
 		}
 
 		/**

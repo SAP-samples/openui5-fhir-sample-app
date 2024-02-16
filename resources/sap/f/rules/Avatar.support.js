@@ -1,6 +1,77 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2024 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
-sap.ui.define(["sap/ui/support/library","../library"],function(t,e){"use strict";var a=t.Categories,i=t.Severity,s=t.Audiences;var o={id:"avatarWithCustomDisplaySize",title:"Avatar: Invalid combination of customDisplaySize and displaySize properties",minversion:"1.46",audiences:[s.Application],categories:[a.Usage],description:"Avatar customDisplaySize property takes affect, only when displaySize property is set to Custom.",resolution:"Set displaySize property to Custom",check:function(t,a,s){s.getElementsByClassName("sap.f.Avatar").forEach(function(a){var s=a.getId(),o=a.getMetadata().getElementName(),r=a.getCustomDisplaySize()===a.getMetadata().getProperty("customDisplaySize").getDefaultValue();if(!r&&a.getDisplaySize()!==e.AvatarSize.Custom){t.addIssue({severity:i.Medium,details:"Avatar '"+o+"' ("+s+") has customDisplaySize property, without setting displaySize to Custom",context:{id:s}})}})}};var r={id:"avatarWithCustomFontSize",title:"Avatar: Invalid combination of customFontSize and displaySize properties",minversion:"1.46",audiences:[s.Application],categories:[a.Usage],description:"Avatar customFontSize property takes affect, only when displaySize property is set to Custom.",resolution:"Set displaySize property to Custom",check:function(t,a,s){s.getElementsByClassName("sap.f.Avatar").forEach(function(a){var s=a.getId(),o=a.getMetadata().getElementName(),r=a.getCustomFontSize()===a.getMetadata().getProperty("customFontSize").getDefaultValue();if(!r&&a.getDisplaySize()!==e.AvatarSize.Custom){t.addIssue({severity:i.Medium,details:"Avatar '"+o+"' ("+s+") has customFontSize property, without setting displaySize to Custom",context:{id:s}})}})}};return[o,r]},true);
+/**
+ * Defines support rules of the Avatar control of sap.f library.
+ */
+sap.ui.define(["sap/ui/support/library", "../library"],
+	function(SupportLib, library) {
+		"use strict";
+
+		var Categories = SupportLib.Categories, // Accessibility, Performance, Memory, ...
+			Severity = SupportLib.Severity, // Hint, Warning, Error
+			Audiences = SupportLib.Audiences; // Control, Internal, Application
+
+		var oAvatarWithCustomDisplaySize = {
+			id : "avatarWithCustomDisplaySize",
+			title: "Avatar: Invalid combination of customDisplaySize and displaySize properties",
+			minversion: "1.46",
+			audiences: [Audiences.Application],
+			categories: [Categories.Usage],
+			description: "Avatar customDisplaySize property takes affect, only when displaySize property is set to Custom.",
+			resolution: "Set displaySize property to Custom",
+			check: function (oIssueManager, oCoreFacade, oScope) {
+				oScope.getElementsByClassName("sap.f.Avatar")
+					.forEach(function(oElement) {
+
+					var sElementId = oElement.getId(),
+					sElementName = oElement.getMetadata().getElementName(),
+					bIsDefaultCustomDisplaySize = oElement.getCustomDisplaySize() === oElement.getMetadata().getProperty("customDisplaySize").getDefaultValue();
+
+					if (!bIsDefaultCustomDisplaySize && oElement.getDisplaySize() !== library.AvatarSize.Custom) {
+						oIssueManager.addIssue({
+							severity: Severity.Medium,
+							details: "Avatar '" + sElementName + "' (" + sElementId + ") has customDisplaySize property, without setting displaySize to Custom",
+							context: {
+								id: sElementId
+							}
+						});
+					}
+				});
+			}
+		};
+
+		var oAvatarWithCustomFontSize = {
+			id : "avatarWithCustomFontSize",
+			title: "Avatar: Invalid combination of customFontSize and displaySize properties",
+			minversion: "1.46",
+			audiences: [Audiences.Application],
+			categories: [Categories.Usage],
+			description: "Avatar customFontSize property takes affect, only when displaySize property is set to Custom.",
+			resolution: "Set displaySize property to Custom",
+			check: function (oIssueManager, oCoreFacade, oScope) {
+				oScope.getElementsByClassName("sap.f.Avatar")
+					.forEach(function(oElement) {
+
+					var sElementId = oElement.getId(),
+					sElementName = oElement.getMetadata().getElementName(),
+					bIsDefaultCustomFontSize = oElement.getCustomFontSize() === oElement.getMetadata().getProperty("customFontSize").getDefaultValue();
+
+					if (!bIsDefaultCustomFontSize && oElement.getDisplaySize() !== library.AvatarSize.Custom) {
+						oIssueManager.addIssue({
+							severity: Severity.Medium,
+							details: "Avatar '" + sElementName + "' (" + sElementId + ") has customFontSize property, without setting displaySize to Custom",
+							context: {
+								id: sElementId
+							}
+						});
+					}
+				});
+			}
+		};
+
+		return [oAvatarWithCustomDisplaySize, oAvatarWithCustomFontSize];
+
+	}, true);

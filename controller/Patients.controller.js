@@ -1,1 +1,2 @@
 sap.ui.define(["sap/ui/core/mvc/Controller"],function(t){"use strict";return t.extend("myhealthapp.controller.Patients",{onInit:function(){this.initializeRouter()},initializeRouter:function(){this.oRouter=sap.ui.core.UIComponent.getRouterFor(this)},onNavBack:function(){this.oRouter.navTo("homeRoute")},onPressPatient:function(t){var e=this.getView().getModel().getProperty(t.getParameter("listItem").getBindingContextPath()+"/id");this.oRouter.navTo("patientRoute",{patientId:e})}})});
+//# sourceMappingURL=Patients.controller.js.map

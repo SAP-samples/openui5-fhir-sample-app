@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2024 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -30,17 +30,20 @@ sap.ui.define([
 	 * @extends sap.m.ListItemBase
 	 *
 	 * @author SAP SE
-	 * @version 1.79.0
+	 * @version 1.120.6
 	 *
 	 * @constructor
 	 * @public
 	 * @since 1.42.0
 	 * @alias sap.m.TreeItemBase
-	 * @ui5-metamodel This control/element also will be described in the UI5 (legacy) designtime metamodel
 	 */
-	var TreeItemBase = ListItemBase.extend("sap.m.TreeItemBase", /** @lends sap.m.TreeItemBase.prototype */ { metadata : {
-		library : "sap.m"
-	}});
+	var TreeItemBase = ListItemBase.extend("sap.m.TreeItemBase", /** @lends sap.m.TreeItemBase.prototype */ {
+		metadata : {
+			library : "sap.m"
+		},
+
+		renderer: TreeItemBaseRenderer
+	});
 
 	TreeItemBase.prototype.ExpandedIconURI = IconPool.getIconURI("navigation-down-arrow");
 	TreeItemBase.prototype.CollapsedIconURI = IconPool.getIconURI("navigation-right-arrow");
@@ -64,12 +67,11 @@ sap.ui.define([
 	 */
 	TreeItemBase.prototype.getItemNodeContext = function() {
 		var oTree = this.getTree();
+		var oTreeProxy = this._getTreeBindingProxy();
 		var oNode = null;
-		var oBinding = oTree ? oTree.getBinding("items") : null;
 
-		if (oTree && oBinding) {
-			oBinding = oTree.getBinding("items");
-			oNode = oBinding.getNodeByIndex(oTree.indexOfItem(this));
+		if (oTreeProxy) {
+			oNode = oTreeProxy.getNodeByIndex(oTree.indexOfItem(this));
 		}
 
 		return oNode;
@@ -127,9 +129,14 @@ sap.ui.define([
 	 */
 	TreeItemBase.prototype.isLeaf = function() {
 		var oTree = this.getTree(),
-			oNode = this.getItemNodeContext();
+			oTreeProxy = this._getTreeBindingProxy();
 
-		return oNode ? !oTree.getBinding("items").nodeHasChildren(oNode) : false;
+		if (oTreeProxy) {
+			var iIndex = oTree.indexOfItem(this);
+			return oTreeProxy.isLeaf(iIndex);
+		}
+
+		return false;
 	};
 
 	/**
@@ -157,19 +164,19 @@ sap.ui.define([
 	/**
 	 * Gets the expanding information of the node.
 	 *
-	 * @returns {Boolean}
+	 * @returns {boolean}
 	 * @public
 	 * @since 1.42.0
 	 */
 	TreeItemBase.prototype.getExpanded = function() {
-		var oTree = this.getTree();
-		if (!oTree) {
+		var oTree = this.getTree(),
+			oTreeProxy = this._getTreeBindingProxy();
+		if (!oTree || !oTreeProxy) {
 			return false;
 		}
 
 		var iIndex = oTree.indexOfItem(this);
-		var oBinding = oTree.getBinding("items");
-		return (oBinding && oBinding.isExpanded(iIndex));
+		return oTreeProxy.isExpanded(iIndex);
 	};
 
 	TreeItemBase.prototype.setSelected = function (bSelected) {
@@ -200,7 +207,7 @@ sap.ui.define([
 	/**
 	 * Gets the expander control for rendering purposes.
 	 *
-	 * @returns {Boolean}
+	 * @returns {sap.ui.core.Control}
 	 * @private
 	 * @since 1.42.0
 	 */
@@ -232,52 +239,6 @@ sap.ui.define([
 		return this._oExpanderControl;
 	};
 
-	/**
-	 * Updates the item by assigning the relavant expander, styles and attributes.
-	 *
-	 * @private
-	 * @since 1.46.0
-	 */
-	TreeItemBase.prototype._updateItem = function() {
-		if (this._bInvalidated) {
-			return;
-		}
-
-		var oTree = this.getTree();
-		if (oTree && oTree._bInvalidated) {
-			return;
-		}
-
-		if (this._oExpanderControl) {
-			var sSrc = this.CollapsedIconURI;
-			if (this.getExpanded()) {
-				sSrc = this.ExpandedIconURI;
-			}
-			this._oExpanderControl.setSrc(sSrc);
-
-			// make the expander visible
-			var $this = this.$();
-			// adapt the tree items styles and the expander
-			if (!this.isLeaf()) {
-				$this.removeClass("sapMTreeItemBaseLeaf");
-				$this.attr("aria-expanded", this.getExpanded());
-			} else {
-				$this.addClass("sapMTreeItemBaseLeaf");
-				$this.removeAttr("aria-expanded");
-			}
-			$this.toggleClass("sapMTreeItemBaseChildren", !this.isTopLevel());
-			// adapt aria-level (in cases like sorting of the tree items is performed)
-			$this.attr("aria-level", this.getLevel() + 1);
-
-			// update the indentation again
-			var iIndentation = this._getPadding(),
-				sStyleRule = sap.ui.getCore().getConfiguration().getRTL() ? "paddingRight" : "paddingLeft";
-			$this.css(sStyleRule, iIndentation + "rem");
-
-		}
-
-	};
-
 	TreeItemBase.prototype.invalidate = function() {
 		ListItemBase.prototype.invalidate.apply(this, arguments);
 		this._bInvalidated = true;
@@ -290,14 +251,14 @@ sap.ui.define([
 
 	TreeItemBase.prototype.setBindingContext = function() {
 		ListItemBase.prototype.setBindingContext.apply(this, arguments);
-		this._updateItem();
+		this.invalidate();
 		return this;
 	};
 
 	/**
 	 * Gets the indentation of the node for rendering purposes.
 	 *
-	 * @returns {Boolean}
+	 * @returns {float}
 	 * @private
 	 * @since 1.42.0
 	 */
@@ -334,7 +295,7 @@ sap.ui.define([
 	/**
 	 * The event is fired when + is pressed.
 	 *
-	 * @param {jQuery.Event} The event object.
+	 * @param {jQuery.Event} oEvent The event object.
 	 */
 	TreeItemBase.prototype.onsapplus = function(oEvent) {
 		this.informTree("ExpanderPressed", true);
@@ -343,7 +304,7 @@ sap.ui.define([
 	/**
 	 * The event is fired when - is pressed.
 	 *
-	 * @param {jQuery.Event} The event object.
+	 * @param {jQuery.Event} oEvent The event object.
 	 */
 	TreeItemBase.prototype.onsapminus = function(oEvent) {
 		this.informTree("ExpanderPressed", false);
@@ -352,7 +313,7 @@ sap.ui.define([
 	/**
 	 * The event is fired when the right arrow key is pressed.
 	 *
-	 * @param {jQuery.Event} The event object.
+	 * @param {jQuery.Event} oEvent The event object.
 	 */
 	TreeItemBase.prototype.onsapright = function(oEvent) {
 		if (oEvent.srcControl !== this || this.isLeaf()) {
@@ -371,7 +332,7 @@ sap.ui.define([
 	/**
 	 * The event is fired when the left arrow key is pressed.
 	 *
-	 * @param {jQuery.Event} The event object.
+	 * @param {jQuery.Event} oEvent The event object.
 	 */
 	TreeItemBase.prototype.onsapleft = function(oEvent) {
 		if (oEvent.srcControl !== this || this.isTopLevel() && !this.getExpanded()) {
@@ -393,7 +354,7 @@ sap.ui.define([
 	/**
 	 * The event is fired when the backspace key is pressed.
 	 *
-	 * @param {jQuery.Event} The event object.
+	 * @param {jQuery.Event} oEvent The event object.
 	 */
 	TreeItemBase.prototype.onsapbackspace = function(oEvent) {
 		// Only set focus on parent when the event is fired by item itself.
@@ -419,6 +380,13 @@ sap.ui.define([
 
 	TreeItemBase.prototype.onlongdragover = function(oEvent) {
 		this.informTree("LongDragOver");
+	};
+
+	TreeItemBase.prototype._getTreeBindingProxy = function() {
+		var oTree = this.getTree();
+		if (oTree) {
+			return oTree._oProxy;
+		}
 	};
 
 	return TreeItemBase;

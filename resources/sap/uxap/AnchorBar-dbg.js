@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2024 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -23,13 +23,17 @@ sap.ui.define([
 	"./library",
 	"sap/uxap/AnchorBarRenderer",
 	"sap/base/Log",
-	"sap/ui/events/KeyCodes"
-], function (jQuery, Button, MenuButton, mobileLibrary, Toolbar, IconPool, Item, ResizeHandler,	ScrollEnablement,
-		HorizontalLayout, Device, CustomData, Control, HierarchicalSelect, library, AnchorBarRenderer, Log, KeyCodes) {
+	"sap/ui/core/Configuration",
+	"sap/ui/dom/jquery/scrollLeftRTL"
+], function (jQuery, Button, MenuButton, mobileLibrary, Toolbar, IconPool, Item, ResizeHandler, ScrollEnablement,
+		HorizontalLayout, Device, CustomData, Control, HierarchicalSelect, library, AnchorBarRenderer, Log, Configuration) {
 	"use strict";
 
 	// shortcut for sap.m.SelectType
 	var SelectType = mobileLibrary.SelectType;
+
+	// 2px tollerance when calculating how much the scroll of the AnchorBar should be moved, when using arrow keys. This way the focus border is not cut.
+	var OFFSET_SCROLL = 2;
 
 	/**
 	 * Constructor for a new <code>AnchorBar</code>.
@@ -56,7 +60,6 @@ sap.ui.define([
 	 * @since 1.26
 	 * @see {@link topic:370b67986497463187336fa130aebbf1 Anchor Bar}
 	 * @alias sap.uxap.AnchorBar
-	 * @ui5-metamodel This control/element also will be described in the UI5 (legacy) designtime metamodel
 	 */
 	var AnchorBar = Toolbar.extend("sap.uxap.AnchorBar", /** @lends sap.uxap.AnchorBar.prototype */ {
 		metadata: {
@@ -97,9 +100,33 @@ sap.ui.define([
 				_scrollArrowLeft: {type: "sap.ui.core.Control", multiple: false, visibility: "hidden"},
 				_scrollArrowRight: {type: "sap.ui.core.Control", multiple: false, visibility: "hidden"}
 			}
-		}
+		},
+
+		renderer: AnchorBarRenderer
 	});
 
+	AnchorBar.ButtonDelegate = {
+		onAfterRendering: function () {
+			var oButton = this.isA("sap.m.MenuButton") ? this._getButtonControl() : this,
+				bSelected = this.hasStyleClass("sapUxAPAnchorBarButtonSelected");
+
+			// set ARIA has-popup if button opens submenu
+			if (this.data("bHasSubMenu")) {
+				oButton.$().attr("aria-haspopup", "menu");
+
+				// although the inner (arrow like) buttons are not focusable
+				// set role 'none' since it is not allowed nesting
+				// them in elements with role 'option'
+				oButton.$().find(".sapMBtn")
+					.attr("role", "none")
+					// remove ARIA has-popup from inner elements
+					// since they are not receiving any focus
+					.removeAttr('aria-haspopup');
+			}
+			// set ARIA attributes of main buttons
+			oButton.$().attr("aria-controls", this.data("sectionId")).attr("aria-selected", bSelected);
+		}
+	};
 
 	AnchorBar.prototype.init = function () {
 		if (Toolbar.prototype.init) {
@@ -112,14 +139,7 @@ sap.ui.define([
 		this._oSectionInfo = {};    //keep scrolling info on sections
 		this._oScroller = null;
 		this._sSelectedKey = null; // keep track of sap.uxap.HierarchicalSelect selected key
-		this._bRtl = sap.ui.getCore().getConfiguration().getRTL();
-
-		//are we on an rtl scenario?
-		//IE handles rtl in a transparent way (positions positives, scroll starts at the end)
-		//while firefox, safari and chrome have a special management (scroll at the beginning and negative positioning)
-		//therefore we will apply some specific actions only if are in rtl and not in IE.
-		/* TODO remove after the end of support for Internet Explorer */
-		this._bRtlScenario = this._bRtl && !Device.browser.msie;
+		this._bRtl = Configuration.getRTL();
 
 		//there are 2 different uses cases:
 		//case 1: on a real phone we don't need the scrolling anchorBar, just the hierarchicalSelect
@@ -261,15 +281,26 @@ sap.ui.define([
 		if (bIsSecondLevel) {
 			oButton.destroy();
 		} else {
+			oButton.addEventDelegate(AnchorBar.ButtonDelegate, oButton);
 			this.addAggregation("content", oButton, bInvalidate);
 		}
 
 		return this;
 	};
 
+	AnchorBar.prototype._removeButtonsDelegate = function () {
+		var aContent = this.getContent();
+
+		aContent.forEach(function (oButton) {
+			oButton.removeEventDelegate(AnchorBar.ButtonDelegate);
+		});
+	};
+
 	AnchorBar.prototype._createSelectItem = function (oButton, bIsSecondLevel) {
 		//create the phone equivalent item if the button has some visible text (UX rule)
-		if (oButton.getText().trim() != "" && (!bIsSecondLevel || oButton.data("bTitleVisible") === true)) {
+		var oBindingInfo = oButton.getBindingInfo("text"),
+			bButtonHasText = oButton.getText().trim() != "" || oBindingInfo;
+		if (bButtonHasText && (!bIsSecondLevel || oButton.data("bTitleVisible") === true)) {
 			var oPhoneItem = new Item({
 				key: oButton.data("sectionId"),
 				text: oButton.getText(),
@@ -280,6 +311,10 @@ sap.ui.define([
 					})
 				]
 			});
+
+			if (oBindingInfo) {
+				oPhoneItem.bindProperty("text", Object.assign({}, oBindingInfo));
+			}
 
 			this._oSelect.addItem(oPhoneItem);
 		}
@@ -304,35 +339,10 @@ sap.ui.define([
 		}
 	};
 
-	AnchorBar.prototype._handleDirectScroll = function (oEvent) {
-		this._requestScrollToSection(oEvent.getSource().data("sectionId"));
-	};
-
-	AnchorBar.prototype._requestScrollToSection = function (sRequestedSectionId) {
-
-		var oRequestedSection = sap.ui.getCore().byId(sRequestedSectionId),
-			oRequestedSectionParent = oRequestedSection.getParent();
-
-		if (this.getParent() instanceof library.ObjectPageLayout) {
-
-			// determine the next section that will appear selected in the anchorBar after the scroll
-			var sNextSelectedSection = sRequestedSectionId;
-
-			// if the requestedSection is a subsection, the nextSelectedSection will be its parent (since anchorBar contains only first-level sections)
-			if (oRequestedSection instanceof library.ObjectPageSubSection &&
-				oRequestedSectionParent instanceof library.ObjectPageSection) {
-				sNextSelectedSection = oRequestedSectionParent.getId();
-			}
-			// we set *direct* scrolling by which we instruct the page to *skip* processing of intermediate sections (sections between current and requested)
-			this.getParent().setDirectScrollingToSection(sNextSelectedSection);
-			// finally request the page to scroll to the requested section
-			this.getParent().scrollToSection(oRequestedSection.getId(), null, 0, true);
-		}
-
-		if (oRequestedSection instanceof library.ObjectPageSubSection &&
-			oRequestedSectionParent instanceof library.ObjectPageSection) {
-			oRequestedSectionParent.setAssociation("selectedSubSection", oRequestedSection, true);
-		}
+	AnchorBar.prototype.onButtonPress = function (oEvent) {
+		this.fireEvent("_anchorPress", {
+			sectionBaseId: oEvent.getSource().data("sectionId")
+		});
 	};
 
 	/**
@@ -342,7 +352,9 @@ sap.ui.define([
 	 * @private
 	 */
 	AnchorBar.prototype._onSelectChange = function (oEvent) {
-		var oSelectedItem = oEvent.getParameter("selectedItem"), oSelectedSection;
+		var oSelectedItem = oEvent.getParameter("selectedItem"),
+			oSelectedSection,
+			oSelectedSectionDomRef;
 
 		if (!oSelectedItem) {
 			Log.warning("AnchorBar :: no selected hierarchicalSelect item");
@@ -352,8 +364,14 @@ sap.ui.define([
 		oSelectedSection = sap.ui.getCore().byId(oSelectedItem.getKey());
 
 		if (oSelectedSection) {
+			this.fireEvent("_anchorPress", { sectionBaseId: oSelectedSection.getId() });
+			oSelectedSectionDomRef = oSelectedSection.getDomRef();
 
-			this._requestScrollToSection(oSelectedSection.getId());
+			if (oSelectedSectionDomRef) {
+				setTimeout(function () {
+					oSelectedSectionDomRef.focus();
+				}, 0);
+			}
 		} else {
 			Log.error("AnchorBar :: cannot find corresponding section", oSelectedItem.getKey());
 		}
@@ -419,12 +437,12 @@ sap.ui.define([
 
 		oScrollButton.addEventDelegate({
 			onAfterRendering: function () {
-				if (sap.ui.getCore().getConfiguration().getTheme() != "sap_hcb") {
+				if (Configuration.getTheme() != "sap_hcb") {
 					this.$().attr("tabindex", -1);
 				}
 			},
 			onThemeChanged: function () {
-				if (sap.ui.getCore().getConfiguration().getTheme() == "sap_hcb") {
+				if (Configuration.getTheme() == "sap_hcb") {
 					this.$().removeAttr("tabindex");
 				} else {
 					this.$().attr("tabindex", -1);
@@ -483,7 +501,7 @@ sap.ui.define([
 	AnchorBar.prototype._applyHierarchicalSelectMode = function () {
 
 		if (this._sHierarchicalSelectMode === AnchorBarRenderer._AnchorBarHierarchicalSelectMode.Icon) {
-			this._bHideScrollContainer = false;
+			this.$().find(".sapUxAPAnchorBarScrollContainer").show();
 
 			this._oSelect.setWidth("auto");
 			this._oSelect.setAutoAdjustWidth(true);
@@ -491,7 +509,7 @@ sap.ui.define([
 			this._computeBarSectionsInfo();
 
 		} else {
-			this._bHideScrollContainer = true;
+			this.$().find(".sapUxAPAnchorBarScrollContainer").hide();
 
 			this._oSelect.setWidth("100%");
 			this._oSelect.setAutoAdjustWidth(false);
@@ -499,8 +517,6 @@ sap.ui.define([
 		}
 
 		this.$().toggleClass("sapUxAPAnchorBarOverflow", this._sHierarchicalSelectMode === AnchorBarRenderer._AnchorBarHierarchicalSelectMode.Icon);
-
-		this.invalidate();
 	};
 
 	AnchorBar.prototype._adjustSize = function (oEvent) {
@@ -529,7 +545,13 @@ sap.ui.define([
 				$scrollContainer = $dom.find(".sapUxAPAnchorBarScrollContainer"),
 				bNeedScrollingBegin,
 				bNeedScrollingEnd,
-				iContainerWidth;
+				iContainerWidth,
+				iScrollLeft,
+				fnSwapBeginEnd = function swapBeginEnd () {
+					var vSwap = bNeedScrollingBegin;
+					bNeedScrollingBegin = bNeedScrollingEnd;
+					bNeedScrollingEnd = vSwap;
+				};
 
 			// if width has changed we need to scroll AnchorBar to selected section
 			if (bWidthChange) {
@@ -537,23 +559,16 @@ sap.ui.define([
 			}
 
 			iContainerWidth = $scrollContainer.width();
+			iScrollLeft = this._bRtl ? $scrollContainer.scrollLeftRTL() : $scrollContainer.scrollLeft();
 
-			//do we need to scroll left or right
-			if (this._bRtlScenario) {
+			bNeedScrollingBegin = iScrollLeft >= this._iTolerance;
+			bNeedScrollingEnd = iScrollLeft + iContainerWidth < (this._iMaxPosition - this._iTolerance);
 
-				if (Device.browser.firefox) {
-					bNeedScrollingEnd = Math.abs($scrollContainer.scrollLeft()) + iContainerWidth < (this._iMaxPosition - this._iTolerance);
-					bNeedScrollingBegin = Math.abs($scrollContainer.scrollLeft()) >= this._iTolerance;
-				} else {
-					bNeedScrollingEnd = Math.abs($scrollContainer.scrollLeft()) >= this._iTolerance;
-					bNeedScrollingBegin = Math.abs($scrollContainer.scrollLeft()) + iContainerWidth < (this._iMaxPosition - this._iTolerance);
-				}
-			} else {
-				bNeedScrollingEnd = $scrollContainer.scrollLeft() + iContainerWidth < (this._iMaxPosition - this._iTolerance);
-				bNeedScrollingBegin = $scrollContainer.scrollLeft() >= this._iTolerance;
+			if (this._bRtl) {
+				fnSwapBeginEnd();
 			}
 
-			Log.debug("AnchorBar :: scrolled at " + $scrollContainer.scrollLeft(), "scrollBegin [" + (bNeedScrollingBegin ? "true" : "false") + "] scrollEnd [" + (bNeedScrollingEnd ? "true" : "false") + "]");
+			Log.debug("AnchorBar :: scrolled at " + iScrollLeft, "scrollBegin [" + (bNeedScrollingBegin ? "true" : "false") + "] scrollEnd [" + (bNeedScrollingEnd ? "true" : "false") + "]");
 
 			$dom.toggleClass("sapUxAPAnchorBarScrollLeft", bNeedScrollingBegin);
 			$dom.toggleClass("sapUxAPAnchorBarScrollRight", bNeedScrollingEnd);
@@ -577,7 +592,7 @@ sap.ui.define([
 		 decrease if:
 		 - ltr and the left arrow was pressed
 		 - rtl and the right arrow was pressed */
-		var iScrollDirection = ((!this._bRtlScenario && bScrollLeft) || (this._bRtlScenario && !bScrollLeft)) ? -1 : 1;
+		var iScrollDirection = ((!this._bRtl && bScrollLeft) || (this._bRtl && !bScrollLeft)) ? -1 : 1;
 
 		this._oScroller.scrollTo(this._iMaxPosition * iScrollDirection, 0, AnchorBar.SCROLL_DURATION * 3); //increase scroll duration when scrolling to the other end of the anchorBar (UX requirement)
 	};
@@ -586,9 +601,8 @@ sap.ui.define([
 	 * Scroll to a specific Section.
 	 *
 	 * @param {string} sId The Section ID to scroll to
-	 * @param {int} iDuration Scroll duration (in ms). Default value is 0.
+	 * @param {int} [iDuration=0] Scroll duration (in ms)
 	 * @public
-	 * @ui5-metamodel This method also will be described in the UI5 (legacy) designtime metamodel
 	 */
 	AnchorBar.prototype.scrollToSection = function (sId, iDuration) {
 
@@ -600,7 +614,7 @@ sap.ui.define([
 			if (!library.Utilities.isPhoneScenario(oMediaRange)
 				&& this._oSectionInfo[sId]) {
 
-				if (this._bRtlScenario && Device.browser.firefox) {
+				if (this._bRtl && Device.browser.firefox) {
 					// in firefox RTL mode we are working with negative numbers and we have to add the offset in order not to hide the selected item
 					iScrollTo = this._oSectionInfo[sId].scrollLeft + this._iOffset;
 				} else {
@@ -619,7 +633,7 @@ sap.ui.define([
 
 					if (this._iCurrentScrollTimeout) {
 						clearTimeout(this._iCurrentScrollTimeout);
-						jQuery(document.getElementById(this.getId() + "-scroll")).parent().stop(true, false);
+						this.$("scroll").parent().stop(true, false);
 					}
 
 					this._iCurrentScrollTimeout = setTimeout(function () {
@@ -635,13 +649,28 @@ sap.ui.define([
 		}
 	};
 
+	/**
+	 * Scrolls to the currently selected Section tab, when the header titles is snapped/unsnapped
+	 *
+	 * @public
+	 */
+	AnchorBar.prototype.scrollToCurrentlySelectedSection = function () {
+		var sSelectedButton = this.getSelectedButton(),
+			oSelectedButton = sap.ui.getCore().byId(sSelectedButton),
+			sSelectedSectionId;
+
+		if (oSelectedButton) {
+			sSelectedSectionId = oSelectedButton.data("sectionId");
+			this.scrollToSection(sSelectedSectionId, 0);
+		}
+	};
+
 	// use type 'object' because Metamodel doesn't know ScrollEnablement
 	/**
 	 * Returns an sap.ui.core.delegate.ScrollEnablement object used to handle scrolling.
 	 *
 	 * @type object
 	 * @public
-	 * @ui5-metamodel This method also will be described in the UI5 (legacy) designtime metamodel
 	 * @returns {sap.ui.core.delegate.ScrollEnablement} The <code>sap.ui.core.delegate.ScrollEnablement</code> instance
 	 */
 	AnchorBar.prototype.getScrollDelegate = function () {
@@ -662,8 +691,9 @@ sap.ui.define([
 	AnchorBar.prototype.onsapright = function (oEvent) {
 		oEvent.preventDefault();
 
-		var iNextIndex;
-		var aAnchors = this.getContent();
+		var iNextIndex,
+			aAnchors = this.getContent(),
+			oAnchor;
 
 		aAnchors.forEach(function (oAnchor, iAnchorIndex) {
 			if (oEvent.target.id.indexOf(oAnchor.getId()) > -1) {
@@ -673,10 +703,14 @@ sap.ui.define([
 		});
 
 		if (iNextIndex && aAnchors[iNextIndex]) {
-			aAnchors[iNextIndex].focus();
+			oAnchor = aAnchors[iNextIndex];
+			oAnchor.focus();
 		} else if (aAnchors[aAnchors.length - 1]) {
-			aAnchors[aAnchors.length - 1].focus();
+			oAnchor = aAnchors[aAnchors.length - 1];
+			oAnchor.focus();
 		}
+
+		this._forceScrollIfNeeded(oAnchor);
 	};
 
 	/**
@@ -688,8 +722,9 @@ sap.ui.define([
 	AnchorBar.prototype.onsapleft = function (oEvent) {
 		oEvent.preventDefault();
 
-		var iNextIndex;
-		var aAnchors = this.getContent();
+		var iNextIndex,
+			aAnchors = this.getContent(),
+			oAnchor;
 
 		aAnchors.forEach(function (oAnchor, iAnchorIndex) {
 			if (oEvent.target.id.indexOf(oAnchor.getId()) > -1) {
@@ -699,10 +734,97 @@ sap.ui.define([
 		});
 
 		if (iNextIndex && aAnchors[iNextIndex]) {
-			aAnchors[iNextIndex].focus();
+			oAnchor = aAnchors[iNextIndex];
+			oAnchor.focus();
 		} else if (aAnchors[0]) {
-			aAnchors[0].focus();
+			oAnchor = aAnchors[0];
+			oAnchor.focus();
 		}
+
+		this._forceScrollIfNeeded(oAnchor, true);
+	};
+
+	/**
+	 * Checks if AnchorBar should be scrolled and scrolls it forcly, if needed.
+	 *
+	 * @param {object} oAnchor
+	 * @param {boolean} bLeft
+	 * @private
+	 */
+	AnchorBar.prototype._forceScrollIfNeeded = function (oAnchor, bLeft) {
+		var oAnchorDomRef = oAnchor.getDomRef(),
+			oParentRef = oAnchorDomRef.parentElement,
+			iParentRefOffsetLeft = oParentRef.offsetLeft,
+			oParentRefOffsetWidth = oParentRef.offsetWidth,
+			iAnchorDomRefWidth = oAnchorDomRef && oAnchorDomRef.offsetWidth,
+			iAnchorDomOffsetLeft = oAnchorDomRef && oAnchorDomRef.offsetLeft,
+			iCurrentScrollPosition = this._oScroller.getScrollLeft(),
+			iVisibleScrollPosition,
+			iAnchorPosition,
+			iOffsetScroll;
+
+		if (!oParentRef || !iAnchorDomRefWidth) {
+			return;
+		}
+
+		if (!this._bRtl) {
+			// The right position of the tab
+			iAnchorPosition =  iAnchorDomOffsetLeft + iAnchorDomRefWidth;
+
+			// Calculates how much the scroll container should be scrolled, so that the right position of the tab will be visible
+			iOffsetScroll = oParentRefOffsetWidth - (iParentRefOffsetLeft + iAnchorPosition - iCurrentScrollPosition);
+			if (!bLeft && iOffsetScroll < 0 && oParentRefOffsetWidth - iAnchorPosition < 0) {
+				this._scrollAnchorBar(bLeft, iOffsetScroll);
+			}
+
+			// Calculates how much the scroll container should be scrolled, so that the left position of the tab will be visible
+			iOffsetScroll = iAnchorDomOffsetLeft - this._iOffset - iParentRefOffsetLeft - OFFSET_SCROLL;
+			if (bLeft && iCurrentScrollPosition > iOffsetScroll) {
+				this._scrollAnchorBar(bLeft, iOffsetScroll);
+			}
+		} else {
+			if (bLeft) {
+				// The last visible right position of the scroll container (in RTL left/right scrolling is reversed)
+				iVisibleScrollPosition =  iCurrentScrollPosition + oParentRefOffsetWidth - this._iOffset;
+				// The right position of the tab
+				iAnchorPosition = iAnchorDomOffsetLeft - iParentRefOffsetLeft;
+
+				if (iAnchorPosition + iAnchorDomRefWidth > iVisibleScrollPosition) {
+					// Calculates how much the scroll container should be scrolled, so that the right position of the tab will be visible
+					iOffsetScroll = ((iAnchorPosition + iAnchorDomRefWidth) - iVisibleScrollPosition + OFFSET_SCROLL);
+					this._scrollAnchorBar(bLeft, iOffsetScroll);
+				}
+			} else {
+				if (iAnchorDomOffsetLeft - iParentRefOffsetLeft - this._iOffset - OFFSET_SCROLL < iCurrentScrollPosition) {
+					// Calculates how much the scroll container should be scrolled, so that the left position of the tab will be visible
+					iOffsetScroll = iAnchorDomRefWidth - iAnchorDomOffsetLeft + OFFSET_SCROLL;
+					this._scrollAnchorBar(bLeft, iOffsetScroll);
+				}
+			}
+		}
+	};
+
+	/**
+	 * Forcly scrolls AnchorBar, if the currently focused tab is not fully visible.
+	 *
+	 * @param {boolean} bScrollLeft
+	 * @param {number} iOffsetScroll
+	 * @private
+	 */
+	AnchorBar.prototype._scrollAnchorBar = function (bScrollLeft, iOffsetScroll) {
+		var iScrollDirection = ((!this._bRtl && bScrollLeft) || (this._bRtl && !bScrollLeft)) ? -1 : 1,
+			iCurrentScrollPosition = this._oScroller.getScrollLeft(),
+			iNewScrollPosition = iOffsetScroll;
+
+		if (iScrollDirection === 1) {
+			iNewScrollPosition = this._bRtl ? iCurrentScrollPosition + iOffsetScroll : iCurrentScrollPosition + Math.abs(iOffsetScroll);
+		}
+
+		if (this._bRtl && iScrollDirection === -1) {
+			iNewScrollPosition = iOffsetScroll * iScrollDirection;
+		}
+
+		this._oScroller.scrollTo(iNewScrollPosition, 0, AnchorBar.SCROLL_DURATION * 3);
 	};
 
 	/**
@@ -837,7 +959,7 @@ sap.ui.define([
 
 		aAnchorBarContent.forEach(function (oAnchorBarItem) {
 			$anchorBarItem = oAnchorBarItem.getAggregation("_button") ? oAnchorBarItem.getAggregation("_button").$() : oAnchorBarItem.$();
-			if (oAnchorBarItem.sId === (oSelectedButton && oSelectedButton.sId)) {
+			if (oAnchorBarItem === oSelectedButton) {
 				$anchorBarItem.attr(sTabIndex, sFocusable);
 			} else {
 				$anchorBarItem.attr(sTabIndex, sNotFocusable);
@@ -872,12 +994,19 @@ sap.ui.define([
 
 		//initial state
 		if (this._bHasButtonsBar) {
-			setTimeout(function () {
+			this._iComputeContentSizeTimeout = setTimeout(function () {
 				if (this._sHierarchicalSelectMode === AnchorBarRenderer._AnchorBarHierarchicalSelectMode.Icon) {
 					this._computeBarSectionsInfo();
 				}
 				this._adjustSize();
+				this._iComputeContentSizeTimeout = null;
 			}.bind(this), AnchorBar.DOM_CALC_DELAY);
+		}
+	};
+
+	AnchorBar.prototype.onThemeChanged = function () {
+		if (this._sHierarchicalSelectMode === AnchorBarRenderer._AnchorBarHierarchicalSelectMode.Icon) {
+			this._computeBarSectionsInfo();
 		}
 	};
 
@@ -901,31 +1030,13 @@ sap.ui.define([
 
 		//post processing based on how browsers implement rtl
 		//chrome, safari && Device.browser.webkit && firefox
-		if (this._bRtlScenario && (Device.browser.webkit || Device.browser.firefox)) {
+		if (this._bRtl && (Device.browser.webkit || Device.browser.firefox)) {
 			aContent.forEach(this._adjustNextSectionInfo, this); // adjust positions depending of the browser
-			this._oScroller.scrollTo(this._iMaxPosition, 0, 0);
+			this._oScroller && this._oScroller.scrollTo(this._iMaxPosition, 0, 0);
 		}
 	};
 
 	AnchorBar.prototype._computeNextSectionInfo = function (oContent) {
-		var oButton = oContent.isA("sap.m.MenuButton") ? oContent._getButtonControl() : oContent,
-			bSelected = oContent.hasStyleClass("sapUxAPAnchorBarButtonSelected");
-
-		// set ARIA has-popup if button opens submenu
-		if (oContent.data("bHasSubMenu")) {
-			oButton.$().attr("aria-haspopup", "menu");
-
-			// set role 'group' to inner button element since
-			// its not allow nesting them in elements with role 'option'
-			oButton.$().find(".sapMBtn")
-				.attr("role", "group")
-				// remove ARIA has-popup from inner elements
-				// since they are not receiving any focus
-				.removeAttr('aria-haspopup');
-		}
-		// set ARIA attributes of main buttons
-		oButton.$().attr("aria-controls", oContent.data("sectionId")).attr("aria-selected", bSelected);
-
 		var iWidth = oContent.$().outerWidth(true);
 
 		//store info on the various sections for horizontalScrolling
@@ -958,6 +1069,7 @@ sap.ui.define([
 	};
 
 	AnchorBar.prototype._resetControl = function () {
+		this._removeButtonsDelegate();
 		this.destroyAggregation('content');
 		this._oSelect.destroyAggregation("items", true);
 
@@ -975,7 +1087,7 @@ sap.ui.define([
 	 * those controls.
 	 *
 	 * @param {sap.ui.core.Control} oElement - The Control that gets rendered by the RenderManager
-	 * @param {Object} mAriaProps - The mapping of "aria-" prefixed attributes
+	 * @param {object} mAriaProps - The mapping of "aria-" prefixed attributes
 	 * @protected
 	 */
 	AnchorBar.prototype.enhanceAccessibilityState = function (oElement, mAriaProps) {
@@ -1007,13 +1119,20 @@ sap.ui.define([
 		if (this.oLibraryResourceBundleOP) {
 			this.oLibraryResourceBundleOP = null;
 		}
+
+		if (this._iComputeContentSizeTimeout) {
+			clearTimeout(this._iComputeContentSizeTimeout);
+			this._iComputeContentSizeTimeout = null;
+		}
+
+		this._removeButtonsDelegate();
 	};
 
 	/**
 	 * Determines the width of a control safely. If the control doesn't exist, it returns 0.
 	 * If it exists, it returns the DOM element width.
 	 * @param  {sap.ui.core.Control} oControl
-	 * @return {Number} the width of the control
+	 * @return {number} the width of the control
 	 */
 	AnchorBar.prototype._getWidth = function (oControl) {
 		var oDomReference = oControl.getDomRef();

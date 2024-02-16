@@ -1,12 +1,12 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2024 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.define([
-	"sap/base/Log"
+	"sap/ui/core/library"
 ],
-	function(Log) {
+	function(coreLibrary) {
 		"use strict";
 
 
@@ -18,17 +18,21 @@ sap.ui.define([
 			apiVersion: 2
 		};
 
+		// shortcut for sap.ui.core.TextDirection
+		var TextDirection = coreLibrary.TextDirection;
+
+		// shortcut for sap.ui.core.TextAlign
+		var TextAlign = coreLibrary.TextAlign;
+
 		// Renderer with "indexed" placeholders
 		// (each placeholder has an index and is replaced with control with this index from the aggregation)
 
 		FormattedTextRenderer.render = function (oRm, oControl) {
 			var iWidth = oControl.getWidth(),
 				iHeight = oControl.getHeight(),
-				aControls = oControl.getAggregation("controls"),
-				sText = oControl._getDisplayHtml(),
-				aRenderedControls = [],
-				sNewText = '',
-				iStrPos = 0;
+				sTextDir = oControl.getTextDirection(),
+				sTextAlign = oControl.getTextAlign(),
+				sText = oControl._getDisplayHtml();
 
 			// begin the rendering
 			oRm.openStart("div", oControl);
@@ -41,6 +45,14 @@ sap.ui.define([
 				oRm.class("sapMFTOverflowHeight");
 			}
 
+			if (sTextDir !== TextDirection.Inherit){
+				oRm.attr("dir", sTextDir.toLowerCase());
+			}
+
+			if (sTextAlign && sTextAlign != TextAlign.Initial) {
+				oRm.style("text-align", sTextAlign.toLowerCase());
+			}
+
 			// render Tooltip
 			if (oControl.getTooltip_AsString()) {
 				oRm.attr("title", oControl.getTooltip_AsString());
@@ -49,55 +61,18 @@ sap.ui.define([
 			oRm.style("height", iHeight || null);
 			oRm.openEnd(); // span element
 
-			// render HTML text and replace placeholders if any
-			while (sText !== '' && sText !== sNewText) {
-				sNewText = sText.replace(/(?:\%\%(\d+))/, _placeholderReplacer);
-			}
+			oControl.getControls().forEach(function(oLink) {
+				oRm.renderControl(oLink);
+			});
 
-			// output the rest of the text (if any)
-			if (sText !== '') {
-				try { // unsafeHtml assumes that sText contains only HTML tags
-					oRm.unsafeHtml(sText);
-				} catch (error){
-					oRm.text(sText);
-				}
-			}
+			sText = sText.replace(/\%\%(\d+)/g, function(sMatch) {
+				return '<template id="' +  oControl.getId() + '-$' + sMatch.split("%%")[1] + '"></template>';
+			});
+
+			oRm.unsafeHtml(sText);
 
 			// finalize the rendering
 			oRm.close("div");
-
-			// placeholder processing function
-			function _placeholderReplacer(match, index, pos) {
-				var iMatchLen = match.length;
-
-				// output the text before the placeholder (if any) and increase string pointer accordingly
-				try { // unsafeHtml assumes that sText contains only HTML tags
-					oRm.unsafeHtml(sText.substr(0, pos));
-				} catch (error){
-					oRm.text(sText.substr(0, pos));
-				}
-				iStrPos += pos;
-
-				// output control (if exists and not used yet), or error message otherwise
-				if (aControls && aControls[index] !== undefined) {
-					if (aRenderedControls[index] === undefined) {
-						// render the control
-						oRm.renderControl(aControls[index]);
-						// insert index in the "used" list with position where it is used
-						aRenderedControls[index] = iStrPos;
-					} else {
-						// log an error for duplicated rendering of the same control
-						Log.error("Control with index '" + index + "' (" + match + ", htmlText@" + iStrPos + ") is already rendered (htmlText@" + aRenderedControls[index] + ")!", 'sap.m.FormattedText:', oControl.getId());
-					}
-				} else {
-					// write the placeholder anyway
-					oRm.text(match);
-					// log an error for missing control
-					Log.error("Missing control for placeholder '" + match + "' (htmlText@" + iStrPos + ")!", 'sap.m.FormattedText:', oControl.getId());
-				}
-				sText = sText.substr(pos + iMatchLen);
-				iStrPos += iMatchLen;
-			}
 		};
 
 		return FormattedTextRenderer;

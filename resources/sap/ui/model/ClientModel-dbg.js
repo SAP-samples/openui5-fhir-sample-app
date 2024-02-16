@@ -1,27 +1,22 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2024 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
-
-/* global XMLHttpRequest */
-
+/*eslint-disable max-len */
 // Provides client-based DataBinding implementation
 sap.ui.define([
-	'./ClientContextBinding',
-	'./ClientListBinding',
-	'./ClientPropertyBinding',
-	'./ClientTreeBinding',
+	"sap/ui/thirdparty/jquery",
 	'./Model',
-	"sap/ui/thirdparty/jquery"
+	'./ClientContextBinding',
+	'./ClientListBinding', // convenience dependency for legacy code using global names
+	'./ClientPropertyBinding', // convenience dependency for legacy code using global names
+	'./ClientTreeBinding' // convenience dependency for legacy code using global names
 ],
 	function(
-		ClientContextBinding,
-		ClientListBinding,
-		ClientPropertyBinding,
-		ClientTreeBinding,
+		jQuery,
 		Model,
-		jQuery
+		ClientContextBinding
 	) {
 	"use strict";
 
@@ -34,7 +29,7 @@ sap.ui.define([
 	 * @extends sap.ui.model.Model
 	 *
 	 * @author SAP SE
-	 * @version 1.79.0
+	 * @version 1.120.6
 	 *
 	 * @param {string} [oData] URL where to load the data from
 	 * @public
@@ -62,20 +57,17 @@ sap.ui.define([
 
 	/**
 	 * Returns the current data of the model.
+	 *
 	 * Be aware that the returned object is a reference to the model data so all changes to that data will also change the model data.
 	 *
-	 * @return the data object
+	 * @returns {any} the data object
 	 * @public
 	 */
 	ClientModel.prototype.getData = function(){
 		return this.oData;
 	};
 
-	/**
-	 * @see sap.ui.model.Model.prototype.bindElement
-	 *
-	 */
-	/**
+	/*
 	 * @see sap.ui.model.Model.prototype.createBindingContext
 	 *
 	 */
@@ -103,7 +95,8 @@ sap.ui.define([
 
 
 	ClientModel.prototype._ajax = function(oParameters){
-		var that = this;
+		var oRequestHandle,
+			that = this;
 
 		if (this.bDestroyed) {
 			return;
@@ -129,7 +122,7 @@ sap.ui.define([
 		oParameters.success = wrapHandler(oParameters.success);
 		oParameters.error = wrapHandler(oParameters.error);
 
-		var oRequestHandle = jQuery.ajax(oParameters);
+		oRequestHandle = jQuery.ajax(oParameters);
 
 		// add request handle to array and return it (only for async requests)
 		if (oParameters.async) {
@@ -157,20 +150,52 @@ sap.ui.define([
 	};
 
 	/**
-	 * @see sap.ui.model.Model.prototype.destroyBindingContext
+	 * Does nothing.
 	 *
+	 * @param {sap.ui.model.Context} oContext The context to destroy
 	 */
 	ClientModel.prototype.destroyBindingContext = function(oContext) {
-		// TODO: what todo here?
 	};
 
-	/**
+	/*
 	 * @see sap.ui.model.Model.prototype.bindContext
 	 */
 	ClientModel.prototype.bindContext = function(sPath, oContext, mParameters) {
 		var oBinding = new ClientContextBinding(this, sPath, oContext, mParameters);
 		return oBinding;
 	};
+
+	/**
+	 * Creates a new property binding for this model.
+	 *
+	 * @param {string} sPath
+	 *   The path pointing to the property that should be bound; either an absolute path or a path
+	 *   relative to a given <code>oContext</code>
+	 * @param {object} [oContext]
+	 *   A context object for the new binding
+	 * @param {Object<string,any>} [mParameters]
+	 *   Map of optional parameters for the binding
+	 * @param {boolean} [mParameters.ignoreMessages]
+	 *   Whether this binding does not propagate model messages to the control; supported since
+	 *   1.119.0. Some composite types like {@link sap.ui.model.type.Currency} automatically ignore
+	 *   model messages for some of their parts depending on their format options; setting this
+	 *   parameter to <code>true</code> or <code>false</code> overrules the automatism of the type.
+	 *
+	 *   For example, a binding for a currency code is used in a composite binding for rendering the
+	 *   proper number of decimals, but the currency code is not displayed in the attached control.
+	 *   In that case, messages for the currency code shall not be displayed at that control, only
+	 *   messages for the amount.
+	 * @returns {sap.ui.model.PropertyBinding}
+	 *   The new property binding
+	 *
+	 * @abstract
+	 * @function
+	 * @name sap.ui.model.ClientModel#bindProperty
+	 * @public
+	 * @see sap.ui.model.Model#bindProperty
+	 * @see #getProperty
+	 */
+	// @override sap.ui.model.Model#bindProperty
 
 	/**
 	 * update all bindings

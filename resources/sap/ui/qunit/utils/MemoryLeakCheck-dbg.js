@@ -1,23 +1,21 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2024 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 /*global QUnit*/
 
-sap.ui.define([ 'jquery.sap.global', 'sap/ui/core/Core', 'sap/ui/base/Object', 'sap/ui/core/Element', 'sap/ui/core/Control' ],
-		function(jQuery, Core, BaseObject, Element, Control) {
+sap.ui.define([ 'sap/ui/core/ElementRegistry', 'sap/ui/core/Control', "sap/ui/qunit/utils/nextUIUpdate"],
+		function(ElementRegistry, Control, nextUIUpdate) {
 	"use strict";
 
-	//TODO: global jquery call found
-	jQuery.sap.require("sap.ui.qunit.qunit-css");
-	//TODO: global jquery call found
-	jQuery.sap.require("sap.ui.thirdparty.qunit");
-	//TODO: global jquery call found
-	jQuery.sap.require("sap.ui.qunit.qunit-junit");
-	//TODO: global jquery call found
-	jQuery.sap.require("sap.ui.qunit.qunit-coverage");
+	if ( typeof QUnit === "undefined" ) {
+		sap.ui.requireSync("sap/ui/qunit/qunit-css"); // legacy-relevant - sync fallback when caller did not load QUnit
+		sap.ui.requireSync("sap/ui/thirdparty/qunit"); // legacy-relevant - sync fallback when caller did not load QUnit
+		sap.ui.requireSync("sap/ui/qunit/qunit-junit"); // legacy-relevant - sync fallback when caller did not load QUnit
+		sap.ui.requireSync("sap/ui/qunit/qunit-coverage"); // legacy-relevant - sync fallback when caller did not load QUnit
+	}
 
 	QUnit.config.reorder = false;   // make sure results are consistent/stable and the "statistics" test in the end is actually run in the end
 
@@ -29,7 +27,7 @@ sap.ui.define([ 'jquery.sap.global', 'sap/ui/core/Core', 'sap/ui/base/Object', '
 	 * @namespace
 	 *
 	 * @author SAP SE
-	 * @version 1.79.0
+	 * @version 1.120.6
 	 *
 	 * @public
 	 * @since 1.48.0
@@ -40,7 +38,7 @@ sap.ui.define([ 'jquery.sap.global', 'sap/ui/core/Core', 'sap/ui/base/Object', '
 
 	// gets a snapshot of all currently registered controls (keyed by their ID)
 	function getAllAliveControls() {
-		return Element.registry.all();
+		return ElementRegistry.all();
 	}
 
 
@@ -68,7 +66,7 @@ sap.ui.define([ 'jquery.sap.global', 'sap/ui/core/Core', 'sap/ui/base/Object', '
 	// Has some special logic to ignore or work around problems where certain controls do not work standalone.
 	var _checkControl = function(sControlName, fnControlFactory, fnSomeAdditionalFunction, bControlCannotRender) {
 
-		QUnit.test("Control " + sControlName + " should not have any memory leaks", function(assert) {
+		QUnit.test("Control " + sControlName + " should not have any memory leaks", async function(assert) {
 			var oControl1 = fnControlFactory();
 
 			assert.ok(oControl1, "calling fnControlFactory() should return something (a control)");
@@ -92,7 +90,7 @@ sap.ui.define([ 'jquery.sap.global', 'sap/ui/core/Core', 'sap/ui/base/Object', '
 			if (oControl1.placeAt && !bControlCannotRender) {
 				try {
 					oControl1.placeAt("qunit-fixture");
-					sap.ui.getCore().applyChanges();
+					await nextUIUpdate();
 
 				} catch (e) {
 					// control didn't say it has problems with rendering!
@@ -103,11 +101,11 @@ sap.ui.define([ 'jquery.sap.global', 'sap/ui/core/Core', 'sap/ui/base/Object', '
 
 			if (fnSomeAdditionalFunction) {
 				fnSomeAdditionalFunction(oControl1);
-				sap.ui.getCore().applyChanges();
+				await nextUIUpdate();
 			}
 
 			oControl1.destroy();
-			sap.ui.getCore().applyChanges();
+			await nextUIUpdate();
 
 
 			// Render Control Instance 2 - any new controls leaked?
@@ -118,21 +116,20 @@ sap.ui.define([ 'jquery.sap.global', 'sap/ui/core/Core', 'sap/ui/base/Object', '
 
 			if (oControl2.placeAt && !bControlCannotRender) {
 				oControl2.placeAt("qunit-fixture");
-				sap.ui.getCore().applyChanges();
+				await nextUIUpdate();
 
 				oControl2.rerender(); // just re-render again - this finds problems
-				sap.ui.getCore().applyChanges();
 			}
 
 			if (fnSomeAdditionalFunction) {
 				fnSomeAdditionalFunction(oControl2);
-				sap.ui.getCore().applyChanges();
+				await nextUIUpdate();
 			}
 
 			// check what's left after destruction
 
 			oControl2.destroy();
-			sap.ui.getCore().applyChanges();
+			await nextUIUpdate();
 			var mPostElements = getAllAliveControls();
 
 			// controls left over by second instance are real leaks that will grow proportionally to instance count => ERROR
@@ -210,7 +207,7 @@ sap.ui.define([ 'jquery.sap.global', 'sap/ui/core/Core', 'sap/ui/base/Object', '
 				mOriginalElements = getAllAliveControls();
 			},
 			afterEach: function(assert) {
-				Element.registry.forEach(function(oControl, sId) {
+				ElementRegistry.forEach(function(oControl, sId) {
 					if (!mOriginalElements[sId]) {
 						assert.ok(oControl.getMetadata().getName(), "Cleanup of id: " + sId + ", control: " + oControl.getMetadata().getName());
 						oControl.destroy();

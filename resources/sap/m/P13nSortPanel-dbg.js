@@ -1,6 +1,6 @@
-/*
- * ! OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+/*!
+ * OpenUI5
+ * (c) Copyright 2009-2024 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -26,17 +26,17 @@ sap.ui.define([
 	 * @param {object} [mSettings] initial settings for the new control
 	 * @class The P13nSortPanel control is used to define settings for sorting in table personalization.
 	 * @extends sap.m.P13nPanel
-	 * @version 1.79.0
+	 * @version 1.120.6
 	 * @constructor
+	 * @deprecated as of version 1.98. Use the {@link sap.m.p13n.SortPanel} instead.
 	 * @public
 	 * @since 1.26.0
 	 * @alias sap.m.P13nSortPanel
-	 * @ui5-metamodel This control/element also will be described in the UI5 (legacy) designtime metamodel
 	 */
 	var P13nSortPanel = P13nPanel.extend("sap.m.P13nSortPanel", /** @lends sap.m.P13nSortPanel.prototype */
 	{
 		metadata: {
-
+			deprecated:true,
 			library: "sap.m",
 			properties: {
 
@@ -189,7 +189,7 @@ sap.ui.define([
 	 *
 	 * @public
 	 * @param {array} aOperations - array of operations <code>[sap.m.P13nConditionOperation.BT, sap.m.P13nConditionOperation.EQ]</code>
-	 * @returns {sap.m.P13nSortPanel} this for chaining
+	 * @returns {this} this for chaining
 	 */
 	P13nSortPanel.prototype.setOperations = function(aOperations) {
 		this._aOperations = aOperations;
@@ -208,8 +208,6 @@ sap.ui.define([
 	P13nSortPanel.prototype.init = function() {
 		this.setType(P13nPanelType.sort);
 		this.setTitle(sap.ui.getCore().getLibraryResourceBundle("sap.m").getText("SORTPANEL_TITLE"));
-
-		sap.ui.getCore().loadLibrary("sap.ui.layout");
 
 		this._aKeyFields = [];
 
@@ -251,13 +249,7 @@ sap.ui.define([
 
 			var aKeyFields = [];
 			var sModelName = (this.getBindingInfo("items") || {}).model;
-			var fGetValueOfProperty = function(sName, oContext, oItem) {
-				var oBinding = oItem.getBinding(sName);
-				if (oBinding && oContext) {
-					return oContext.getObject()[oBinding.getPath()];
-				}
-				return oItem.getMetadata().getProperty(sName) ? oItem.getProperty(sName) : oItem.getAggregation(sName);
-			};
+
 			this.getItems().forEach(function(oItem_) {
 				var oContext = oItem_.getBindingContext(sModelName);
 				// Update key of model (in case of 'restore' the key in model gets lost because it is overwritten by Restore Snapshot)
@@ -266,8 +258,8 @@ sap.ui.define([
 				}
 				aKeyFields.push({
 					key: oItem_.getColumnKey(),
-					text: fGetValueOfProperty("text", oContext, oItem_),
-					tooltip: fGetValueOfProperty("tooltip", oContext, oItem_)
+					text: oItem_.getText(),
+					tooltip:  oItem_.getTooltip()
 				});
 			});
 			aKeyFields.splice(0, 0, {
@@ -287,8 +279,8 @@ sap.ui.define([
 				}
 				aConditions.push({
 					key: oSortItem_.getKey(),
-					keyField: fGetValueOfProperty("columnKey", oContext, oSortItem_),
-					operation: fGetValueOfProperty("operation", oContext, oSortItem_)
+					keyField: oSortItem_.getColumnKey(),
+					operation: oSortItem_.getOperation()
 				});
 			});
 			this._oSortPanel.setConditions(aConditions);

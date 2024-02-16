@@ -48,7 +48,7 @@
 }
 
 .sapMPageBgList {
-	background-color: @sapUiBaseBG;
+	background-color: @sapUiGroupContentBackground;
 }
 
 /* The following overrides for sap_belize/sap_belize_plus are only intended for apps inside FLP (Ushell) */
@@ -76,7 +76,8 @@
 	opacity: 1;
 
 	.sapMIBar-CTX.sapMFooter-CTX {
-		box-shadow: @sapUiShadowLevel1;
+		box-shadow: @sapUiContentShadow1;
+		border: none;
 	}
 }
 
@@ -136,9 +137,12 @@ html[data-sap-ui-animation='on'] .sapMPageWithFloatingFooter {
 		top: 2.75rem;
 	}
 
-	> .sapMPageHeader + .sapMPageSubHeader + section,
-	> .sapMPageHeader + .sapMPageSubHeader.sapMPageSubHeaderInfoBar + section {
+	> .sapMPageHeader + .sapMPageSubHeader + section {
 		top: 5.5rem;
+	}
+
+	> .sapMPageHeader + .sapMPageSubHeader.sapMPageSubHeaderInfoBar + section {
+		top: 4.75rem;
 	}
 }
 
@@ -202,16 +206,6 @@ html[data-sap-ui-animation='on'] .sapMPageWithFloatingFooter {
 	/* Subheader only 2 rem */
 	.sapMPageWithSubHeader > section {
 		top: 2rem;
-	}
-
-	.sapMPageWithHeader.sapMPageWithSubHeader {
-		> section {
-			top: 4.5rem;
-		}
-
-		.sapMPageSubHeader.sapMPageSubHeaderInfoBar + section {
-			top: 4.5rem;
-		}
 	}
 
 	.sapMPageWithHeader {

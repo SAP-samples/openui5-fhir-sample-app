@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2024 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -9,30 +9,37 @@ sap.ui.define([
 	"./Link",
 	"./library",
 	"./FormattedText",
-	"sap/ui/core/Control",
 	"sap/ui/core/IconPool",
 	"sap/m/Button",
 	"sap/ui/Device",
-	"./FeedListItemRenderer"
+	"./FeedListItemRenderer",
+	"sap/m/Avatar",
+	"sap/m/AvatarShape",
+	"sap/m/AvatarSize",
+	"sap/ui/util/openWindow",
+	"sap/ui/core/Configuration",
+	"sap/ui/core/Lib"
 ],
 function(
 	ListItemBase,
 	Link,
 	library,
 	FormattedText,
-	Control,
 	IconPool,
 	Button,
 	Device,
-	FeedListItemRenderer
+	FeedListItemRenderer,
+	Avatar,
+	AvatarShape,
+	AvatarSize,
+	openWindow,
+	Configuration,
+	CoreLib
 	) {
 	"use strict";
 
 	// shortcut for sap.m.ListType
 	var ListType = library.ListType;
-
-	// shortcut for sap.m.ImageHelper
-	var ImageHelper = library.ImageHelper;
 
 	// shortcut for sap.m.LinkConversion
 	var LinkConversion = library.LinkConversion;
@@ -53,13 +60,12 @@ function(
 	 * @extends sap.m.ListItemBase
 	 *
 	 * @author SAP SE
-	 * @version 1.79.0
+	 * @version 1.120.6
 	 *
 	 * @constructor
 	 * @public
 	 * @since 1.12
 	 * @alias sap.m.FeedListItem
-	 * @ui5-metamodel This control/element also will be described in the UI5 (legacy) designtime metamodel
 	 */
 	var FeedListItem = ListItemBase.extend("sap.m.FeedListItem", /** @lends sap.m.FeedListItem.prototype */ {
 		metadata: {
@@ -73,6 +79,24 @@ function(
 				 * Icon is only shown if showIcon = true.
 				 */
 				icon: {type: "sap.ui.core.URI", group: "Data", defaultValue: null},
+
+				/**
+				 * Defines the shape of the icon.
+				 * @since 1.88
+				 */
+				iconDisplayShape: { type: "sap.m.AvatarShape", defaultValue: AvatarShape.Circle},
+
+				/**
+				 * Defines the initials of the icon.
+				 * @since 1.88
+				 */
+				iconInitials: { type: "string", defaultValue: "" },
+
+				/**
+				 * Defines the size of the icon.
+				 * @since 1.88
+				 */
+				iconSize: { type: "sap.m.AvatarSize", defaultValue: AvatarSize.S},
 
 				/**
 				 * Icon displayed when the list item is active.
@@ -125,7 +149,9 @@ function(
 				 * By default, this is set to true but then one or more requests are sent trying to get the density perfect version of image if this version of image doesn't exist on the server.
 				 *
 				 * If bandwidth is the key for the application, set this value to false.
-				 */
+				 *
+				 * @deprecated as of version 1.88. Image is replaced by {@link sap.m.Avatar }
+				*/
 				iconDensityAware: {type: "boolean", defaultValue: true},
 
 				/**
@@ -176,7 +202,12 @@ function(
 				/**
 				 * Hidden aggregation that displays the action button.
 				 */
-				_actionButton: {type: "sap.m.Button", multiple: false, visibility: "hidden"}
+				_actionButton: {type: "sap.m.Button", multiple: false, visibility: "hidden"},
+
+				/**
+				 * Defines the inner avatar control.
+				 */
+				_avatar: { type: "sap.m.Avatar", multiple: false, visibility: "hidden" }
 			},
 			events: {
 
@@ -220,10 +251,12 @@ function(
 					}
 				}
 			}
-		}
+		},
+
+		renderer: FeedListItemRenderer
 	});
 
-	FeedListItem._oRb = sap.ui.getCore().getLibraryResourceBundle("sap.m");
+	FeedListItem._oRb = CoreLib.getResourceBundleFor("sap.m");
 	FeedListItem._nMaxCharactersMobile = 300;
 	FeedListItem._nMaxCharactersDesktop = 500;
 
@@ -276,6 +309,8 @@ function(
 			oActionSheet.addButton(new Button({
 				icon: oAction.getIcon(),
 				text: oAction.getText(),
+				visible: oAction.getVisible(),
+				enabled: oAction.getEnabled(),
 				press: oAction.firePress.bind(oAction, { "item": this })
 			}));
 		}
@@ -297,7 +332,7 @@ function(
 			return;
 		}
 
-		sTheme = sap.ui.getCore().getConfiguration().getTheme();
+		sTheme = Configuration.getTheme();
 		oActionSheetPopover = event.getSource().getParent();
 		oActionSheetPopover.removeStyleClass("sapContrast sapContrastPlus");
 
@@ -309,7 +344,7 @@ function(
 	};
 
 	FeedListItem.prototype.invalidate = function() {
-		Control.prototype.invalidate.apply(this, arguments);
+		ListItemBase.prototype.invalidate.apply(this, arguments);
 		var sMoreLabel = FeedListItem._sTextShowMore;
 		if (this.getMoreLabel()) {
 			sMoreLabel = this.getMoreLabel();
@@ -326,7 +361,7 @@ function(
 		var oFormattedText = this.getAggregation("_text");
 		oFormattedText.setProperty("convertLinksToAnchorTags", this.getConvertLinksToAnchorTags(), true);
 		oFormattedText.setProperty("convertedLinksDefaultTarget", this.getConvertedLinksDefaultTarget(), true);
-		if (this.getConvertLinksToAnchorTags() === library.LinkConversion.None) {
+		if (this.getConvertLinksToAnchorTags() === LinkConversion.None) {
 			oFormattedText.setHtmlText(this.getText());
 		} else {
 			oFormattedText.setProperty("htmlText", this.getText(), true);
@@ -340,30 +375,29 @@ function(
 	};
 
 	FeedListItem.prototype.onAfterRendering = function() {
+		var oFormattedText = this.getAggregation("_text"),
+			oDomRef = this.getDomRef();
+		if (document.getElementById(this.getAggregation("_actionButton"))) {
+			document.getElementById(this.getAggregation("_actionButton").getId()).setAttribute("aria-haspopup", "menu");
+		}
 		if (this._checkTextIsExpandable() && !this._bTextExpanded) {
 			this._clearEmptyTagsInCollapsedText();
 		}
-		// Additional processing of the links takes place in the onAfterRendering function of sap.m.FormattedText, e.g. registration of the click event handlers.
-		// FeedListItem does not render sap.m.FormattedText control as part of its own DOM structure, therefore the onAfterRendering function of the FormattedText
-		// must be called manually with the correct context, providing access to the DOM elements that must be processed.
-		var $RealText = this.$("realtext");
-		FormattedText.prototype.onAfterRendering.apply({
-			$: function() {
-				return $RealText;
-			}
-		});
+		this.$("realtext").find('a[target="_blank"]').on("click", openLink);
+
+		oDomRef && oFormattedText && oFormattedText._sanitizeCSSPosition(oDomRef.querySelector(".sapMFeedListItemText")); // perform CSS position sanitize
 	};
 
 	FeedListItem.prototype.exit = function() {
 		// Should be done always, since the registration occurs independently of the properties that determine auto link recognition.
-		this.$("realtext").find('a[target="_blank"]').off("click");
+		this.$("realtext").find('a[target="_blank"]').off("click", openLink);
 
 		// destroy link control if initialized
 		if (this._oLinkControl) {
 			this._oLinkControl.destroy();
 		}
-		if (this._oImageControl) {
-			this._oImageControl.destroy();
+		if (this.oAvatar) {
+			this.oAvatar.destroy();
 		}
 		if (this._oLinkExpandCollapse) {
 			this._oLinkExpandCollapse.destroy();
@@ -371,6 +405,15 @@ function(
 
 		ListItemBase.prototype.exit.apply(this);
 	};
+
+	// open links href using safe API
+	function openLink (oEvent) {
+		if (oEvent.originalEvent.defaultPrevented) {
+			return;
+		}
+		oEvent.preventDefault();
+		openWindow(oEvent.currentTarget.href, oEvent.currentTarget.target);
+	}
 
 	/**
 	 * Overwrite ListItemBase's ontap: Propagate tap event from FeedListItem to ListItemBase only when tap performed
@@ -381,9 +424,9 @@ function(
 	 */
 	FeedListItem.prototype.ontap = function(oEvent) {
 		if (oEvent.srcControl) {
-			if ((!this.getIconActive() && this._oImageControl && oEvent.srcControl.getId() === this._oImageControl.getId()) || // click on inactive image
+			if ((!this.getIconActive() && this.oAvatar && oEvent.srcControl.getId() === this.oAvatar.getId()) || // click on inactive image
 				(!this.getSenderActive() && this._oLinkControl && oEvent.srcControl.getId() === this._oLinkControl.getId()) || // click on inactive sender link
-				(!this._oImageControl || (oEvent.srcControl.getId() !== this._oImageControl.getId()) &&                        // no image clicked
+				(!this.oAvatar || (oEvent.srcControl.getId() !== this.oAvatar.getId()) &&                        // no image clicked
 				(!this._oLinkControl || (oEvent.srcControl.getId() !== this._oLinkControl.getId())) &&                         // no sender link clicked
 				(!this._oLinkExpandCollapse || (oEvent.srcControl.getId() !== this._oLinkExpandCollapse.getId())))) {          // no expand/collapse link clicked
 				ListItemBase.prototype.ontap.apply(this, [oEvent]);
@@ -391,30 +434,17 @@ function(
 		}
 	};
 
-	/**
-	 * The implementation of this method is a workaround for an issue in Jaws screenreader: when the alt text for the image is set, the other content of the list item is not read out.
-	 * Therefore the alt text is removed when the list item is focused.
-	 * When one of the inner elements (image or links) is focused, the alt text is set to space; otherwise the alt text would be read again with the link text.
-	 * The aria-label for the image holds the information for the image.
-	 *
+	/*
 	 * @private
 	 * @param {jQuery.Event} oEvent - The focus event.
 	 */
 	FeedListItem.prototype.onfocusin = function(oEvent) {
-		if (this._oImageControl) {
-			var $icon = this.$("icon");
-			if (oEvent.target.id === this.getId()) {
-				$icon.removeAttr("alt");
-			} else {
-				$icon.attr("alt", " ");
-			}
-		}
-		// Added for calculating List Count.
+		//Added for calculating List Count.
         var oItem = oEvent.srcControl ,
             oItemDomRef = oItem.getDomRef(),
             mPosition = this.getParent().getAccessbilityPosition(oItem);
 
-        if ( oItem instanceof sap.m.FeedListItem ) {
+        if ( oItem instanceof FeedListItem ) {
             oItemDomRef.setAttribute("aria-posinset", mPosition.posInset);
             oItemDomRef.setAttribute("aria-setsize", mPosition.setSize);
         }
@@ -424,39 +454,42 @@ function(
 	 * Lazy load feed icon image.
 	 *
 	 * @private
-	 * @returns {sap.m.Image} Image control based on the provided 'icon' control property
+	 * @returns {sap.m.Avatar} Avatar control based on the provided 'icon' control property
 	 */
-	FeedListItem.prototype._getImageControl = function() {
-		var sIcon = this.getIcon();
-		var sIconSrc = sIcon ? sIcon : IconPool.getIconURI("person-placeholder");
-		var sImgId = this.getId() + '-icon';
-		var mProperties = {
-			src: sIconSrc,
-			alt: this.getSender(),
-			densityAware: this.getIconDensityAware(),
-			decorative: false,
-			useIconTooltip: false
-		};
+	FeedListItem.prototype._getAvatar = function() {
+		var sIconSrc = this.getIcon();
+		var sId = this.getId() + '-icon';
 
-		var aCssClasses;
-		if (this.getIconActive()) {
-			aCssClasses = ['sapMFeedListItemImage'];
-		} else {
-			aCssClasses = ['sapMFeedListItemImageInactive'];
-		}
+		this.oAvatar = this.getAggregation("_avatar");
+
+		this.oAvatar = this.oAvatar || new Avatar(sId);
+		this.oAvatar.applySettings({
+		src: sIconSrc,
+		displayShape: this.getIconDisplayShape(),
+		initials: this.getIconInitials(),
+		displaySize: this.getIconSize(),
+		ariaLabelledBy: this.getSender()
+		});
 
 		var that = this;
-		this._oImageControl = ImageHelper.getImageControl(sImgId, this._oImageControl, this, mProperties, aCssClasses);
 		if (this.getIconActive()) {
-			this._oImageControl.attachPress(function() {
-				that.fireIconPress({
-					domRef: this.getDomRef(),
-					getDomRef: this.getDomRef.bind(this)
+			this.oAvatar.addStyleClass("sapMFeedListItemImage");
+			if (!this.oAvatar.hasListeners("press")) {//Check if the press event is already associated with the avatarControl then block adding the event again.
+				this.oAvatar.attachPress(function() {
+					that.fireIconPress({
+						domRef: this.getDomRef(),
+						getDomRef: this.getDomRef.bind(this)
+					});
 				});
-			});
+			}
+		} else {
+			this.oAvatar.addStyleClass("sapMFeedListItemImageInactive");
 		}
 
-		return this._oImageControl;
+		this.setAggregation("_avatar", this.oAvatar);
+
+
+		return this.oAvatar;
 	};
 
 	/**
@@ -483,11 +516,11 @@ function(
 		}
 
 		if (withColon) {
-			this._oLinkControl.setProperty("text", this.getSender() + FeedListItem._oRb.getText("COLON"), true);
+			this._oLinkControl.setText(this.getSender() + FeedListItem._oRb.getText("COLON"));
 		} else {
-			this._oLinkControl.setProperty("text", this.getSender(), true);
+			this._oLinkControl.setText(this.getSender());
 		}
-		this._oLinkControl.setProperty("enabled", this.getSenderActive(), true);
+		this._oLinkControl.setEnabled(this.getSenderActive());
 
 		return this._oLinkControl;
 	};
@@ -499,8 +532,8 @@ function(
 	 */
 	FeedListItem.prototype._activeHandlingInheritor = function() {
 		var sActiveSrc = this.getActiveIcon();
-		if (this._oImageControl && sActiveSrc) {
-			this._oImageControl.setSrc(sActiveSrc);
+		if (this.oAvatar && sActiveSrc) {
+			this.oAvatar.setSrc(sActiveSrc);
 		}
 	};
 
@@ -511,8 +544,8 @@ function(
 	 */
 	FeedListItem.prototype._inactiveHandlingInheritor = function() {
 		var sSrc = this.getIcon() ? this.getIcon() : IconPool.getIconURI("person-placeholder");
-		if (this._oImageControl) {
-			this._oImageControl.setSrc(sSrc);
+		if (this.oAvatar) {
+			this.oAvatar.setSrc(sSrc);
 		}
 	};
 
@@ -524,7 +557,7 @@ function(
 	 * this value, the text of the FeedListItem is collapsed once the text reaches this limit.
 	 *
 	 * @private
-	 * @returns {String} Collapsed string based on the "maxCharacter" property. If the size of the string before collapsing
+	 * @returns {string} Collapsed string based on the "maxCharacter" property. If the size of the string before collapsing
 	 * is smaller than the provided threshold, it returns null.
 	 */
 	FeedListItem.prototype._getCollapsedText = function() {
@@ -582,24 +615,35 @@ function(
 		var $threeDots = this.$("threeDots");
 		var sMoreLabel = FeedListItem._sTextShowMore;
 		var sLessLabel = FeedListItem._sTextShowLess;
+		var oFormattedText = this.getAggregation("_text");
+
 		if (this.getMoreLabel()) {
 			sMoreLabel = this.getMoreLabel();
 		}
 		if (this.getLessLabel()) {
 			sLessLabel = this.getLessLabel();
 		}
+
+		// detach click events
+		$text.find('a[target="_blank"]').off("click");
+
 		if (this._bTextExpanded) {
 			$text.html(this._sShortText.replace(/&#xa;/g, "<br>"));
+			oFormattedText._sanitizeCSSPosition($text[0]); // perform CSS position sanitize
 			$threeDots.text(" ... ");
 			this._oLinkExpandCollapse.setText(sMoreLabel);
 			this._bTextExpanded = false;
 			this._clearEmptyTagsInCollapsedText();
 		} else {
 			$text.html(this._sFullText.replace(/&#xa;/g, "<br>"));
+			oFormattedText._sanitizeCSSPosition($text[0]); // perform CSS position sanitize
 			$threeDots.text("  ");
 			this._oLinkExpandCollapse.setText(sLessLabel);
 			this._bTextExpanded = true;
 		}
+
+		// attach again click events since the text is changed without rerendering
+		$text.find('a[target="_blank"]').on("click", openLink);
 	};
 
 	/**
@@ -629,8 +673,8 @@ function(
 	 * Converts an HTML text to plain text by removing all the HTML tags
 	 *
 	 * @private
-	 * @param {String} htmlText The HtmlText to be converted
-	 * @returns {String} plain text
+	 * @param {string} htmlText The HtmlText to be converted
+	 * @returns {string} plain text
 	 */
 	FeedListItem.prototype._convertHtmlToPlainText = function(htmlText) {
 		var oRegex = /(<([^>]+)>)/ig;
@@ -641,8 +685,8 @@ function(
 	 * Converts the plain text to HTML text by adding the corresponding HTML tags
 	 *
 	 * @private
-	 * @param {String} inputText The input plain text
-	 * @returns {String} the HTML text
+	 * @param {string} inputText The input plain text
+	 * @returns {string} the HTML text
 	 */
 	FeedListItem.prototype._convertPlainToHtmlText = function(inputText) {
 		var sFullText = this._sFullText;
@@ -691,7 +735,7 @@ function(
 	 *
 	 * @public
 	 * @param {sap.m.ListType} type new value for property type
-	 * @returns {sap.m.FeedListItem} this allows method chaining
+	 * @returns {this} this allows method chaining
 	 */
 	FeedListItem.prototype.setType = function(type) {
 		if (this.getType() !== type) {

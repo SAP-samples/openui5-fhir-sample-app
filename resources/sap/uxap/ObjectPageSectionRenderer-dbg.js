@@ -1,24 +1,26 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2024 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
-sap.ui.define(function () {
+sap.ui.define(["sap/ui/core/Configuration"], function (Configuration) {
 	"use strict";
 
 	/**
-	 * @class Section renderer.
-	 * @static
+	 * Section renderer.
+	 * @namespace
 	 */
 	var ObjectPageSectionRenderer = {
 		apiVersion: 2
 	};
 
 	ObjectPageSectionRenderer.render = function (oRm, oControl) {
-		var sTitle, bTitleVisible,
-			bAccessibilityOn = sap.ui.getCore().getConfiguration().getAccessibility(),
-			oLabelledBy = oControl.getAggregation("ariaLabelledBy");
+		var sTitle, bTitleVisible, bTitleAriaHidden,
+			bAccessibilityOn = Configuration.getAccessibility(),
+			oLabelledBy = oControl.getAggregation("ariaLabelledBy"),
+			oHeading = oControl.getHeading(),
+			bWrapTitle = oControl.getWrapTitle();
 
 		if (!oControl.getVisible() || !oControl._getInternalVisible()) {
 			return;
@@ -26,6 +28,7 @@ sap.ui.define(function () {
 
 		sTitle = oControl._getTitle();
 		bTitleVisible = oControl._isTitleVisible();
+		bTitleAriaHidden = !oControl._isTitleAriaVisible();
 
 		oRm.openStart("section", oControl)
 			.class("sapUxAPObjectPageSection");
@@ -34,20 +37,39 @@ sap.ui.define(function () {
 			oRm.class("sapUxAPObjectPageSectionNoTitle");
 		}
 
+		if (bWrapTitle) {
+			oRm.class("sapUxAPObjectPageSectionWrapTitle");
+		}
+
 		oRm.attr("role", "region");
 
 		if (bAccessibilityOn && oLabelledBy) {
 			oRm.attr("aria-labelledby", oLabelledBy.getId());
 		}
 
+		oRm.attr("data-sap-ui-customfastnavgroup", true);
+
 		oRm.openEnd();
+
+		if (oHeading) {
+			oRm.openStart("div")
+				.class("sapUxAPObjectPageSectionHeading")
+				.openEnd();
+				oRm.renderControl(oHeading);
+			oRm.close("div");
+		}
 
 		oRm.openStart("div", oControl.getId() + "-header")
 			.attr("role", "heading")
 			.attr("aria-level", oControl._getARIALevel())
 			.class("sapUxAPObjectPageSectionHeader")
-			.class(bTitleVisible ? "" : "sapUxAPObjectPageSectionHeaderHidden")
-			.openEnd();
+			.class(bTitleVisible ? "" : "sapUxAPObjectPageSectionHeaderHidden");
+
+		if (bTitleAriaHidden) {
+			oRm.attr("aria-hidden", "true");
+		}
+
+		oRm.openEnd();
 
 		oRm.openStart("div", oControl.getId() + "-title")
 			.class("sapUxAPObjectPageSectionTitle");
@@ -76,7 +98,7 @@ sap.ui.define(function () {
 
 		oRm.openEnd();
 
-		oControl.getSubSections().forEach(oRm.renderControl, oRm);
+		oRm.renderControl(oControl._getGrid());
 
 		oRm.close("div");
 

@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2024 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 /*
@@ -26,10 +26,8 @@ sap.ui.define(["sap/base/Log"], function(Log) {
 		 *
 		 * @private
 		 * @static
-		 * @param {Object} getModuleSystemInfo Function, which should retrieve modules and prefixes.
-		 * @param {Object} oCfgData Configuration object of the project.
 		 */
-		init: function(getModuleSystemInfo, oCfgData) {
+		init: function() {
 			// Check whether the left 'alt' key is used
 			// The TechnicalInfo should be shown only when left 'alt' key is used
 			// because the right 'alt' key is mapped to 'alt' + 'ctrl' on windows
@@ -47,15 +45,20 @@ sap.ui.define(["sap/base/Log"], function(Log) {
 					if ( e.shiftKey && e.altKey && e.ctrlKey && bLeftAlt ) {
 						// invariant: when e.altKey is true, there must have been a preceding keydown with keyCode === 18, so bLeftAlt is always up-to-date
 						if ( e.keyCode === 80 ) { // 'P'
+							e.preventDefault();
 							sap.ui.require(['sap/ui/core/support/techinfo/TechnicalInfo'], function(TechnicalInfo) {
 								TechnicalInfo.open(function() {
-									var oInfo = getModuleSystemInfo();
-									return { modules : oInfo.modules, prefixes : oInfo.prefixes, config: oCfgData };
+									var oInfo = {
+										modules : sap.ui.loader._.getAllModules(),
+										prefixes : sap.ui.loader._.getUrlPrefixes()
+									};
+									return { modules : oInfo.modules, prefixes : oInfo.prefixes };
 								});
 							}, function (oError) {
 								Log.error("Could not load module 'sap/ui/core/support/techinfo/TechnicalInfo':", oError);
 							});
 						} else if ( e.keyCode === 83 ) { // 'S'
+							e.preventDefault();
 							sap.ui.require(['sap/ui/core/support/Support'], function(Support) {
 								var oSupport = Support.getStub();
 								if (oSupport.getType() != Support.StubType.APPLICATION) {

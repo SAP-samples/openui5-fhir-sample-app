@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2024 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -20,13 +20,12 @@ sap.ui.define(['sap/ui/core/Element', './library', 'sap/ui/unified/calendar/Cale
 	 * @class
 	 * Date range for use in DatePicker
 	 * @extends sap.ui.core.Element
-	 * @version 1.79.0
+	 * @version 1.120.6
 	 *
 	 * @constructor
 	 * @public
 	 * @since 1.22.0
 	 * @alias sap.ui.unified.DateRange
-	 * @ui5-metamodel This control/element also will be described in the UI5 (legacy) designtime metamodel
 	 */
 	var DateRange = Element.extend("sap.ui.unified.DateRange", /** @lends sap.ui.unified.DateRange.prototype */ { metadata : {
 
@@ -34,22 +33,26 @@ sap.ui.define(['sap/ui/core/Element', './library', 'sap/ui/unified/calendar/Cale
 		properties : {
 
 			/**
-			 * Start date for a date range. This must be a JavaScript date object.
+			 * Start date for a date range. This must be a UI5Date or JavaScript Date object.
 			 */
 			startDate : {type : "object", group : "Misc", defaultValue : null},
 
 			/**
-			 * End date for a date range. If empty only a single date is presented by this DateRange element. This must be a JavaScript date object.
+			 * End date for a date range. If empty only a single date is presented by this DateRange element. This must be a UI5Date or JavaScript Date object.
 			 */
 			endDate : {type : "object", group : "Misc", defaultValue : null}
 		}
 	}});
 
-	///**
-	// * This file defines behavior for the control,
-	// */
-
-	DateRange.prototype.setStartDate = function(oDate){
+	/**
+	 * Set start date for a date range.
+	 *
+	 * @param {Date|module:sap/ui/core/date/UI5Date} [oDate] A date instance
+	 * @param {boolean} [bInvalidate] If true, <code>startDate</code> is not marked as changed
+	 * @returns {this} Reference to <code>this</code> for method chaining
+	 * @public
+	 */
+	DateRange.prototype.setStartDate = function(oDate, bInvalidate){
 
 		if (oDate) {
 			CalendarUtils._checkJSDateObject(oDate);
@@ -58,13 +61,21 @@ sap.ui.define(['sap/ui/core/Element', './library', 'sap/ui/unified/calendar/Cale
 			CalendarUtils._checkYearInValidRange(iYear);
 		}
 
-		this.setProperty("startDate", oDate);
+		this.setProperty("startDate", oDate, bInvalidate);
 
 		return this;
 
 	};
 
-	DateRange.prototype.setEndDate = function(oDate){
+	/**
+	 * Set end date for a date range.
+	 *
+	 * @param {Date|module:sap/ui/core/date/UI5Date} [oDate] A date instance
+	 * @param {boolean} [bInvalidate] If true, <code>endDate</code> is not marked as changed
+	 * @returns {this} Reference to <code>this</code> for method chaining
+	 * @public
+	 */
+	DateRange.prototype.setEndDate = function(oDate, bInvalidate){
 
 		if (oDate) {
 			CalendarUtils._checkJSDateObject(oDate);
@@ -73,7 +84,7 @@ sap.ui.define(['sap/ui/core/Element', './library', 'sap/ui/unified/calendar/Cale
 			CalendarUtils._checkYearInValidRange(iYear);
 		}
 
-		this.setProperty("endDate", oDate);
+		this.setProperty("endDate", oDate, bInvalidate);
 
 		return this;
 

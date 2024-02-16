@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2024 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -33,7 +33,7 @@ sap.ui.define([
 	jQuery.sap.resources = function() {
 		// Do not directly assign new API to jQuery.sap.resources
 		// as "isBundle" and "_getFallbackLocales" would get assigned to
-		// the new API aswell (e.g. ResourceBundle.create.isBundle)
+		// the new API as well (e.g. ResourceBundle.create.isBundle)
 		return ResourceBundle.create.apply(ResourceBundle, arguments);
 	};
 
@@ -99,7 +99,7 @@ sap.ui.define([
 	 * Exception: Fallback for "zh_HK" is "zh_TW" before zh.
 	 *
 	 * @author SAP SE
-	 * @version 1.79.0
+	 * @version 1.120.6
 	 * @since 0.9.0
 	 * @name jQuery.sap.util.ResourceBundle
 	 * @public

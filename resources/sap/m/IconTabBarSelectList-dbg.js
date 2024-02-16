@@ -1,30 +1,33 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2024 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 // Provides control sap.m.IconTabBarSelectList.
 sap.ui.define([
-	'./library',
-	'sap/ui/core/Control',
-	"sap/ui/core/Core",
-	'sap/ui/core/delegate/ItemNavigation',
-	'./IconTabBarDragAndDropUtil',
-	'sap/ui/core/dnd/DropPosition',
-	'./IconTabBarSelectListRenderer',
-	"sap/ui/thirdparty/jquery"
+	"./library",
+	"./IconTabBarDragAndDropUtil",
+	"./IconTabBarSelectListRenderer",
+	"sap/ui/core/Control",
+	"sap/ui/core/delegate/ItemNavigation",
+	"sap/ui/core/theming/Parameters",
+	"sap/ui/core/library",
+	"sap/ui/events/KeyCodes"
 ], function(
 	library,
-	Control,
-	Core,
-	ItemNavigation,
 	IconTabBarDragAndDropUtil,
-	DropPosition,
 	IconTabBarSelectListRenderer,
-	jQuery
+	Control,
+	ItemNavigation,
+	Parameters,
+	coreLibrary,
+	KeyCodes
 ) {
 	"use strict";
+
+	// shortcut for sap.ui.core.dnd.DropPosition
+	var DropPosition = coreLibrary.dnd.DropPosition;
 
 	/**
 	 * Constructor for a new <code>sap.m.IconTabBarSelectList</code>.
@@ -37,39 +40,42 @@ sap.ui.define([
 	 * @extends sap.ui.core.Control
 	 *
 	 * @author SAP SE
-	 * @version 1.79.0
+	 * @version 1.120.6
 	 *
 	 * @constructor
 	 * @private
 	 * @since 1.42.0
 	 * @alias sap.m.IconTabBarSelectList
-	 * @ui5-metamodel This control will also be described in the UI5 (legacy) design time meta model.
 	 */
-	var IconTabBarSelectList = Control.extend("sap.m.IconTabBarSelectList", /** @lends sap.m.IconTabBarSelectList.prototype */ { metadata: {
-		library: "sap.m",
-		aggregations : {
-			/**
-			 * The items displayed in the list.
-			 */
-			items : {type : "sap.m.IconTab", multiple : true, singularName : "item", dnd : true}
-		},
-		events: {
-			/**
-			 * This event is fired when the selection has changed.
-			 *
-			 * <b>Note: </b> The selection can be changed by pressing a non-selected item,
-			 * via keyboard and after the Enter or Space key is pressed.
-			 */
-			selectionChange: {
-				parameters: {
-					/**
-					 * The selected item.
-					 */
-					selectedItem: { type: "sap.m.IconTabFilter" }
+	var IconTabBarSelectList = Control.extend("sap.m.IconTabBarSelectList", /** @lends sap.m.IconTabBarSelectList.prototype */ {
+		metadata: {
+			library: "sap.m",
+			aggregations : {
+				/**
+				 * The items displayed in the list.
+				 */
+				items : {type : "sap.m.IconTab", multiple : true, singularName : "item", dnd : true}
+			},
+			events: {
+				/**
+				 * This event is fired when the selection has changed.
+				 *
+				 * <b>Note: </b> The selection can be changed by pressing a non-selected item,
+				 * via keyboard and after the Enter or Space key is pressed.
+				 */
+				selectionChange: {
+					parameters: {
+						/**
+						 * The selected item.
+						 */
+						selectedItem: { type: "sap.m.IconTabFilter" }
+					}
 				}
 			}
-		}
-	}});
+		},
+
+		renderer: IconTabBarSelectListRenderer
+	});
 
 	/**
 	 * Initializes the control.
@@ -116,6 +122,13 @@ sap.ui.define([
 	 */
 	IconTabBarSelectList.prototype.onAfterRendering = function () {
 		this._initItemNavigation();
+
+		// notify items that they are rendered
+		this.getItems().forEach(function (oItem) {
+			if (oItem._onAfterParentRendering) {
+				oItem._onAfterParentRendering();
+			}
+		});
 	};
 
 	/**
@@ -194,10 +207,73 @@ sap.ui.define([
 	};
 
 	/**
-	 * Handles tap event.
+	 * Returns the IconTabHeader instance which holds all the TabFilters.
+	 */
+	IconTabBarSelectList.prototype._getIconTabHeader = function () {
+		return this._oIconTabHeader;
+	};
+
+	IconTabBarSelectList.prototype._getParams = function () {
+		var mParams = Object.assign({
+			"_sap_m_IconTabBar_SelectListItem_PaddingLeft": "0.5rem",
+			"_sap_m_IconTabBar_SelectListItem_PaddingLeftAdditional": "0"
+		}, Parameters.get({
+			name: [
+				"_sap_m_IconTabBar_SelectListItem_PaddingLeft",
+				"_sap_m_IconTabBar_SelectListItem_PaddingLeftAdditional"
+			],
+			callback: this.invalidate.bind(this)
+		}));
+
+		return {
+			fNestedItemPaddingLeft: Number.parseFloat(mParams["_sap_m_IconTabBar_SelectListItem_PaddingLeft"]),
+			fAdditionalPadding: Number.parseFloat(mParams["_sap_m_IconTabBar_SelectListItem_PaddingLeftAdditional"])
+		};
+	};
+
+	/**
+	 * Checks if all tabs are textOnly version.
+	 * @private
+	 * @returns {boolean} True if all tabs are textOnly version, otherwise false
+	 */
+	IconTabBarSelectList.prototype._checkTextOnly = function () {
+		return this.getItems().every(function (oItem) {
+			return oItem.isA('sap.m.IconTabSeparator') || !oItem.getIcon();
+		});
+	};
+
+	/**
+	 * Handle the key down event for SPACE and ENTER.
+	 * @param {jQuery.Event} oEvent - the keyboard event.
 	 * @private
 	 */
-	IconTabBarSelectList.prototype.ontap = function (oEvent) {
+	IconTabBarSelectList.prototype.onkeydown = function(oEvent) {
+		switch (oEvent.which) {
+			case KeyCodes.ENTER:
+				this._selectItem(oEvent);
+				oEvent.preventDefault();
+				break;
+			case KeyCodes.SPACE:
+				oEvent.preventDefault(); // prevent scrolling when focused on the tab
+				break;
+		}
+	};
+
+	IconTabBarSelectList.prototype.onkeyup = function(oEvent) {
+		if (oEvent.which === KeyCodes.SPACE) {
+			this._selectItem(oEvent);
+		}
+	};
+
+	IconTabBarSelectList.prototype.ontap = function(oEvent) {
+		this._selectItem(oEvent);
+	};
+
+	/**
+	 * Handles tab selection.
+	 * @private
+	 */
+	IconTabBarSelectList.prototype._selectItem = function (oEvent) {
 		var oTappedItem = oEvent.srcControl;
 
 		if (!oTappedItem) {
@@ -214,16 +290,12 @@ sap.ui.define([
 
 		oEvent.preventDefault();
 
-		if (oTappedItem != this.getSelectedItem()) {
+		if (oTappedItem !== this.getSelectedItem()) {
 			this.fireSelectionChange({
 				selectedItem: oTappedItem
 			});
 		}
-
 	};
-
-	IconTabBarSelectList.prototype.onsapenter = IconTabBarSelectList.prototype.ontap;
-	IconTabBarSelectList.prototype.onsapspace = IconTabBarSelectList.prototype.ontap;
 
 	/**
 	 * Checks if only an icon should be rendered.
@@ -254,7 +326,7 @@ sap.ui.define([
 			oContext = oDroppedControl._getRealTab().getParent(),
 			allowedNestingLevel = this._oIconTabHeader.getMaxNestingLevel();
 
-		if (this._oTabFilter._bIsOverflow) {
+		if (this._oTabFilter._isOverflow()) {
 			oContext = this._oIconTabHeader;
 		}
 
@@ -289,14 +361,22 @@ sap.ui.define([
 
 		var oTabToBeMoved = oEvent.srcControl,
 			iKeyCode = oEvent.keyCode,
-			iIndexBeforeMove = this.indexOfItem(oTabToBeMoved);
+			iIndexBeforeMove = this.indexOfItem(oTabToBeMoved),
+			oContext = this;
 
-		IconTabBarDragAndDropUtil.moveItem.call(this, oTabToBeMoved, iKeyCode, this.getItems().length - 1);
+		IconTabBarDragAndDropUtil.moveItem.call(oContext, oTabToBeMoved, iKeyCode, oContext.getItems().length - 1);
+
 		this._initItemNavigation();
 		oTabToBeMoved.$().trigger("focus");
 
-		if (iIndexBeforeMove !== this.indexOfItem(oTabToBeMoved)) {
+		if (iIndexBeforeMove === this.indexOfItem(oTabToBeMoved)) {
+			return;
+		}
+		oContext = oTabToBeMoved._getRealTab().getParent();
+		if (this._oTabFilter._isOverflow() && oTabToBeMoved._getRealTab()._getNestedLevel() === 1) {
 			this._oIconTabHeader._moveTab(oTabToBeMoved._getRealTab(), iKeyCode, this._oIconTabHeader.getItems().length - 1);
+		} else {
+			IconTabBarDragAndDropUtil.moveItem.call(oContext, oTabToBeMoved._getRealTab(), iKeyCode, oContext.getItems().length - 1);
 		}
 	};
 

@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2024 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -8,20 +8,34 @@
 sap.ui.define([
 	"sap/ui/performance/Measurement",
 	"sap/ui/performance/XHRInterceptor",
+	"sap/ui/performance/trace/FESRHelper",
 	"sap/base/util/LoaderExtensions",
 	"sap/base/util/now",
 	"sap/base/util/uid",
 	"sap/base/Log",
 	"sap/ui/thirdparty/URI"
-], function(Measurement, XHRInterceptor, LoaderExtensions, now, uid, Log, URI) {
+], function(Measurement, XHRInterceptor, FESRHelper, LoaderExtensions, now, uid, Log, URI) {
 
 	"use strict";
 
 
 	var HOST = window.location.host, // static per session
 		INTERACTION = "INTERACTION",
+		isNavigation = false,
 		aInteractions = [],
-		oPendingInteraction = createMeasurement();
+		oPendingInteraction,
+		mCompressedMimeTypes = {
+			"application/zip": true,
+			"application/vnd.rar": true,
+			"application/gzip": true,
+			"application/x-tar": true,
+			"application/java-archive": true,
+			"image/jpeg": true,
+			"application/pdf": true
+		},
+		sCompressedExtensions = "zip,rar,arj,z,gz,tar,lzh,cab,hqx,ace,jar,ear,war,jpg,jpeg,pdf,gzip";
+	let bInitialized = false,
+		iResetCurrentBrowserEventTimer;
 
 	function isCORSRequest(sUrl) {
 		var sHost = new URI(sUrl).host();
@@ -38,6 +52,52 @@ sap.ui.define([
 		return str.trim();
 	}
 
+	/**
+	 * The SAP Statistics for OData
+	 *
+	 * @typedef {object} module:sap/ui/performance/trace/Interaction.SAPStatistics
+	 * @public
+	 *
+	 * @property {string} url The url of the response
+	 * @property {string} statistics The response header under the key "sap-statistics"
+	 * @property {PerformanceResourceTiming} timing The last performance resource timing
+	 */
+
+	/**
+	 * Interaction Entry
+	 *
+	 * @typedef {object} module:sap/ui/performance/trace/Interaction.Entry
+	 * @public
+	 *
+	 * @property {string} event The event which triggered the interaction. The default value is "startup".
+	 * @property {string} trigger The control which triggered the interaction.
+	 * @property {string} component The identifier of the component or app that is associated with the
+	 *  interaction.
+	 * @property {string} appVersion The application version as from app descriptor
+	 * @property {float} start The start timestamp of the interaction which is initially set to the
+	 *  <code>fetchStart</code>
+	 * @property {float} end The end timestamp of the interaction
+	 * @property {float} navigation The sum over all navigation times
+	 * @property {float} roundtrip The time from first request sent to last received response end - without
+	 *  gaps and ignored overlap
+	 * @property {float} processing The client processing time
+	 * @property {float} duration The interaction duration
+	 * @property {Array<PerformanceResourceTiming>} requests The Performance API requests during interaction
+	 * @property {Array<module:sap/ui/performance/Measurement.Entry>} measurements The Performance
+	 *  measurements
+	 * @property {Array<module:sap/ui/performance/trace/Interaction.SAPStatistics>} sapStatistics The SAP
+	 *  Statistics for OData
+	 * @property {float} requestTime The sum over all requests in the interaction
+	 * @property {float} networkTime The request time minus server time from the header
+	 * @property {int} bytesSent The sum over all requests bytes
+	 * @property {int} bytesReceived The sum over all responses bytes
+	 * @property {"X"|""} requestCompression It's set with value "X" by default When compression does not
+	 *  match SAP rules, we report an empty string.
+	 * @property {float} busyDuration The sum of the global busy indicator duration during the interaction
+	 * @property {string} id The ID of the interaction
+	 * @property {string} passportAction The default PassportAction for startup
+	 */
+
 	function createMeasurement(iTime) {
 		return {
 			event: "startup", // event which triggered interaction - default is startup interaction
@@ -53,13 +113,13 @@ sap.ui.define([
 			requests: [], // Performance API requests during interaction
 			measurements: [], // Measurements
 			sapStatistics: [], // SAP Statistics for OData
-			requestTime: 0, // summ over all requests in the interaction (oPendingInteraction.requests[0].responseEnd-oPendingInteraction.requests[0].requestStart)
+			requestTime: 0, // sum over all requests in the interaction (oPendingInteraction.requests[0].responseEnd-oPendingInteraction.requests[0].requestStart)
 			networkTime: 0, // request time minus server time from the header
 			bytesSent: 0, // sum over all requests bytes
 			bytesReceived: 0, // sum over all response bytes
-			requestCompression: undefined, // true if all responses have been sent gzipped
+			requestCompression: "X", // ok per default, if compression does not match SAP rules we report an empty string
 			busyDuration: 0, // summed GlobalBusyIndicator duration during this interaction
-			id: uid(), //Interaction id
+			id: uid(), //Interaction ID
 			passportAction: "undetermined_startup_0" //default PassportAction for startup
 		};
 	}
@@ -71,18 +131,22 @@ sap.ui.define([
 	}
 
 	/**
-	 * Check if request is initiated by XHR
+	 * Check if request is initiated by XHR, comleted and timeframe of request is within timeframe of current interaction
 	 *
-	 * @param {object} oRequestTiming
+	 * @param {object} oRequestTiming PerformanceResourceTiming as retrieved by window.performance.getEntryByType("resource")
+	 * @return {boolean} true if the request is a completed XHR with started and ended within the current interaction
 	 * @private
 	 */
-	function isXHR(oRequestTiming) {
+	function isValidInteractionXHR(oRequestTiming) {
 		// if the request has been completed it has complete timing figures)
 		var bComplete = oRequestTiming.startTime > 0 &&
 			oRequestTiming.startTime <= oRequestTiming.requestStart &&
 			oRequestTiming.requestStart <= oRequestTiming.responseEnd;
 
-		return bComplete && oRequestTiming.initiatorType === "xmlhttprequest";
+		var bPartOfInteraction = oPendingInteraction.start <= (performance.timing.navigationStart + oRequestTiming.requestStart) &&
+			oPendingInteraction.end >= (performance.timing.navigationStart + oRequestTiming.responseEnd);
+
+		return bPartOfInteraction && bComplete && oRequestTiming.initiatorType === "xmlhttprequest";
 	}
 
 	function aggregateRequestTiming(oRequest) {
@@ -138,15 +202,16 @@ sap.ui.define([
 			// calculate processing time of before requests start
 			oPendingInteraction.processing = oTimings.start - iRelativeStart;
 		}
-
 	}
 
 	function finalizeInteraction(iTime) {
 		if (oPendingInteraction) {
 			var aAllRequestTimings = window.performance.getEntriesByType("resource");
+			var oFinshedInteraction;
 			oPendingInteraction.end = iTime;
+			oPendingInteraction.processing = iTime - oPendingInteraction.start;
 			oPendingInteraction.duration = oPendingInteraction.processing;
-			oPendingInteraction.requests = aAllRequestTimings.filter(isXHR);
+			oPendingInteraction.requests = aAllRequestTimings.filter(isValidInteractionXHR);
 			oPendingInteraction.completeRoundtrips = 0;
 			oPendingInteraction.measurements = Measurement.filterMeasurements(isCompleteMeasurement, true);
 			if (oPendingInteraction.requests.length > 0) {
@@ -161,15 +226,25 @@ sap.ui.define([
 
 			oPendingInteraction.completed = true;
 			Object.freeze(oPendingInteraction);
-			aInteractions.push(oPendingInteraction);
-			var oFinshedInteraction = aInteractions[aInteractions.length - 1];
-			if (Interaction.onInteractionFinished && oFinshedInteraction) {
+
+			// Duration threshold 2 in order to filter not performance relevant interactions such as liveChange
+			if (oPendingInteraction.semanticStepName || oPendingInteraction.duration >= 2 || oPendingInteraction.requests.length > 0 || isNavigation) {
+				aInteractions.push(oPendingInteraction);
+				oFinshedInteraction = aInteractions[aInteractions.length - 1];
+				if (Log.isLoggable()) {
+					Log.debug("Interaction step finished: trigger: " + oPendingInteraction.trigger + "; duration: " + oPendingInteraction.duration + "; requests: " + oPendingInteraction.requests.length, "Interaction.js");
+				}
+			}
+			// Execute onInteractionFinished always in case function exist to enable cleanup in FESR independent of filtering
+			if (Interaction.onInteractionFinished) {
 				Interaction.onInteractionFinished(oFinshedInteraction);
 			}
-			if (Log.isLoggable()) {
-				Log.debug("Interaction step finished: trigger: " + oPendingInteraction.trigger + "; duration: " + oPendingInteraction.duration + "; requests: " + oPendingInteraction.requests.length, "Interaction.js");
-			}
 			oPendingInteraction = null;
+			oCurrentBrowserEvent = null;
+			isNavigation = false;
+			bMatched = false;
+			bPerfectMatch = false;
+			clearTimeout(iResetCurrentBrowserEventTimer);
 		}
 	}
 
@@ -179,16 +254,18 @@ sap.ui.define([
 		if (oSrcElement) {
 			var Component, oComponent;
 			Component = sap.ui.require("sap/ui/core/Component");
-			while (Component && oSrcElement && oSrcElement.getParent) {
-				oComponent = Component.getOwnerComponentFor(oSrcElement);
-				if (oComponent || oSrcElement instanceof Component) {
-					oComponent = oComponent || oSrcElement;
-					var oApp = oComponent.getManifestEntry("sap.app");
-					// get app id or module name for FESR
-					sId = oApp && oApp.id || oComponent.getMetadata().getName();
-					sVersion = oApp && oApp.applicationVersion && oApp.applicationVersion.version;
+			if (Component) {
+				while (oSrcElement && oSrcElement.getParent) {
+					oComponent = Component.getOwnerComponentFor(oSrcElement);
+					if (oComponent || oSrcElement instanceof Component) {
+						oComponent = oComponent || oSrcElement;
+						var oApp = oComponent.getManifestEntry("sap.app");
+						// get app id or module name for FESR
+						sId = oApp && oApp.id || oComponent.getMetadata().getName();
+						sVersion = oApp && oApp.applicationVersion && oApp.applicationVersion.version;
+					}
+					oSrcElement = oSrcElement.getParent();
 				}
-				oSrcElement = oSrcElement.getParent();
 			}
 		}
 		return {
@@ -198,13 +275,14 @@ sap.ui.define([
 	}
 
 	var bInteractionActive = false,
-		bInteractionProcessed = false,
 		oCurrentBrowserEvent,
+		oBrowserElement,
+		bMatched = false,
+		bPerfectMatch = false,
 		iInteractionStepTimer,
 		bIdle = false,
 		bSuspended = false,
 		iInteractionCounter = 0,
-		iScrollEventDelayId = 0,
 		descScriptSrc = Object.getOwnPropertyDescriptor(HTMLScriptElement.prototype, "src");
 
 	/* As UI5 resources gets also loaded via script tags we need to
@@ -255,7 +333,7 @@ sap.ui.define([
 		});
 
 		// register the response handler for data collection
-		XHRInterceptor.register(INTERACTION, "open", function () {
+		XHRInterceptor.register(INTERACTION, "open", function (sMethod, sUrl, bAsync) {
 			var sEpp,
 				sAction,
 				sRootContextID;
@@ -267,8 +345,9 @@ sap.ui.define([
 			}
 			// we only need to take care of requests when we have a running interaction
 			if (oPendingInteraction) {
+				var bIsNoCorsRequest = !isCORSRequest(sUrl);
 				// only use Interaction for non CORS requests
-				if (!isCORSRequest(arguments[1])) {
+				if (bIsNoCorsRequest) {
 					//only track if FESR.clientID == EPP.Action && FESR.rootContextID == EPP.rootContextID
 					sEpp = Interaction.passportHeader.get(this);
 					if (sEpp && sEpp.length >= 370) {
@@ -281,12 +360,35 @@ sap.ui.define([
 						this.addEventListener("readystatechange", handleResponse.bind(this,  oPendingInteraction.id));
 					}
 				}
-				this.addEventListener("readystatechange", handleInteraction.bind(this, Interaction.notifyAsyncStep()));
+				// arguments at position 2 is indicatior whether request is async or not
+				// readystatechange must not be used for sync CORS request since it does not work properly
+				// this is especially necessary in case request was not started by LoaderExtension
+				// bAsync is by default true, therefore we need to check eplicitly for value 'false'
+				if (bIsNoCorsRequest || bAsync !== false) {
+					// notify async step for all XHRs (even CORS requests)
+					this.addEventListener("readystatechange", handleInteraction.bind(this, Interaction.notifyAsyncStep()));
+				}
 				// assign the current interaction to the xhr for later response header retrieval.
 				this.pendingInteraction = oPendingInteraction;
 			}
 		});
 
+	}
+
+	// check if SAP compression rules are fulfilled
+	function checkCompression(sURL, sContentEncoding, sContentType, sContentLength) {
+		//remove hashes and queries + find extension (last . segment)
+		var fileExtension = sURL.split('.').pop().split(/\#|\?/)[0];
+
+		if (sContentEncoding === 'gzip' ||
+			sContentEncoding === 'br' ||
+			sContentType in mCompressedMimeTypes ||
+			(fileExtension && sCompressedExtensions.indexOf(fileExtension) !== -1) ||
+			sContentLength < 1024) {
+				return true;
+		} else {
+			return false;
+		}
 	}
 
 	// response handler which uses the custom properties we added to the xhr to retrieve information from the response headers
@@ -295,7 +397,7 @@ sap.ui.define([
 			if (this.pendingInteraction && !this.pendingInteraction.completed && oPendingInteraction.id === sId) {
 				// enrich interaction with information
 				var sContentLength = this.getResponseHeader("content-length"),
-					bCompressed = this.getResponseHeader("content-encoding") === "gzip",
+					bCompressed = checkCompression(this.responseURL, this.getResponseHeader("content-encoding"), this.getResponseHeader("content-type"), sContentLength),
 					sFesrec = this.getResponseHeader("sap-perf-fesrec");
 				this.pendingInteraction.bytesReceived += sContentLength ? parseInt(sContentLength) : 0;
 				this.pendingInteraction.bytesReceived += this.getAllResponseHeaders().length;
@@ -346,7 +448,7 @@ sap.ui.define([
 	 	 * Gets all interaction measurements.
 		 *
 		 * @param {boolean} bFinalize finalize the current pending interaction so that it is contained in the returned array
-		 * @return {object[]} all interaction measurements
+		 * @return {Array<module:sap/ui/performance/trace/Interaction.Entry>} all interaction measurements
 		 *
 		 * @static
 		 * @public
@@ -369,7 +471,7 @@ sap.ui.define([
 		 *     return InteractionMeasurement.duration > 0
 		 * }</code>
 		 * @param {function} fnFilter a filter function that returns true if the passed measurement should be added to the result
-		 * @return {object[]} all interaction measurements passing the filter function successfully
+		 * @return {Array<module:sap/ui/performance/trace/Interaction.Entry>} all interaction measurements passing the filter function successfully
 		 *
 		 * @static
 		 * @public
@@ -435,13 +537,13 @@ sap.ui.define([
 			var oComponentInfo = createOwnerComponentInfo(oSrcElement);
 
 			// setup new pending interaction
-			oPendingInteraction = createMeasurement(iTime);
+			oPendingInteraction = createMeasurement(bInitialized ? iTime : undefined);
 			oPendingInteraction.event = sType;
 			oPendingInteraction.component = oComponentInfo.id;
 			oPendingInteraction.appVersion = oComponentInfo.version;
-			oPendingInteraction.start = iTime;
 			if (oSrcElement && oSrcElement.getId) {
 				oPendingInteraction.trigger = oSrcElement.getId();
+				oPendingInteraction.semanticStepName = FESRHelper.getSemanticStepname(oSrcElement, sType);
 			}
 			/*eslint-disable no-console */
 			if (Log.isLoggable(null, "sap.ui.Performance")) {
@@ -475,7 +577,6 @@ sap.ui.define([
 				} else {
 					// set provisionary processing time from start to end and calculate later
 					oPendingInteraction.preliminaryEnd = now();
-					oPendingInteraction.processing = oPendingInteraction.preliminaryEnd - oPendingInteraction.start;
 				}
 			}
 		},
@@ -502,13 +603,28 @@ sap.ui.define([
 		 * @since 1.76
 		 */
 		setActive : function(bActive) {
-			if (bActive && !bInteractionActive) {
-				registerXHROverrides();
-				interceptScripts();
-				//intercept resource loading from preloads
-				LoaderExtensions.notifyResourceLoading = Interaction.notifyAsyncStep;
-			}
 			bInteractionActive = bActive;
+			if (bActive) {
+				if (!bInitialized) {
+					registerXHROverrides();
+					interceptScripts();
+					//intercept resource loading from preloads
+					LoaderExtensions.notifyResourceLoading = Interaction.notifyAsyncStep;
+				}
+				Interaction.notifyStepStart("startup", "startup", true);
+				// The following line must happen after 'notifyStepStart' because we determine
+				// if we should intially use the performance timing API or afterwords the
+				// current timestamp
+				bInitialized = true;
+			}
+		},
+
+		/**
+		 * Mark interaction as navigation related
+		 * @private
+		 */
+		notifyNavigation: function() {
+			isNavigation = true;
 		},
 
 		/**
@@ -540,23 +656,24 @@ sap.ui.define([
 		 * for the new interaction, the creation of the FESR headers for the last interaction is triggered here, so that
 		 * the headers can be sent with the first request of the current interaction.<br>
 		 *
+		 * @param {string} sEventId The control event name
 		 * @param {sap.ui.core.Element} oElement Element on which the interaction has been triggered
 		 * @param {boolean} bForce Forces the interaction to start independently from a currently active browser event
 		 * @static
 		 * @private
 		 */
-		notifyStepStart : function(oElement, bForce) {
+		notifyStepStart : function(sEventId, oElement, bForce) {
 			if (bInteractionActive) {
-				if ((!oPendingInteraction && oCurrentBrowserEvent && !bInteractionProcessed) || bForce) {
-					var sType;
+				var sType,
+					elem,
+					sClosestSemanticStepName;
+
+				if ((!oPendingInteraction && oCurrentBrowserEvent) || bForce) {
 					if (bForce) {
 						sType = "startup";
-					} else if (oCurrentBrowserEvent.originalEvent) {
-						sType = oCurrentBrowserEvent.originalEvent.type;
 					} else {
-						sType = oCurrentBrowserEvent.type;
+						sType = sEventId;
 					}
-
 					Interaction.start(sType, oElement);
 					oPendingInteraction = Interaction.getPending();
 
@@ -564,14 +681,72 @@ sap.ui.define([
 					if (oPendingInteraction && !oPendingInteraction.completed && Interaction.onInteractionStarted) {
 						oPendingInteraction.passportAction = Interaction.onInteractionStarted(oPendingInteraction, bForce);
 					}
+					// Interaction.start will delete oCurrentBrowserEvent in case there is an oPendingInteraction
+					// (notifyStepStart is called with parameter bForce)
+					// Conscious decision to not move the coding because this shouldn't be a productive scenario
+					if (oCurrentBrowserEvent) {
+						oBrowserElement = oCurrentBrowserEvent.srcControl;
+					}
+					// if browser event matches the first control event we take it for trigger/event determination (step name)
+					sClosestSemanticStepName = FESRHelper.getSemanticStepname(oBrowserElement, sEventId);
+					if (oElement && oElement.getId && oBrowserElement && oElement.getId() === oBrowserElement.getId()) {
+						bPerfectMatch = true;
+					} else if (sClosestSemanticStepName) {
+						oPendingInteraction.trigger = oBrowserElement.getId();
+						oPendingInteraction.semanticStepName = sClosestSemanticStepName;
+						bPerfectMatch = true;
+					} else {
+						elem = oBrowserElement;
+						while (elem && elem.getParent()) {
+							elem = elem.getParent();
+							if (oElement.getId() === elem.getId()) {
+								// Stop looking for better fitting control in case the current browser event source control
+								// is already child of the control event which triggers the interaction because all other
+								// control events most likely does not suit better.
+								// Example: Click on image of an button will not pass the previous if
+								// (oElement.getId() !== oBrowserElement.getId() ==> btn !== btn-img).
+								// In case the button is part of an popover and the click on the button closes the popover,
+								// the coding below overwrites the button control id with the popover control id in case we
+								// don't stop here.
+								// Only look for better fitting control in case browser and control event does not fit at all
+								bMatched = true;
+								break;
+							}
+						}
+					}
 					oCurrentBrowserEvent = null;
-					//only handle the first browser event within a call stack. Ignore virtual/harmonization events.
-					bInteractionProcessed = true;
-					setTimeout(function() {
+					isNavigation = false;
+					iResetCurrentBrowserEventTimer = setTimeout(function() {
 						//cleanup internal registry after actual call stack.
 						oCurrentBrowserEvent = null;
-						bInteractionProcessed = false;
 					}, 0);
+					bIdle = false;
+					Interaction.notifyStepEnd(true); // Start timer to end Interaction in case there is no timing relevant action e.g. rendering, request
+				} else if (oPendingInteraction && oBrowserElement && !bPerfectMatch) {
+					// if browser event matches one of the next control events we take it for trigger/event determination (step name)
+					elem = oBrowserElement;
+					sClosestSemanticStepName = FESRHelper.getSemanticStepname(oBrowserElement, sEventId);
+					if (elem && oElement.getId() === elem.getId()) {
+						oPendingInteraction.trigger = oElement.getId();
+						oPendingInteraction.semanticStepName = sClosestSemanticStepName;
+						oPendingInteraction.event = sEventId;
+						bPerfectMatch = true;
+					} else if (sClosestSemanticStepName) {
+						oPendingInteraction.trigger = oBrowserElement.getId();
+						oPendingInteraction.semanticStepName = sClosestSemanticStepName;
+						bPerfectMatch = true;
+					} else if (!bMatched) {
+						while (elem && elem.getParent()) {
+							elem = elem.getParent();
+							if (oElement.getId() === elem.getId()) {
+								oPendingInteraction.trigger = oElement.getId();
+								oPendingInteraction.semanticStepName = FESRHelper.getSemanticStepname(oElement, sEventId);
+								oPendingInteraction.event = sEventId;
+								//if we find no direct match we consider the last control event for the trigger/event (step name)
+								break;
+							}
+						}
+					}
 				}
 			}
 		},
@@ -580,7 +755,7 @@ sap.ui.define([
 		 * Register async operation, that is relevant for a running interaction.
 		 * Invoking the returned handle stops the async operation.
 		 *
-		 * @params {string} sStepName a step name
+		 * @param {string} sStepName a step name
 		 * @returns {function} The async handle
 		 * @private
 		 */
@@ -592,6 +767,7 @@ sap.ui.define([
 				}
 				/*eslint-enable no-console */
 				var sInteractionId = oPendingInteraction.id;
+				delete oPendingInteraction.preliminaryEnd; // Delete prelimanry end to force current timestamp of finalization
 				Interaction.notifyAsyncStepStart();
 				return function() {
 					Interaction.notifyAsyncStepEnd(sInteractionId);
@@ -658,7 +834,10 @@ sap.ui.define([
 						if (iInteractionStepTimer) {
 							clearTimeout(iInteractionStepTimer);
 						}
-						iInteractionStepTimer = setTimeout(Interaction.notifyStepEnd, 250);
+						// There are control events using a debouncing mechanism for e.g. suggest event (see sap.m.Input)
+						// A common debounce treshhold (also used by sap.m.Input) is 300ms therefore we use setTimeout
+						// with 301ms to end the Interaction after execution of the debounced event
+						iInteractionStepTimer = setTimeout(Interaction.notifyStepEnd, 301);
 						if (Log.isLoggable()) {
 							Log.debug("Interaction check for idle time - Number of pending steps: " + iInteractionCounter);
 						}
@@ -687,19 +866,7 @@ sap.ui.define([
 		 * @private
 		 */
 		notifyScrollEvent : function(oEvent) {
-			if (bInteractionActive) {
-				// notify for a newly started interaction, but not more often than every 250ms.
-				if (!iScrollEventDelayId) {
-					Interaction.notifyEventStart(oEvent);
-				} else {
-					clearTimeout(iScrollEventDelayId);
-				}
-				iScrollEventDelayId = setTimeout(function(){
-					Interaction.notifyStepStart(oEvent.sourceElement);
-					iScrollEventDelayId = 0;
-					Interaction.notifyStepEnd();
-				}, 250);
-			}
+			/* Scrolling is disabled as it does not work properly for non user triggered scrolling */
 		},
 
 		/**
@@ -714,6 +881,22 @@ sap.ui.define([
 				if (oCurrentBrowserEvent.type.match(/^(mousedown|touchstart|keydown)$/)) {
 					Interaction.end(/*bForce*/true);
 				}
+				// Clean up oCurrentBrowserEvent at the end to prevent dangling events
+				// Since oCurrentBrowser event is prerequisite to start an event we need to
+				// clean dangling browser events to avoid creating interactions based on these events
+				// e.g. The user clicks first somewhere on the UI on a control without press handler.
+				// After that the user scrolls in a table and triggers implicit requests via paging.
+				// This combination will create an interaction based on the first browser event,
+				// created and not cleaned up by the first click within the UI
+				if (this.eventEndTimer) {
+					clearTimeout(this.eventEndTimer);
+				}
+				this.eventEndTimer = setTimeout(function() {
+					oCurrentBrowserEvent = null;
+					delete this.eventEndTimer;
+				// There are events fired within a timeout with delay. Cleanup after 10ms
+				// to hopefully prevent cleaning up to early (before control event was fired)
+				}.bind(this), 10);
 			}
 		},
 

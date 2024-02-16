@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2024 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -11,8 +11,9 @@ sap.ui.define([
 	'./library',
 	'sap/ui/core/library',
 	'./SplitContainerRenderer',
-	"sap/base/Log"
-], function(Control, Parameters, library, coreLibrary, SplitContainerRenderer, Log ) {
+	"sap/base/Log",
+	"sap/ui/core/Configuration"
+], function(Control, Parameters, library, coreLibrary, SplitContainerRenderer, Log, Configuration ) {
 	"use strict";
 
 
@@ -33,7 +34,7 @@ sap.ui.define([
 	 * @extends sap.ui.core.Control
 	 *
 	 * @author SAP SE
-	 * @version 1.79.0
+	 * @version 1.120.6
 	 *
 	 * @constructor
 	 * @public
@@ -42,11 +43,11 @@ sap.ui.define([
 	 * API is not yet finished and might change completely
 	 * @deprecated Since version 1.44.0.
 	 * @alias sap.ui.unified.SplitContainer
-	 * @ui5-metamodel This control/element also will be described in the UI5 (legacy) designtime metamodel
 	 */
 	var SplitContainer = Control.extend("sap.ui.unified.SplitContainer", /** @lends sap.ui.unified.SplitContainer.prototype */ { metadata : {
 
 		library : "sap.ui.unified",
+		deprecated : true,
 		properties : {
 
 			/**
@@ -86,7 +87,7 @@ sap.ui.define([
 			 */
 			secondaryContent : {type : "sap.ui.core.Control", multiple : true, singularName : "secondaryContent"}
 		}
-	}});
+	}, renderer: SplitContainerRenderer});
 
 	(function(window) {
 
@@ -94,15 +95,15 @@ sap.ui.define([
 	////////////////////////////////////////// Public Methods //////////////////////////////////////////
 
 	SplitContainer.prototype.init = function(){
-		this.bRtl  = sap.ui.getCore().getConfiguration().getRTL();
+		this.bRtl  = Configuration.getRTL();
 
 		this._paneRenderer = new library._ContentRenderer(this, this.getId() + "-panecntnt", "secondaryContent");
 		this._canvasRenderer = new library._ContentRenderer(this, this.getId() + "-canvascntnt", "content");
 
 	// Design decided that content does not need to be handled differently depending on device - remove
 	// comments if needed again...
-	//	sap.ui.Device.media.attachHandler(
-	//		this._handleMediaChange, this, sap.ui.Device.media.RANGESETS.SAP_STANDARD
+	//	Device.media.attachHandler(
+	//		this._handleMediaChange, this, Device.media.RANGESETS.SAP_STANDARD
 	//	);
 
 		// By default move the content when the secondaryContent is shown
@@ -128,7 +129,7 @@ sap.ui.define([
 
 	SplitContainer.prototype.onAfterRendering = function() {
 		//Refetch RTL setting (might have changed which leads to global rerendering, see Core.fireLocalizationChanged
-		this.bRtl  = sap.ui.getCore().getConfiguration().getRTL();
+		this.bRtl  = Configuration.getRTL();
 
 		// Shortcuts to the main DOM containers
 		this._contentContainer 			= this.$("canvas");
@@ -138,7 +139,7 @@ sap.ui.define([
 	// comments if needed again...
 	//	this._lastDeviceName = "";
 	//	this._handleMediaChange(
-	//		sap.ui.Device.media.getCurrentRange(sap.ui.Device.media.RANGESETS.SAP_STANDARD)
+	//		Device.media.getCurrentRange(Device.media.RANGESETS.SAP_STANDARD)
 	//	);
 
 		this._applySecondaryContentSize();
@@ -155,7 +156,7 @@ sap.ui.define([
 	// *
 	// * @private
 	// */
-	//sap.ui.unified.SplitContainer.prototype._handleMediaChange = function(mParams) {
+	//SplitContainer.prototype._handleMediaChange = function(mParams) {
 	//	var sDeviceName = mParams.name;
 	//
 	//	// By default, move the content to the right, there should be enough space

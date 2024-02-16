@@ -1,13 +1,14 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2024 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.define([
 	"sap/m/library",
 	"sap/ui/Device",
-	"sap/ui/core/library"
-], function (library, Device, coreLibrary) {
+	"sap/ui/core/library",
+	"sap/ui/core/Lib"
+], function (library, Device, coreLibrary, Library) {
 	"use strict";
 
 	// shortcut for sap.m.DialogType
@@ -40,7 +41,7 @@ sap.ui.define([
 	 * Renders the HTML for the Dialog control, using the provided {@link sap.ui.core.RenderManager}.
 	 *
 	 * @param {sap.ui.core.RenderManager} oRM The RenderManager that can be used for writing to the render output buffer.
-	 * @param {sap.ui.core.Control} oDialog An object representation of the control that should be rendered.
+	 * @param {sap.m.Dialog} oDialog An object representation of the control that should be rendered.
 	 */
 	DialogRenderer.render = function (oRM, oDialog) {
 		var sId = oDialog.getId(),
@@ -51,7 +52,8 @@ sap.ui.define([
 			sState = oDialog.getState(),
 			bStretch = oDialog.getStretch(),
 			bStretchOnPhone = oDialog.getStretchOnPhone() && Device.system.phone,
-			oValueStateText = oDialog.getAggregation("_valueState");
+			oValueStateText = oDialog.getAggregation("_valueState"),
+			oFooter = oDialog.getFooter();
 
 		// write the HTML into the render manager
 		// the initial size of the dialog have to be 0, because if there is a large dialog content the initial size can be larger than the html's height (scroller)
@@ -85,7 +87,9 @@ sap.ui.define([
 		// No Footer
 		var bNoToolbarAndNoButtons = !oDialog._oToolbar && !oBeginButton && !oEndButton;
 		var bEmptyToolbarAndNoButtons = oDialog._oToolbar && oDialog._isToolbarEmpty() && !oBeginButton && !oEndButton;
-		if (bNoToolbarAndNoButtons || bEmptyToolbarAndNoButtons) {
+		var bHiddenFooter = oDialog._oToolbar && !oDialog._oToolbar.getVisible();
+		var hasFooter = !bNoToolbarAndNoButtons && !bEmptyToolbarAndNoButtons && !bHiddenFooter || oFooter;
+		if (!hasFooter) {
 			oRM.class("sapMDialog-NoFooter");
 		}
 
@@ -104,10 +108,6 @@ sap.ui.define([
 			role: sRole,
 			modal: true
 		});
-
-		if (oDialog._forceDisableScrolling) {
-			oRM.class("sapMDialogWithScrollCont");
-		}
 
 		if (oSubHeader && oSubHeader.getVisible()) {
 			oRM.class("sapMDialogWithSubHeader");
@@ -154,7 +154,7 @@ sap.ui.define([
 		if (Device.system.desktop) {
 
 			if (oDialog.getResizable() && !bStretch) {
-				oRM.icon("sap-icon://resize-corner", ["sapMDialogResizeHandler"], { "title": "" });
+				oRM.icon("sap-icon://resize-corner", ["sapMDialogResizeHandler"], {"title": "", "aria-label": ""});
 			}
 
 			// Invisible element which is used to determine when desktop keyboard navigation
@@ -162,27 +162,45 @@ sap.ui.define([
 			// In that case, the controller will focus the last focusable element.
 			oRM.openStart("span", sId + "-firstfe")
 				.class("sapMDialogFirstFE")
+				.attr("role", "none")
 				.attr("tabindex", "0")
 				.openEnd()
 				.close("span");
 		}
 
-		if (oHeader) {
-			oHeader._applyContextClassFor("header");
+		if (oHeader || oSubHeader) {
 			oRM.openStart("header")
-				.class("sapMDialogTitle")
-				.openEnd()
-				.renderControl(oHeader)
-				.close("header");
-		}
+				.openEnd();
+			if (oHeader) {
+				oHeader._applyContextClassFor("header");
+				oRM.openStart("div")
+					.class("sapMDialogTitleGroup");
 
-		if (oSubHeader) {
-			oSubHeader._applyContextClassFor("subheader");
-			oRM.openStart("header")
-				.class("sapMDialogSubHeader")
-				.openEnd()
-				.renderControl(oSubHeader)
-				.close("header");
+				if (oDialog._isDraggableOrResizable()) {
+					oRM.attr("tabindex", 0)
+						.accessibilityState(oHeader, {
+							role: "group",
+							roledescription: Library.getResourceBundleFor("sap.m").getText("DIALOG_HEADER_ARIA_ROLE_DESCRIPTION"),
+							describedby: { value: oDialog.getId() + "-ariaDescribedbyText", append: true }
+						});
+				}
+
+				oRM.openEnd()
+					.renderControl(oHeader)
+					.renderControl(oDialog._oAriaDescribedbyText)
+					.close("div");
+			}
+
+			if (oSubHeader && oSubHeader.getVisible()) {
+				oSubHeader._applyContextClassFor("subheader");
+				oRM.openStart("div")
+					.class("sapMDialogSubHeader")
+					.openEnd()
+					.renderControl(oSubHeader)
+					.close("div");
+			}
+			oRM.close("header");
+
 		}
 
 		if (oValueStateText) {
@@ -212,13 +230,18 @@ sap.ui.define([
 			.close("div")
 			.close("section");
 
-		if (!(bNoToolbarAndNoButtons || bEmptyToolbarAndNoButtons)) {
-			oDialog._oToolbar._applyContextClassFor("footer");
+		if (hasFooter) {
 			oRM.openStart("footer")
 				.class("sapMDialogFooter")
-				.openEnd()
-				.renderControl(oDialog._oToolbar)
-				.close("footer");
+				.openEnd();
+			if (oFooter) {
+				oFooter._applyContextClassFor("footer");
+				oRM.renderControl(oFooter);
+			} else {
+				oDialog._oToolbar._applyContextClassFor("footer");
+				oRM.renderControl(oDialog._oToolbar);
+			}
+			oRM.close("footer");
 		}
 
 		if (Device.system.desktop) {
@@ -227,6 +250,7 @@ sap.ui.define([
 			// In that case, the controller will focus the first focusable element.
 			oRM.openStart("span", sId + "-lastfe")
 				.class("sapMDialogLastFE")
+				.attr("role", "none")
 				.attr("tabindex", "0")
 				.openEnd()
 				.close("span");

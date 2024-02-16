@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2024 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -24,12 +24,10 @@ sap.ui.define(["sap/ui/core/library", "sap/ui/core/Renderer", "./ListItemBaseRen
 	 * Renders the HTML for the given control, using the provided
 	 * {@link sap.ui.core.RenderManager}.
 	 *
-	 * @param {sap.ui.core.RenderManager}
-	 *          oRenderManager the RenderManager that can be used for writing to the
-	 *          Render-Output-Buffer
-	 * @param {sap.ui.core.Control}
-	 *          oControl an object representation of the control that should be
-	 *          rendered
+	 * @param {sap.ui.core.RenderManager} rm
+	 *          RenderManager that can be used to render the control's DOM
+	 * @param {sap.m.InputListItem} oLI
+	 *          The item to be rendered
 	 */
 	InputListItemRenderer.renderLIAttributes = function(rm, oLI) {
 		rm.class("sapMILI");
@@ -39,8 +37,9 @@ sap.ui.define(["sap/ui/core/library", "sap/ui/core/Renderer", "./ListItemBaseRen
 
 		// List item label
 		var sLabel = oLI.getLabel();
+		var sInnerLabel = oLI.getId() + "-label";
 		if (sLabel) {
-			rm.openStart("span", oLI.getId() + "-label");
+			rm.openStart("span", sInnerLabel);
 			rm.class("sapMILILabel");
 
 			var sLabelDir = oLI.getLabelTextDirection();
@@ -54,7 +53,12 @@ sap.ui.define(["sap/ui/core/library", "sap/ui/core/Renderer", "./ListItemBaseRen
 		}
 
 		rm.openStart("div").class("sapMILIDiv").class("sapMILI-CTX").openEnd();
-		oLI.getContent().forEach(rm.renderControl, rm);
+		oLI.getContent().forEach(function(oControl) {
+			if (oControl.addAriaLabelledBy && oControl.getAriaLabelledBy().indexOf(sInnerLabel) === -1) {
+				oControl.addAriaLabelledBy(sInnerLabel);
+			}
+			rm.renderControl(oControl);
+		});
 		rm.close("div");
 	};
 

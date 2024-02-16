@@ -1,14 +1,13 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2024 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 sap.ui.define([
 	"sap/ui/test/matchers/Matcher",
-	"sap/base/strings/capitalize",
-	"sap/ui/thirdparty/jquery"
-], function (Matcher, capitalize, jQueryDOM) {
+	"sap/base/strings/capitalize"
+], function (Matcher, capitalize) {
 	"use strict";
 
 	/**
@@ -67,7 +66,7 @@ sap.ui.define([
 				return false;
 			}
 			var vAggregation = fnAggregation.call(oControl);
-			var aAggregation = jQueryDOM.isArray(vAggregation) ? vAggregation : [vAggregation];
+			var aAggregation = Array.isArray(vAggregation) ? vAggregation : [vAggregation];
 			var iAggregationLength = aAggregation.length;
 			var iExpectedLength = this.getLength();
 			var bIsMatch = iAggregationLength === iExpectedLength;

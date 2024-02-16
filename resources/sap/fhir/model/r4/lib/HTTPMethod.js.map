@@ -1,0 +1,1 @@
+{"version":3,"file":"HTTPMethod.js","names":["sap","ui","define","HTTPMethod","DELETE","POST","PUT","PATCH","GET","HEAD"],"sources":["HTTPMethod-dbg.js"],"mappings":";;;;;AAOAA,IAAIC,GAAGC,OAAO,WAEb,aAYA,IAAIC,EAAa,CAMhBC,OAAS,SAKTC,KAAO,OAKPC,IAAM,MAKNC,MAAQ,QAKRC,IAAM,MAKNC,KAAO,QAGR,OAAON,CACR"}

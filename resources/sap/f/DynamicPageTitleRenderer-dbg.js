@@ -1,10 +1,10 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2024 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.define([
-	"./library"], function (library) {
+	"./library", "sap/ui/Device"], function (library, Device) {
 	"use strict";
 
 	/**
@@ -19,13 +19,13 @@ sap.ui.define([
 	 * Renders the HTML for the given control, using the provided {@link sap.ui.core.RenderManager}.
 	 *
 	 * @param {sap.ui.core.RenderManager} oRm The RenderManager that can be used for writing to the Render-Output-Buffer
-	 * @param {sap.ui.core.Control} oDynamicPageTitle An object representation of the control that should be rendered
+	 * @param {sap.f.DynamicPageTitle} oDynamicPageTitle An object representation of the control that should be rendered
 	 */
 	DynamicPageTitleRenderer.render = function (oRm, oDynamicPageTitle) {
 		var oDynamicPageTitleState = oDynamicPageTitle._getState(),
 			sSapFDynamicPageTitle = "sapFDynamicPageTitle",
 			sBackgroundDesign = oDynamicPageTitle.getBackgroundDesign(),
-			sLabelledBy = oDynamicPageTitle._getARIALabelReferences(oDynamicPageTitle._bExpandedState) || oDynamicPageTitle.DEFAULT_HEADER_TEXT_ID,
+			sLabelledBy = oDynamicPageTitle._getARIALabelReferences(oDynamicPageTitle._bExpandedState),
 			sDescribedBy = oDynamicPageTitle._getAriaDescribedByReferences();
 
 		// DynamicPageTitle Root DOM Element.
@@ -127,7 +127,7 @@ sap.ui.define([
 		// Heading Area
 		oRm.openStart("div", oDynamicPageTitleState.id + "-left-inner");
 		oRm.class("sapFDynamicPageTitleMainHeading");
-		oRm.style("flex-shrink", oDynamicPageTitleState.headingAreaShrinkFactor);
+		oRm.style("flex-shrink", oDynamicPageTitleState.headingAreaShrinkFactor.toString());
 		oRm.openEnd();
 		// Left Area -> heading aggregation
 		oRm.openStart("div");
@@ -156,9 +156,12 @@ sap.ui.define([
 		oRm.openStart("div", oDynamicPageTitleState.id + "-content");
 		oRm.class("sapFDynamicPageTitleMainContent");
 		oRm.class("sapFDynamicPageTitleContent-CTX");
-		oRm.style("flex-shrink", oDynamicPageTitleState.contentAreaShrinkFactor);
-		if (oDynamicPageTitleState.contentAreaFlexBasis) {
-			oRm.style("flex-basis", oDynamicPageTitleState.contentAreaFlexBasis);
+		oRm.style("flex-shrink", oDynamicPageTitleState.contentAreaShrinkFactor.toString());
+		if (oDynamicPageTitleState.contentAreaMinWidth) {
+			oRm.style("min-width", oDynamicPageTitleState.contentAreaMinWidth);
+		}
+		if (oDynamicPageTitleState.contentAreaHasContent) {
+			oRm.class("sapFDynamicPageTitleMainContentHasContent");
 		}
 		oRm.openEnd();
 		oDynamicPageTitleState.content.forEach(oRm.renderControl, oRm);
@@ -168,9 +171,12 @@ sap.ui.define([
 	DynamicPageTitleRenderer._renderMainActionsArea = function (oRm, oDynamicPageTitleState) {
 		oRm.openStart("div", oDynamicPageTitleState.id + "-mainActions");
 		oRm.class("sapFDynamicPageTitleMainActions");
-		oRm.style("flex-shrink", oDynamicPageTitleState.actionsAreaShrinkFactor);
-		if (oDynamicPageTitleState.actionsAreaFlexBasis) {
-			oRm.style("flex-basis", oDynamicPageTitleState.actionsAreaFlexBasis);
+		oRm.style("flex-shrink", oDynamicPageTitleState.actionsAreaShrinkFactor.toString());
+		if (oDynamicPageTitleState.actionsAreaMinWidth) {
+			oRm.style("min-width", oDynamicPageTitleState.actionsAreaMinWidth);
+		}
+		if (oDynamicPageTitleState.actionsAreaHasContent) {
+			oRm.class("sapFDynamicPageTitleMainActionsHasContent");
 		}
 		oRm.openEnd();
 		if (oDynamicPageTitleState.hasActions) {
@@ -220,7 +226,7 @@ sap.ui.define([
 
 	DynamicPageTitleRenderer._renderSnappedHeading = function (oRm, oDynamicPageTitleState) {
 		oRm.openStart("div", oDynamicPageTitleState.id + "-snapped-heading-wrapper");
-		if (!oDynamicPageTitleState.isSnapped) {
+		if (!oDynamicPageTitleState.isSnapped || (oDynamicPageTitleState.hasSnappedTitleOnMobile && Device.system.phone)) {
 			oRm.class("sapUiHidden");
 		}
 		oRm.openEnd();
@@ -230,6 +236,7 @@ sap.ui.define([
 
 	DynamicPageTitleRenderer._renderExpandContent = function (oRm, oDynamicPageTitleState) {
 		oRm.openStart("div", oDynamicPageTitleState.id + "-expand-wrapper");
+		oRm.class("sapFDynamicPageTitleExpanded");
 		oRm.openEnd();
 		oDynamicPageTitleState.expandedContent.forEach(oRm.renderControl, oRm);
 		oRm.close("div");

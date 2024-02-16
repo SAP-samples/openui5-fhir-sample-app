@@ -1,15 +1,19 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2024 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 // Provides class sap.ui.core.support.Plugin
-sap.ui.define(['sap/ui/base/Object', "sap/ui/thirdparty/jquery", "sap/base/util/uid"],
-	function(BaseObject, jQuery, uid) {
+sap.ui.define([
+	"sap/ui/base/Object",
+	"sap/ui/thirdparty/jquery",
+	"sap/base/util/uid",
+	"sap/m/MessageBox",
+	"sap/ui/core/Lib"
+],
+	function(BaseObject, jQuery, uid, MessageBox, Library) {
 	"use strict";
-
-
 
 	/**
 	 * Creates an instance of sap.ui.core.support.Plugin.
@@ -17,7 +21,7 @@ sap.ui.define(['sap/ui/base/Object', "sap/ui/thirdparty/jquery", "sap/base/util/
 	 *
 	 * @abstract
 	 * @extends sap.ui.base.Object
-	 * @version 1.79.0
+	 * @version 1.120.6
 	 * @private
 	 * @ui5-restricted
 	 * @alias sap.ui.core.support.Plugin
@@ -30,6 +34,7 @@ sap.ui.define(['sap/ui/base/Object', "sap/ui/thirdparty/jquery", "sap/base/util/
 			this._bActive = false;
 			this._aEventIds = [];
 			this._bIsToolPlugin = oStub.isToolStub();
+			this._oStub = oStub;
 		}
 	});
 
@@ -46,9 +51,9 @@ sap.ui.define(['sap/ui/base/Object', "sap/ui/thirdparty/jquery", "sap/base/util/
 	 */
 	Plugin.prototype.init = function(oSupportStub){
 		for (var i = 0; i < this._aEventIds.length; i++) {
-			var fHandler = this["on" + this._aEventIds[i]];
-			if (fHandler && jQuery.isFunction(fHandler)) {
-				oSupportStub.attachEvent(this._aEventIds[i], fHandler, this);
+			var fnHandler = this["on" + this._aEventIds[i]];
+			if (typeof fnHandler === "function") {
+				oSupportStub.attachEvent(this._aEventIds[i], fnHandler, this);
 			}
 		}
 		this._bActive = true;
@@ -65,9 +70,9 @@ sap.ui.define(['sap/ui/base/Object', "sap/ui/thirdparty/jquery", "sap/base/util/
 	 */
 	Plugin.prototype.exit = function(oSupportStub){
 		for (var i = 0; i < this._aEventIds.length; i++) {
-			var fHandler = this["on" + this._aEventIds[i]];
-			if (fHandler && jQuery.isFunction(fHandler)) {
-				oSupportStub.detachEvent(this._aEventIds[i], fHandler, this);
+			var fnHandler = this["on" + this._aEventIds[i]];
+			if (typeof fnHandler === "function") {
+				oSupportStub.detachEvent(this._aEventIds[i], fnHandler, this);
 			}
 		}
 		this._bActive = false;
@@ -170,7 +175,7 @@ sap.ui.define(['sap/ui/base/Object', "sap/ui/thirdparty/jquery", "sap/base/util/
 		if (this.isToolPlugin()) {
 			var jRef = jQuery(document.getElementById(sSuffix ? this.getId() + "-" + sSuffix : this.getId()));
 			if (jRef.length == 0 && !sSuffix) {
-				jRef = jQuery("<DIV/>", {id:this.getId()});
+				jRef = jQuery("<div></div>", {id:this.getId()});
 				jRef.appendTo(jQuery(".sapUiSupportCntnt"));
 			}
 			return jRef;
@@ -179,11 +184,39 @@ sap.ui.define(['sap/ui/base/Object', "sap/ui/thirdparty/jquery", "sap/base/util/
 	};
 
 	/**
+	 * Returns a specific DOM element from the DOM tree of this plugin.
+	 *
+	 * If the parameter <code>sSuffixOrSelector</code> is omitted or nullish,
+	 * then the root of the plugin's DOM tree is returned. If a non-empty string is given that
+	 * qualifies as an identifier, the child element with the ID this.getId() + "-" + sSuffixOrSelector is returned.
+	 * Any other string is interpreted as a selector and the first element matching that selector is returned.
+	 *
+	 * If this is the application-side of the plugin (stub), then undefined is returned.
+	 * @param {string} [sSuffixOrSelector] ID suffix or selector describing the element to retrieve
+	 * @returns {HTMLElement|null} The DOM element
+	 * @private
+	 * @ui5-restricted
+	 */
+	Plugin.prototype.dom = function(sSuffixOrSelector) {
+		if (this.isToolPlugin()) {
+			var oDomRef = document.getElementById(this.getId());
+			if ( sSuffixOrSelector == null ) {
+				return oDomRef;
+			}
+			if ( /^[\w-]+$/.test(sSuffixOrSelector) ) {
+				return document.getElementById(this.getId() + "-" + sSuffixOrSelector);
+			}
+			return oDomRef && oDomRef.querySelector(sSuffixOrSelector);
+		}
+		return null;
+	};
+
+	/**
 	 * Adds the given stylesheet to the Support Tool's HTML page.
 	 *
 	 * A &lt;link&gt; tag will be added to the head of the HTML page, referring to the given
 	 * CSS resource. The URL of the resource is determined from the given resource name
-	 * by calling {@link jQuery.sap.getResourcePath}.
+	 * by calling {@link sap.ui.require.toUrl}.
 	 *
 	 * A plugin should call this method only when it is {@link #runsAsToolPlugin running inside the tool window}.
 	 *
@@ -213,6 +246,21 @@ sap.ui.define(['sap/ui/base/Object', "sap/ui/thirdparty/jquery", "sap/base/util/
 	 */
 	Plugin.prototype.isActive = function(){
 		return this._bActive;
+	};
+
+	Plugin.prototype.confirmReload = function (fnConfirmCb) {
+		MessageBox.confirm(this._getText("TechInfo.ReloadApp.ConfirmMessage"), {
+			title: this._getText("TechInfo.DebugSources.ConfirmTitle"),
+			onClose: function (oAction) {
+				if (oAction === MessageBox.Action.OK) {
+					fnConfirmCb();
+				}
+			}
+		});
+	};
+
+	Plugin.prototype._getText = function (sKey, aParameters) {
+		return Library.getResourceBundleFor("sap.ui.core").getText(sKey, aParameters);
 	};
 
 	return Plugin;

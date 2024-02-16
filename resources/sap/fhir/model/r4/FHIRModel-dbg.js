@@ -1,6 +1,6 @@
 /*!
  * SAP SE
- * (c) Copyright 2009-2021 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2024 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -72,7 +72,7 @@ sap.ui.define([
 	 * @author SAP SE
 	 * @public
 	 * @since 1.0.0
-	 * @version 2.2.8
+	 * @version 2.3.6
 	 */
 	var FHIRModel = Model.extend("sap.fhir.model.r4.FHIRModel", {
 
@@ -189,6 +189,7 @@ sap.ui.define([
 		this.mResourceGroupId = {};
 		this.mContexts = {};
 		this.mMessages = {};
+		this.mRemovedResources = {};
 	};
 
 	/**
@@ -470,7 +471,7 @@ sap.ui.define([
 			sGroupId = oRequestHandle.getBundle().getGroupId();
 			if (oResponse.resource && HTTPMethod.GET === sMethod){
 				oResponse = oResponse.resource;
-			} else {
+			} else if (HTTPMethod.DELETE !== sMethod) {
 				mResponseHeaders = oResponse.response;
 				oResponse = this._updateResourceFromFHIRResponse(mResponseHeaders, oBundleEntry.getFullUrl(), oBundleEntry);
 			}
@@ -1445,7 +1446,7 @@ sap.ui.define([
 		var mParameters = {
 			success: fnExtractVersion,
 			error: function () {
-				oRequestHandle.getRequest().complete(function () {
+				oRequestHandle.getRequest().always(function () {
 					mParameters = {
 						success: fnExtractVersion
 					};
@@ -1494,16 +1495,18 @@ sap.ui.define([
 	 *
 	 * @param {string[]} aResources the resources which shall be deleted, e.g. ["/Patient/123", "/Organization/XYZ"]
 	 * @param {function} [fnPreProcess] to preprocess the objects of the given aResources
+	 * @param {string} [sGroupId] The group where the resource should belongs to
 	 * @public
 	 * @since 1.0.0
 	 */
-	FHIRModel.prototype.remove = function(aResources, fnPreProcess){
-		for (var i = 0; i < aResources.length; i++){
+	FHIRModel.prototype.remove = function (aResources, fnPreProcess, sGroupId) {
+		for (var i = 0; i < aResources.length; i++) {
 			var sResourcePath = fnPreProcess ? fnPreProcess(aResources[i]) : aResources[i];
 			var oBindingInfo = this.getBindingInfo(sResourcePath);
 			var aResPath = oBindingInfo.getResourcePathArray();
 			var oRequestInfo = this._getProperty(this.mChangedResources, aResPath);
-			if (oRequestInfo && oRequestInfo.method == HTTPMethod.POST){
+			var sResourceGroupId = this._getProperty(this.mResourceGroupId, aResPath);
+			if (oRequestInfo && oRequestInfo.method == HTTPMethod.POST) {
 				this._setProperty(this.oData, FHIRUtils.deepClone(aResPath));
 				this._setProperty(this.mResourceGroupId, FHIRUtils.deepClone(aResPath));
 				this._setProperty(this.mChangedResources, FHIRUtils.deepClone(aResPath));
@@ -1511,8 +1514,25 @@ sap.ui.define([
 				this.checkUpdate(true);
 			} else {
 				oRequestInfo = this._createRequestInfo(HTTPMethod.DELETE, oBindingInfo.getResourceServerPath());
-				this._setProperty(this.mChangedResources, FHIRUtils.deepClone(aResPath), oRequestInfo, true);
+				this._setProperty(this.mChangedResources, FHIRUtils.deepClone(aResPath), oRequestInfo, true, sResourceGroupId && sResourceGroupId === sGroupId ? sGroupId : undefined);
+				this._addToRemovedResources(oBindingInfo, sResourcePath);
+				this.checkUpdate(true, this.mChangedResources, oBindingInfo, HTTPMethod.DELETE);
 			}
+		}
+	};
+
+	/**
+	 * Adds the resource path to the removed resources map
+	 *
+	 * @param {sap.fhir.model.r4.lib.BindingInfo} oBindingInfo The binding info object
+	 * @param {string} [sResourcePath] The resource path of the removed resource
+	 * @private
+	 */
+	FHIRModel.prototype._addToRemovedResources = function (oBindingInfo, sResourcePath) {
+		if (!this.mRemovedResources[oBindingInfo.getResourceType()]) {
+			this.mRemovedResources[oBindingInfo.getResourceType()] = [sResourcePath.substring(1)];
+		} else {
+			this.mRemovedResources[oBindingInfo.getResourceType()].unshift(sResourcePath.substring(1));
 		}
 	};
 
@@ -1539,6 +1559,8 @@ sap.ui.define([
 					this._setProperty(this.oData, FHIRUtils.deepClone(aResPath));
 					this._setProperty(this.mResourceGroupId, FHIRUtils.deepClone(aResPath));
 					this._removeFromOrderResources(oBindingInfo);
+				} else if (oRequestInfo.method === HTTPMethod.DELETE){
+					this._removeFromRemovedResources(oBindingInfo);
 				}
 				this._setProperty(this.mChangedResources, FHIRUtils.deepClone(aResPath));
 			}.bind(this);
@@ -1572,6 +1594,7 @@ sap.ui.define([
 	 * Removes a resource from the order resources map
 	 *
 	 * @param {sap.fhir.model.r4.lib.BindingInfo} oBindingInfo The binding info object
+	 * @private
 	 */
 	FHIRModel.prototype._removeFromOrderResources = function(oBindingInfo){
 		var sType = oBindingInfo.getResourceType();
@@ -1580,6 +1603,22 @@ sap.ui.define([
 		this.mOrderResources[sType].splice(iIndex, 1);
 		if (this.mOrderResources[sType].length === 0){
 			delete this.mOrderResources[sType];
+		}
+	};
+
+	/**
+	 * Removes a resource from the removed resources map
+	 *
+	 * @param {sap.fhir.model.r4.lib.BindingInfo} oBindingInfo The binding info object
+	 * @private
+	 */
+	FHIRModel.prototype._removeFromRemovedResources = function (oBindingInfo) {
+		var sType = oBindingInfo.getResourceType();
+		var sId = oBindingInfo.getResourceId();
+		var iIndex = this.mRemovedResources[sType].indexOf(sType + "/" + sId);
+		this.mRemovedResources[sType].splice(iIndex, 1);
+		if (this.mRemovedResources[sType].length === 0) {
+			delete this.mRemovedResources[sType];
 		}
 	};
 
@@ -1646,6 +1685,36 @@ sap.ui.define([
 	 */
 	FHIRModel.prototype.isSecureSearchModeEnabled = function () {
 		return this.bSecureSearch;
+	};
+
+	/**
+	 * @typedef {object} sap.fhir.model.r4.NextLink
+	 * @prop {string} url The url to which the request should fired
+	 * @prop {sap.fhir.model.r4.FHIRListBinding.Parameter | sap.fhir.model.r4.FHIRTreeBinding.Parameter} mParameters The parameters that will be passed as query strings
+	 * @public
+	 * @since 2.3.2
+	 */
+
+	/**
+	 * Determines the next link url should be used
+	 *
+	 * This method might be overridden by the application to provide a customized next link processing because FHIR did not offer a standardized link structure.
+	 * @param {string} sNextLinkUrl The next link url
+	 * @param {string} sPath The FHIR resource path
+	 * @param {sap.fhir.model.r4.FHIRListBinding.Parameter | sap.fhir.model.r4.FHIRTreeBinding.Parameter} mParameters Existing parameters
+	 * @returns {sap.fhir.model.r4.NextLink} Next link object containing the url and parameters
+	 * @public
+	 * @since 2.3.2
+	 */
+	FHIRModel.prototype.getNextLink = function (sNextLinkUrl, sPath, mParameters) {
+		var sQueryParams = sNextLinkUrl.substring(sNextLinkUrl.indexOf("?") + 1, sNextLinkUrl.length);
+		var aParameter = sQueryParams ? sQueryParams.split("&") : [];
+		var aKeyValue;
+		for (var i = 0; i < aParameter.length; i++) {
+			aKeyValue = aParameter[i].split("=");
+			mParameters.urlParameters[aKeyValue[0]] = aKeyValue[1];
+		}
+		return { url: sPath, parameters: mParameters };
 	};
 
 	return FHIRModel;

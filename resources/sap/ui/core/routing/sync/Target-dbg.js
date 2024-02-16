@@ -1,9 +1,9 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2024 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
-sap.ui.define(["sap/base/Log"], function(Log) {
+sap.ui.define(["sap/base/Log", "sap/ui/core/Element"], function(Log, Element) {
 	"use strict";
 
 	/**
@@ -11,6 +11,7 @@ sap.ui.define(["sap/base/Log"], function(Log) {
 	 * @private
 	 * @experimental
 	 * @since 1.33
+	 * @deprecated Since 1.90. Use a {@link sap.ui.core.routing.async.Target async.Target} instead
 	 */
 	return {
 
@@ -50,6 +51,21 @@ sap.ui.define(["sap/base/Log"], function(Log) {
 		},
 
 		/**
+		 * Resumes the object which is loaded by the target.
+		 *
+		 * Currently this function doesn't do anything because the sync
+		 * version of the Target can only load Views but no Components.
+		 *
+		 * @return {sap.ui.core.routing.Target} The 'this' to chain the call
+		 * @private
+		 */
+		resume : function () {
+			// the sync target can only load view and not component
+			// therefore it's not needed to do anything in this function
+			return this;
+		},
+
+		/**
 		 * Places the target on the screen
 		 *
 		 * @param {object} [oParentInfo] The information about the target parent
@@ -72,7 +88,7 @@ sap.ui.define(["sap/base/Log"], function(Log) {
 
 			//no parent view - see if there is a targetParent in the config
 			if (!oViewContainingTheControl && oOptions.rootView) {
-				oViewContainingTheControl = sap.ui.getCore().byId(oOptions.rootView);
+				oViewContainingTheControl = Element.getElementById(oOptions.rootView);
 
 				if (!oViewContainingTheControl) {
 					Log.error("Did not find the root view with the id " + oOptions.rootView, this);
@@ -90,7 +106,7 @@ sap.ui.define(["sap/base/Log"], function(Log) {
 
 				if (!oControl) {
 					//Test if control exists in core (without prefix) since it was not found in the parent or root view
-					oControl =  sap.ui.getCore().byId(oOptions.controlId);
+					oControl =  Element.getElementById(oOptions.controlId);
 				}
 
 				if (!oControl) {
@@ -142,7 +158,6 @@ sap.ui.define(["sap/base/Log"], function(Log) {
 			this.fireDisplay({
 				view : oView,
 				control : oControl,
-				config : this._oOptions,
 				data: vData
 			});
 

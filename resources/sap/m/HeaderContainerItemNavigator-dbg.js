@@ -1,15 +1,12 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2024 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 sap.ui.define([
-	"sap/ui/core/delegate/ItemNavigation",
-	"sap/base/assert",
-	"sap/ui/dom/containsOrEquals",
-	"sap/ui/events/KeyCodes"
-], function (ItemNavigation, assert, containsOrEquals, KeyCodes) {
+	"sap/ui/core/delegate/ItemNavigation"
+], function (ItemNavigation) {
 	"use strict";
 
 	/**
@@ -19,7 +16,7 @@ sap.ui.define([
 	 * @since 1.67.0
 	 *
 	 * @author SAP SE
-	 * @version 1.79.0
+	 * @version 1.120.6
 	 *
 	 * @constructor
 	 * @alias sap.m.HeaderContainerItemNavigator

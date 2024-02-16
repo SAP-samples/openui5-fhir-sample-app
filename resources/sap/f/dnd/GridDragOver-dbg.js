@@ -1,18 +1,24 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2024 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
-sap.ui.define(['sap/ui/base/Object', "sap/ui/thirdparty/jquery", "sap/base/Log"],
-	function(BaseObject, jQuery, Log) {
+sap.ui.define([
+	"sap/ui/base/Object",
+	"sap/ui/thirdparty/jquery",
+	"sap/base/Log",
+	"sap/ui/core/Configuration",
+	"sap/ui/core/Element"
+],
+	function(BaseObject, jQuery, Log, Configuration, Element) {
 	"use strict";
 
 	/**
 	 * Handles dragging of a control over a given grid container.
 	 *
 	 * @author SAP SE
-	 * @version 1.79.0
+	 * @version 1.120.6
 	 *
 	 * @extends sap.ui.base.Object
 	 *
@@ -22,12 +28,14 @@ sap.ui.define(['sap/ui/base/Object', "sap/ui/thirdparty/jquery", "sap/base/Log"]
 	 */
 	var GridDragOver = BaseObject.extend("sap.f.dnd.GridDragOver", {
 		/**
-		 * @type {Number} The timeout to hold on same position, before drop is suggested
+		 * The timeout to hold on same position, before drop is suggested.
+		 * @type {int}
 		 */
 		_iTimeoutBeforeDrop: 200,
 
 		/**
-		 * @type {jQuery} The indicator to show in the grid
+		 * The indicator to show in the grid.
+		 * @type {jQuery}
 		 */
 		_$indicator: jQuery("<div class='sapUiDnDGridIndicator'></div>"),
 
@@ -41,7 +49,9 @@ sap.ui.define(['sap/ui/base/Object', "sap/ui/thirdparty/jquery", "sap/base/Log"]
 			};
 
 			this._oDropContainerDelegate = {
-				ondragleave: this._onDragLeave
+				ondragleave: this._onDragLeave,
+				onBeforeRendering: this._onDropContainerBeforeRendering,
+				onAfterRendering: this._onDropContainerAfterRendering
 			};
 		},
 
@@ -59,9 +69,10 @@ sap.ui.define(['sap/ui/base/Object', "sap/ui/thirdparty/jquery", "sap/base/Log"]
 	 * @param {sap.ui.core.Control} oDragControl The control which is dragged
 	 * @param {sap.ui.core.Control} oDropContainer The drop container
 	 * @param {string} sTargetAggregation The name of the target aggregation inside the drop container
-	 * @returns {sap.f.dnd.GridDragOver} Self for method chaining
+	 * @param {sap.ui.core.DragSession} oCoreDragSession
+	 * @returns {this} Self for method chaining
 	 */
-	GridDragOver.prototype.setCurrentContext = function (oDragControl, oDropContainer, sTargetAggregation) {
+	GridDragOver.prototype.setCurrentContext = function (oDragControl, oDropContainer, sTargetAggregation, oCoreDragSession) {
 		if (this._oDragControl === oDragControl
 			&& this._oDropContainer === oDropContainer
 			&& this._sTargetAggregation === sTargetAggregation) {
@@ -75,11 +86,13 @@ sap.ui.define(['sap/ui/base/Object', "sap/ui/thirdparty/jquery", "sap/base/Log"]
 		}
 
 		this._oDragControl = oDragControl;
+		this._oDragContainer = oDragControl.getParent();
 		this._oDropContainer = oDropContainer;
 		this._sTargetAggregation = sTargetAggregation;
+		this._oCoreDragSession = oCoreDragSession;
 
 		this._mDragItemDimensions = this._getDimensions(oDragControl);
-		this._bIsInSameContainer = oDragControl.getParent() === oDropContainer;
+		this._bIsInSameContainer = this._oDragContainer === this._oDropContainer;
 
 		if (this._bIsInSameContainer) {
 			this._iDragFromIndex = oDropContainer.indexOfAggregation(sTargetAggregation, oDragControl);
@@ -92,6 +105,8 @@ sap.ui.define(['sap/ui/base/Object', "sap/ui/thirdparty/jquery", "sap/base/Log"]
 		});
 
 		this._attachEventDelegates();
+
+		this._hideCoreDefaultIndicator();
 
 		return this;
 	};
@@ -107,6 +122,8 @@ sap.ui.define(['sap/ui/base/Object', "sap/ui/thirdparty/jquery", "sap/base/Log"]
 		if (this._shouldFreeze(oDragEvent.pageX, oDragEvent.pageY)) {
 			return;
 		}
+
+		this._hideCoreDefaultIndicator();
 
 		// propose a drop position
 		var mDropPosition = this._calculateDropPosition(oDragEvent);
@@ -131,7 +148,7 @@ sap.ui.define(['sap/ui/base/Object', "sap/ui/thirdparty/jquery", "sap/base/Log"]
 	};
 
 	/**
-	 * @typedef {Object} DropPosition
+	 * @typedef {object} DropPosition
 	 * @property {sap.ui.core.Control} targetControl The control over which, or next to which is the suggested drop position.
 	 * @property {string} position Is it before or after the target control. Possible values are <code>Before</code> and <code>After</code>.
 	 */
@@ -194,19 +211,15 @@ sap.ui.define(['sap/ui/base/Object', "sap/ui/thirdparty/jquery", "sap/base/Log"]
 			return;
 		}
 
-		this._$indicator.detach();
+		this._hideIndicator();
 
 		// this._oDragControl.setVisible(true); // todo
 		this._showDraggedItem();
 
 		this._removeEventDelegates();
 
-		// fire private event for handling IE specific layout fixes
-		this._oDropContainer.fireEvent("_gridPolyfillAfterDragEnd", {
-			indicator: this._$indicator
-		});
+		this._resetCoreDefaultIndicator();
 
-		this._$indicator.attr("style", ""); // VirtualGrid sets position 'absolute' to the indicator, which breaks calculations in other containers, such as GridList
 		this._mDropIndicatorSize = null;
 		this._oDragControl = null;
 		this._oDropContainer = null;
@@ -216,11 +229,12 @@ sap.ui.define(['sap/ui/base/Object', "sap/ui/thirdparty/jquery", "sap/base/Log"]
 		this._iDropPositionHoldStart = null;
 		this._mLastDropPosition = null;
 		this._mFreezePosition = null;
+		this._oCoreDragSession = null;
 	};
 
 	/**
 	 * Is the drag still active or it has ended.
-	 * @returns {bool} True if the drag is still active, false if it was ended.
+	 * @returns {boolean} True if the drag is still active, false if it was ended.
 	 */
 	GridDragOver.prototype._isDragActive = function() {
 		return this._oDragControl && this._oDropContainer;
@@ -232,13 +246,17 @@ sap.ui.define(['sap/ui/base/Object', "sap/ui/thirdparty/jquery", "sap/base/Log"]
 	 * @param {jQuery.Event} oDragEvent The jQuery drag event.
 	 */
 	GridDragOver.prototype._showIndicator = function(mDropPosition, oDragEvent) {
-		var $targetGridItem = this._findContainingGridItem(mDropPosition.targetControl),
-			$insertTarget = $targetGridItem || mDropPosition.targetControl.$(),
+		var oDropContainer = this._oDropContainer,
+			oDropContainerDomRef = oDropContainer.getDomRefForSetting(this._sTargetAggregation) || oDropContainer.getDomRef(),
+			oTargetControl = mDropPosition.targetControl,
+			iTargetIndex = oDropContainer.indexOfAggregation(this._sTargetAggregation, oTargetControl),
+			$targetGridItem,
+			$insertTarget,
 			mStyles;
 
-		if (this._oDropContainer.isA("sap.f.GridContainer")) {
-			// todo: find better way to find the item wrapper when it is not grid item, needed for IE
-			$insertTarget = $insertTarget.closest(".sapFGridContainerItemWrapper");
+		if (oTargetControl) {
+			$targetGridItem = this._findContainingGridItem(oTargetControl);
+			$insertTarget = $targetGridItem || oTargetControl.$();
 		}
 
 		if (this._mDropIndicatorSize) {
@@ -246,7 +264,7 @@ sap.ui.define(['sap/ui/base/Object', "sap/ui/thirdparty/jquery", "sap/base/Log"]
 				"grid-row-start": "span " + this._mDropIndicatorSize.rows,
 				"grid-column-start": "span " + this._mDropIndicatorSize.columns
 			};
-		} else if ($targetGridItem) { // target container is a grid
+		} else {
 			// indicator should be the same size as dragged item
 			mStyles = {
 				"grid-column-start": this._mDragItemDimensions.columnsSpan,
@@ -258,34 +276,28 @@ sap.ui.define(['sap/ui/base/Object', "sap/ui/thirdparty/jquery", "sap/base/Log"]
 			this._$indicator.css(mStyles);
 		}
 
-		if (mDropPosition.position == "Before") {
+		if ($insertTarget && mDropPosition.position == "Before") {
 			this._$indicator.insertBefore($insertTarget);
-		} else {
+		} else if ($insertTarget) {
 			this._$indicator.insertAfter($insertTarget);
+			iTargetIndex += 1;
+		} else {
+			oDropContainerDomRef.appendChild(this._$indicator[0]);
 		}
 
 		this._$indicator.show();
 
 		// when drop indicator is shown, it becomes the new "drag from"
-		this._iDragFromIndex = this._$indicator.index();
+		this._iDragFromIndex = iTargetIndex;
+	};
 
-		/* IE Polyfill */
+	/**
+	 * Removes the indicator from the drop container.
+	 */
+	GridDragOver.prototype._hideIndicator = function() {
+		this._$indicator.detach();
 
-		// Let the container decide the dimensions of the indicator.
-		var oEventData = {
-			indicator: this._$indicator
-		};
-
-		if (this._mDropIndicatorSize) {
-			oEventData.rows = this._mDropIndicatorSize.rows;
-			oEventData.columns = this._mDropIndicatorSize.columns;
-		} else {
-			oEventData.width = this._mDragItemDimensions.rect.width;
-			oEventData.height = this._mDragItemDimensions.rect.height;
-		}
-
-		// fire private event for handling IE specific layout fixes
-		this._oDropContainer.fireEvent("_gridPolyfillAfterDragOver", oEventData);
+		this._$indicator.attr("style", ""); // Clear styles of the indicator that are set by containers, like position "absolute"
 	};
 
 	/**
@@ -293,10 +305,12 @@ sap.ui.define(['sap/ui/base/Object', "sap/ui/thirdparty/jquery", "sap/base/Log"]
 	 */
 	GridDragOver.prototype._hideDraggedItem = function() {
 		this._oDragControl.$().hide();
+
 		// this._oDragControl.setVisible(false); // todo, this brakes the drag session
 
 		var $gridItem = this._findContainingGridItem(this._oDragControl);
-		if ($gridItem) {
+
+		if ($gridItem && this._bIsInSameContainer) {
 			$gridItem.hide();
 		}
 	};
@@ -309,6 +323,7 @@ sap.ui.define(['sap/ui/base/Object', "sap/ui/thirdparty/jquery", "sap/base/Log"]
 		if (this._oDragControl.getDomRef()) {
 			this._oDragControl.$().show();
 		}
+
 		// this._oDragControl.setVisible(false); // todo, this brakes the drag session
 
 		var $gridItem = this._findContainingGridItem(this._oDragControl);
@@ -316,6 +331,40 @@ sap.ui.define(['sap/ui/base/Object', "sap/ui/thirdparty/jquery", "sap/base/Log"]
 			$gridItem.show();
 		}
 
+	};
+
+	/**
+	 * Hide original indicator.
+	 */
+	GridDragOver.prototype._hideCoreDefaultIndicator = function() {
+		var oCoreDefaultIndicator = this._oCoreDragSession.getIndicator(),
+			mStyles = {
+				visibility: "hidden",
+				position: "relative" // this prevents a scroll to appear sometimes on the page
+			};
+
+		this._oCoreDragSession.setIndicatorConfig(mStyles);
+
+		if (oCoreDefaultIndicator) {
+			jQuery(oCoreDefaultIndicator).css(mStyles);
+		}
+	};
+
+	/**
+	 * Resets the indicator used by the core drag and drop.
+	 */
+	GridDragOver.prototype._resetCoreDefaultIndicator = function() {
+		var oCoreDefaultIndicator = this._oCoreDragSession.getIndicator(),
+			mStyles = {
+				visibility: "visible",
+				position: "absolute"
+			};
+
+		this._oCoreDragSession.setIndicatorConfig(mStyles);
+
+		if (oCoreDefaultIndicator) {
+			jQuery(oCoreDefaultIndicator).css(mStyles);
+		}
 	};
 
 	/**
@@ -339,8 +388,8 @@ sap.ui.define(['sap/ui/base/Object', "sap/ui/thirdparty/jquery", "sap/base/Log"]
 
 	/**
 	 * Prevents infinite move of position, caused by the rearrangement.
-	 * @param {Number} iPageX Mouse x
-	 * @param {Number} iPageY Mouse y
+	 * @param {number} iPageX Mouse x
+	 * @param {number} iPageY Mouse y
 	 * @returns {boolean} Should suggested position freeze
 	 */
 	GridDragOver.prototype._shouldFreeze = function(iPageX, iPageY) {
@@ -355,8 +404,8 @@ sap.ui.define(['sap/ui/base/Object', "sap/ui/thirdparty/jquery", "sap/base/Log"]
 	/**
 	 * Prevents infinite move of position, caused by the rearrangement.
 	 * Saves the current position
-	 * @param {Number} iPageX Mouse x
-	 * @param {Number} iPageY Mouse y
+	 * @param {number} iPageX Mouse x
+	 * @param {number} iPageY Mouse y
 	 */
 	GridDragOver.prototype._freezeCurrentPosition = function(iPageX, iPageY) {
 		this._mFreezePosition = {
@@ -394,12 +443,20 @@ sap.ui.define(['sap/ui/base/Object', "sap/ui/thirdparty/jquery", "sap/base/Log"]
 			sBeforeOrAfter = "After";
 		}
 
+		if (!$target) {
+			// an empty grid
+			return {
+				targetControl: null,
+				position: "After"
+			};
+		}
+
 		if ($target.hasClass("sapUiDnDGridIndicator")) {
 			// the indicator is the target
 			return null;
 		}
 
-		oTargetControl = $target.control(0, true);
+		oTargetControl = Element.closestTo($target[0], true);
 
 		if (!sBeforeOrAfter) {
 			sBeforeOrAfter = this._calculateDropBeforeOrAfter(oTargetControl, oDragEvent);
@@ -509,7 +566,7 @@ sap.ui.define(['sap/ui/base/Object', "sap/ui/thirdparty/jquery", "sap/base/Log"]
 		var aItems = this._oDropContainer.getAggregation(this._sTargetAggregation),
 			$target;
 
-		if (aItems.length) {
+		if (aItems && aItems.length) {
 			$target = aItems[aItems.length - 1].$();
 		}
 
@@ -518,12 +575,12 @@ sap.ui.define(['sap/ui/base/Object', "sap/ui/thirdparty/jquery", "sap/base/Log"]
 
 	/**
 	 * Gets the control from target aggregation which is on the given position (if any).
-	 * @param {Number} iPageX Mouse x
-	 * @param {Number} iPageY Mouse y
+	 * @param {number} iPageX Mouse x
+	 * @param {number} iPageY Mouse y
 	 * @returns {jQuery|null} The jQuery ref of the control which is on this position
 	 */
 	GridDragOver.prototype._findItemFromPoint = function(iPageX, iPageY) {
-		var oOverElement = document.elementFromPoint(iPageX, iPageY),
+		var oOverElement = document.elementFromPoint(iPageX - window.pageXOffset, iPageY - window.pageYOffset),
 			$closestItem = jQuery(oOverElement).closest(".sapUiDnDGridControl, .sapUiDnDGridIndicator");
 
 		if ($closestItem.hasClass("sapUiDnDGridIndicator")) {
@@ -540,15 +597,15 @@ sap.ui.define(['sap/ui/base/Object', "sap/ui/thirdparty/jquery", "sap/base/Log"]
 
 	/**
 	 * Gets the closest control from target aggregation which is on the given position (if any).
-	 * @param {Number} iPageX Mouse x
-	 * @param {Number} iPageY Mouse y
+	 * @param {number} iPageX Mouse x
+	 * @param {number} iPageY Mouse y
 	 * @returns {jQuery|null} The jQuery ref of the control which is closest to this position
 	 */
 	GridDragOver.prototype._findClosestItem = function(iPageX, iPageY) {
 		// note: this method can be improved, currently it handles most of the cases, but not all of them
 
 		// try around
-		var bIsRtl = sap.ui.getCore().getConfiguration().getRTL(),
+		var bIsRtl = Configuration.getRTL(),
 			iIsRtlModifier = bIsRtl ? -1 : 1,
 			iStepX = 80 * iIsRtlModifier, // px
 			iStepY = 20, // px
@@ -607,7 +664,7 @@ sap.ui.define(['sap/ui/base/Object', "sap/ui/thirdparty/jquery", "sap/base/Log"]
 	 * @param {jQuery.Event} oEvent The jQuery dragleave event.
 	 */
 	GridDragOver.prototype._onDragLeave = function(oEvent) {
-		var oElement = document.elementFromPoint(oEvent.pageX, oEvent.pageY),
+		var oElement = document.elementFromPoint(oEvent.pageX - window.pageXOffset, oEvent.pageY - window.pageYOffset),
 			bIsElementWithinDropContainer = this._oDropContainer.getDomRef().contains(oElement);
 
 		// Check if element from point is inside the drop container, because dragleave
@@ -617,6 +674,34 @@ sap.ui.define(['sap/ui/base/Object', "sap/ui/thirdparty/jquery", "sap/base/Log"]
 		}
 	};
 
+	/**
+	 * Before drop container rendering.
+	 * Handles the case when the drop container is invalidated during drag and drop.
+	 */
+	GridDragOver.prototype._onDropContainerBeforeRendering = function() {
+		if (!this._isDragActive()) {
+			return;
+		}
+
+		// Hides the indicator from the drop container so it does not brake the semantic rendering.
+		this._hideIndicator();
+	};
+
+	/**
+	 * After drop container rendering.
+	 * Handles the case when the drop container is invalidated during drag and drop.
+	 */
+	GridDragOver.prototype._onDropContainerAfterRendering = function() {
+		if (!this._isDragActive()) {
+			return;
+		}
+
+		this._hideDraggedItem();
+
+		if (this._mLastDropPosition) {
+			this._showIndicator(this._mLastDropPosition);
+		}
+	};
 
 	/**
 	 * Holds the instance of the current drag.

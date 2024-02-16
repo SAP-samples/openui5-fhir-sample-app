@@ -3,25 +3,56 @@
 /* Quartz Dark theme                  */
 /* ================================== */
 
+.sapFDynamicPageContent,
+.sapFDynamicPageContentFitContainer {
+	padding: 1rem 2rem 0 2rem;
+}
+
+.sapFDynamicPage-Std-Desktop-XL {
+	.sapFDynamicPageContent,
+	.sapFDynamicPageContentFitContainer {
+		padding: 1rem 3rem 0 3rem;
+	}
+}
+
+.sapFDynamicPage.sapUiResponsiveContentPadding {
+	&.sapFDynamicPage-Std-Phone {
+		.sapFDynamicPageContent,
+		.sapFDynamicPageContentFitContainer {
+			padding-left: 1rem;
+			padding-right: 1rem;
+		}
+	}
+
+	&.sapFDynamicPage-Std-Tablet {
+		.sapFDynamicPageContent,
+		.sapFDynamicPageContentFitContainer {
+			padding-left: 2rem;
+			padding-right: 2rem;
+		}
+	}
+
+	&.sapFDynamicPage-Std-Desktop-XL {
+		.sapFDynamicPageContent,
+		.sapFDynamicPageContentFitContainer {
+			padding-left: 3rem;
+			padding-right: 3rem;
+		}
+	}
+}
+
 .sapFDynamicPage {
 	.sapFDynamicPageContentWrapperSolid>.sapFDynamicPageContent {
 		background: @sapUiShellBackground;
 	}
 
 	// DynamicPageTitle and Toggle Header Visual Indicator hover state
-	&.sapFDynamicPageTitleClickEnabled {
-		&.sapFDynamicPageTitleForceHovered .sapFDynamicPageTitle {
-			.title-hover(@sapUiObjectHeaderBackground);
+	&.sapFDynamicPageTitleClickEnabled.sapFDynamicPageTitleForceHovered {
+		.sapFDynamicPageTitle,
+		.sapFDynamicPageTitleTranslucent,
+		.sapFDynamicPageTitleTransparent {
+			background-color: @sapUiObjectHeaderHoverBackground;
 		}
-
-		&.sapFDynamicPageTitleForceHovered .sapFDynamicPageTitleTranslucent {
-			.title-hover(@sapUiObjectHeaderBackground);
-		}
-
-		&.sapFDynamicPageTitleForceHovered .sapFDynamicPageTitleTransparent {
-			.title-hover(transparent);
-		}
-
 	}
 }
 
@@ -30,7 +61,7 @@
 }
 
 .sapFDynamicPageToggleHeaderIndicator,
-.sapFDynamicPage:not(.sapFDynamicPageTitleClickEnabled) .sapFDynamicPageHeaderPinButton {
+.sapFDynamicPageToggleHeaderIndicator.sapUiHidden ~ .sapFDynamicPageHeaderPinButton {
 	margin-left: -0.75rem;
 }
 
@@ -44,6 +75,7 @@
 	height: 2rem;
 	bottom: -0.95rem; // needs refactoring in the base file
 
+	// Reflection: styles overwritten
 	.sapMBtnInner {
 		min-width: 1.5rem;
 		width: 1.5rem;
@@ -92,6 +124,7 @@ html[data-sap-ui-browser^="cr"] .sapFDynamicPageHeaderPinButton {
 	.sapFDynamicPageHeaderPinButton {
 		bottom: -0.95rem; // needs refactoring in the base file
 
+		// Reflection: styles overwritten
 		.sapMBtnInner {
 			bottom: 0.25rem;
 		}
@@ -107,10 +140,6 @@ html[data-sap-ui-browser^="cr"] .sapFDynamicPageHeaderPinButton {
 	color: @sapUiPageFooterTextColor;
 	box-shadow: @sapUiShadowLevel1;
 	border: none;
-}
-
-.title-hover(@backgroundColor) {
-	background-color: lighten(@backgroundColor, 2);
 }
 
 /* Vertically align items in the table-like view with the items in the sap.m.Carousel control.

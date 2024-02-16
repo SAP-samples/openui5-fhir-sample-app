@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2024 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -19,13 +19,12 @@ sap.ui.define(["sap/ui/core/Element"],
 	 * @extends sap.ui.core.Element
 	 *
 	 * @author SAP SE
-	 * @version 1.79.0
+	 * @version 1.120.6
 	 *
 	 * @constructor
 	 * @public
 	 * @alias sap.m.FeedListItemAction
 	 * @since 1.52.0
-	 * @ui5-metamodel This element will be described in the UI5 (legacy) designtime metamodel as well
 	 */
 	var FeedListItemAction = Element.extend("sap.m.FeedListItemAction", /** @lends sap.m.FeedListItemAction.prototype */ {
 		metadata: {
@@ -44,7 +43,16 @@ sap.ui.define(["sap/ui/core/Element"],
 				/**
 				 * The key of the item.
 				 */
-				key: { type: "string", group: "Misc", defaultValue: "" }
+				key: { type: "string", group: "Misc", defaultValue: "" },
+				/**
+				 * Hides or shows a button on the UI.
+				 */
+				visible: { type: "boolean", group: "Appearance", defaultValue: true },
+				/**
+				 * Enables or disables a button on the UI. All buttons are enabled by default.
+				 * Disabled buttons are colored differently as per the theme of the UI.
+				 */
+				enabled: { type: "boolean", group: "Appearance", defaultValue: true }
 			},
 			events: {
 				/**

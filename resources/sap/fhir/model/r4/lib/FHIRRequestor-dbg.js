@@ -1,6 +1,6 @@
 /*!
  * SAP SE
- * (c) Copyright 2009-2021 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2024 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -36,7 +36,7 @@ sap.ui.define([
 	 * @constructs {FHIRRequestor} Provides the implementation of the FHIR Requestor to send and retrieve content from a FHIR server
 	 * @protected
 	 * @since 1.0.0
-	 * @version 2.2.8
+	 * @version 2.3.6
 	 */
 	var FHIRRequestor = function(sServiceUrl, oModel, bCSRF, sPrefer, oDefaultQueryParams) {
 		this._mBundleQueue = {};
@@ -120,7 +120,7 @@ sap.ui.define([
 		}
 
 		// it's a direct call
-		oRequestHandle = this._sendRequest(sMethod, sPath, mParameters, mHeaders, oPayload, fnSuccess, fnError, oBinding);
+		oRequestHandle = this._sendRequest(sMethod, sPath, mParameters, mHeaders, sMethod === HTTPMethod.PUT || sMethod == HTTPMethod.POST ? oPayload : undefined, fnSuccess, fnError, oBinding);
 		return oRequestHandle;
 	};
 
@@ -153,7 +153,12 @@ sap.ui.define([
 			sETag = oBindingInfo.getETag();
 		}
 		var oFHIRBundleRequest = new FHIRBundleRequest(oBinding, sMethod, sRequestUrl, fnSuccess, fnError, sETag);
-		var oFHIRBundleEntry = new FHIRBundleEntry(sFullUrl, oResource, oFHIRBundleRequest);
+		var oFHIRBundleEntry;
+		if (sMethod == HTTPMethod.POST || sMethod == HTTPMethod.PUT) {
+			oFHIRBundleEntry = new FHIRBundleEntry(sFullUrl, oResource, oFHIRBundleRequest);
+		} else {
+			oFHIRBundleEntry = new FHIRBundleEntry(sFullUrl, undefined, oFHIRBundleRequest);
+		}
 		return oFHIRBundleEntry;
 	};
 
@@ -320,8 +325,7 @@ sap.ui.define([
 	FHIRRequestor.prototype._ajax = function(oRequestHandle, mParameters, fnSuccess, fnError) {
 		var jqXHR = jQuery.ajax(mParameters);
 		if (!oRequestHandle.isAborted()) {
-			jqXHR.complete(function (oGivenRequestHandle) {
-				this.oModel.fireRequestCompleted(this._createEventParameters(oGivenRequestHandle));
+			jqXHR.always(function (oGivenRequestHandle) {
 			}.bind(this, oRequestHandle));
 			this._add(oRequestHandle, fnSuccess, fnError);
 			this._aPendingRequestHandles.push(oRequestHandle);
@@ -343,12 +347,16 @@ sap.ui.define([
 		jqXHR.done(function(oGivenRequestHandle){
 			this._deleteRequestHandle(oGivenRequestHandle);
 			fnSuccess(oGivenRequestHandle);
+			if (!oGivenRequestHandle.isAborted()) {
+				this.oModel.fireRequestCompleted(this._createEventParameters(oGivenRequestHandle));
+			}
 		}.bind(this, oRequestHandle));
 		jqXHR.fail(function(oGivenRequestHandle) {
 			this._deleteRequestHandle(oGivenRequestHandle);
 			fnError(oGivenRequestHandle);
 			if (!oGivenRequestHandle.isAborted()) {
 				this.oModel.fireRequestFailed(this._createEventParameters(oGivenRequestHandle));
+				this.oModel.fireRequestCompleted(this._createEventParameters(oGivenRequestHandle));
 			}
 		}.bind(this, oRequestHandle));
 	};
@@ -464,7 +472,7 @@ sap.ui.define([
 			mParameters = merge(mParameters, this.oDefaultQueryParams);
 		}
 
-		if (!this._isFormatSupported(mParameters._format)) {
+		if (!this._isFormatSupported(mParameters._format) && sMethod !== HTTPMethod.DELETE) {
 			mParameters._format = "json";
 		}
 
@@ -480,7 +488,7 @@ sap.ui.define([
 			}
 		}.bind(this));
 
-		return "?" + aQuery.join("&");
+		return aQuery.length > 0 ? "?" + aQuery.join("&") : "";
 	};
 
 	/**
@@ -628,7 +636,7 @@ sap.ui.define([
 		// if the method is GET, secure search is enabled
 		// convert the path to _search and all the url paramters will be converted to POST form data
 		// except ValueSet/$expand or specific operations  like Patient/53/_history
-		return sMethod == HTTPMethod.GET && this.oModel.isSecureSearchModeEnabled() && oFHIRUrl.isSearchAtBaseLevel() && !this._isCsrfTokenRequest();
+		return sMethod == HTTPMethod.GET && this.oModel.isSecureSearchModeEnabled() && oFHIRUrl.isSearchAtBaseLevel() && !this._isCsrfTokenRequest() && !oFHIRUrl.isMetadataRequest();
 	};
 
 	return FHIRRequestor;

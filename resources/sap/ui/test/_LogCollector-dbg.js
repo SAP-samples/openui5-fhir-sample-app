@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2024 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.define([
@@ -15,7 +15,7 @@ sap.ui.define([
 
 	/**
 	 * A central place to collect logs during the execution of a task
-	 * Listens to jQuery.sap.log.* to collect the logs
+	 * Listens to sap/base/Log.* to collect the logs
 	 * Only collects logs from loggers with a certain component name
 	 * By default only logs from components in sap.ui.test are collected - this can be used to collect all the logs during an OPA test
 	 * You always need to start the collector to control when to actually collect logs
@@ -28,6 +28,7 @@ sap.ui.define([
 	*/
 	var _LogCollector = UI5Object.extend("sap.ui.test._LogCollector", {
 		constructor: function (sMessagePattern) {
+			UI5Object.call(this);
 			this._aLogs = [];
 			if (sMessagePattern) {
 				this._oListener = getCustomListener(sMessagePattern, this._aLogs);

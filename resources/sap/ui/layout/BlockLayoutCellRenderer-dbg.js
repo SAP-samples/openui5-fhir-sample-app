@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2024 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -84,7 +84,7 @@ sap.ui.define(['./library', 'sap/ui/core/library', "sap/base/Log"],
 
 				var level = blockLayoutCell.getTitleLevel(),
 					autoLevel = level === TitleLevel.Auto,
-					tag = autoLevel ? "h2" : level;
+					tag = autoLevel ? "h2" : level.toLowerCase();
 
 				var aTitleClassesSeparated = titleClass.split(" ");
 
@@ -123,10 +123,6 @@ sap.ui.define(['./library', 'sap/ui/core/library', "sap/base/Log"],
 
 			if (blockLayoutCell.getTitleAlignment() === "Center") {
 				rm.class("sapUiBlockCellCenteredContent");
-			}
-
-			if (bHasTitle) {
-				rm.attr("aria-labelledby", this.getTitleId(blockLayoutCell));
 			}
 
 			rm.openEnd();

@@ -1,20 +1,22 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2024 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 // Provides control sap.m.Avatar.
 sap.ui.define([
-
     "sap/ui/core/Control",
     "sap/ui/core/IconPool",
     "./AvatarRenderer",
     "sap/ui/events/KeyCodes",
     "sap/base/Log",
     "sap/ui/core/Icon",
-    "./library"
-], function(Control, IconPool, AvatarRenderer, KeyCodes, Log, Icon, library) {
+    "./library",
+	"sap/ui/core/library",
+	'sap/ui/core/InvisibleText',
+	'sap/m/imageUtils/getCacheBustedUrl'
+], function(Control, IconPool, AvatarRenderer, KeyCodes, Log, Icon, library, coreLibrary, InvisibleText, getCacheBustedUrl) {
 	"use strict";
 
 	// shortcut for sap.m.AvatarType
@@ -31,6 +33,12 @@ sap.ui.define([
 
 	// shortcut for sap.m.AvatarShape
 	var AvatarShape = library.AvatarShape;
+
+	// shortcut for sap.ui.core.aria.HasPopup
+	var AriaHasPopup = coreLibrary.aria.HasPopup;
+
+	// shortcut for sap.ui.core.ValueState
+	var ValueState = coreLibrary.ValueState;
 
 	// shortcut for Accent colors keys only (from AvatarColor enum)
 	var AccentColors = Object.keys(AvatarColor).filter(function (sCurrColor) {
@@ -58,8 +66,8 @@ sap.ui.define([
 	 *
 	 * <h3>Usage</h3>
 	 *
-	 * Up to two Latin letters can be displayed as initials in an <code>Avatar</code>. If there
-	 * are more than two letters, or if there's a non-Latin character present, a default image
+	 * Up to three Latin letters can be displayed as initials in an <code>Avatar</code>. If there
+	 * are more than three letters, or if there's a non-Latin character present, a default image
 	 * placeholder will be created.
 	 *
 	 * There are two options for how the displayed image can fit inside the
@@ -76,14 +84,13 @@ sap.ui.define([
 	 * @extends sap.ui.core.Control
 	 *
 	 * @author SAP SE
-	 * @version 1.79.0
+	 * @version 1.120.6
 	 *
 	 * @constructor
 	 * @public
 	 * @since 1.73
 	 * @see {@link fiori:https://experience.sap.com/fiori-design-web/avatar/ Avatar}
 	 * @alias sap.m.Avatar
-	 * @ui5-metamodel This control/element also will be described in the UI5 (legacy) designtime metamodel
 	 */
 	var Avatar = Control.extend("sap.m.Avatar", {
 		metadata: {
@@ -94,7 +101,7 @@ sap.ui.define([
 				 */
 				src: {type: "sap.ui.core.URI", group: "Data", defaultValue: null},
 				/**
-				 * Defines the displayed initials.
+				 * Defines the displayed initials. They should consist of only 1,2 or 3 latin letters.
 				 */
 				initials: {type: "string", group: "Data", defaultValue: null},
 				/**
@@ -133,9 +140,6 @@ sap.ui.define([
 				fallbackIcon: {type: "string", group: "Data", defaultValue: null},
 				/**
 				 * Determines the background color of the control.
-				 *
-				 * <b>Note:</b> By using background colors from the predefined sets,
-				 * your colors can later be customized from the Theme Designer.
 				 */
 				backgroundColor: {type: "sap.m.AvatarColor", group: "Appearance", defaultValue: AvatarColor.Accent6},
 
@@ -167,8 +171,54 @@ sap.ui.define([
 				 *
 				 * @since 1.77
 				 */
-				badgeTooltip: {type: "string", group: "Data", defaultValue: null}
+				badgeTooltip: {type: "string", group: "Data", defaultValue: null},
+				/**
+				 * Defines whether the <code>sap.m.Avatar</code> is used for decorative purposes and is ignored by accessibility tools.
+				 *
+				 * <b>Note:</b> This property doesn't take effect if <code>sap.m.Avatar</code> has a <code>press</code> handler.
+				 *
+				 * @since 1.97
+				 */
+				decorative : {type : "boolean", group : "Accessibility", defaultValue : false},
 
+				/**
+				 * Specifies the value of the <code>aria-haspopup</code> attribute
+				 *
+				 * If the value is <code>None</code>, the attribute will not be rendered. Otherwise it will be rendered with the selected value.
+				 *
+				 * NOTE: Use this property only when an avatar is related to a popover/popup. The value needs to be equal to the main/root role of the popup - e.g. dialog,
+				 * menu or list (examples: if you have dialog -> dialog, if you have menu -> menu; if you have list -> list; if you have dialog containing a list -> dialog).
+				 * Do not use it, if you open a standard sap.m.Dialog, MessageBox or other type of dialogs displayed as on overlay over the application.
+				 *
+				 * @since 1.99.0
+				 */
+				ariaHasPopup : {type : "sap.ui.core.aria.HasPopup", group : "Accessibility", defaultValue : AriaHasPopup.None},
+
+				/**
+				 * Visualizes the validation state of the badge, e.g. <code>Error</code>, <code>Warning</code>,
+				 * <code>Success</code>, <code>Information</code>.
+				 * @since 1.116.0
+				 */
+				badgeValueState: {
+					type: "sap.ui.core.ValueState",
+					group: "Appearance",
+					defaultValue: ValueState.None
+				},
+
+				/**
+				 * Determines whether the <code>Avatar</code> is enabled (default is set to <code>true</code>).
+				 * A disabled <code>Button</code> has different colors depending on the {@link sap.m.AvatarColor AvatarColor}.
+				 * @since 1.117.0
+				 */
+				enabled : {type : "boolean", group : "Behavior", defaultValue : true},
+
+				/**
+				 * Determines whether the <code>Avatar</code> is active/toggled (default is set to <code>false</code>).
+				 * Active state is meant to be toggled when user clicks on the <code>Avatar</code>.
+				 * The Active state is only applied, when the <code>Avatar</code> has <code>press</code> listeners.
+				 * @since 1.120.0
+				 */
+				active : {type : "boolean", group : "Behavior", defaultValue : false}
 			},
 			aggregations : {
 				/**
@@ -182,7 +232,12 @@ sap.ui.define([
 				 * A <code>sap.ui.core.Icon</code> instance that shows the badge icon of the <code>Avatar</code> control.
 				 * @private
 				 */
-				_badge: {type: "sap.ui.core.Icon", multiple: false, visibility: "hidden"}
+				_badge: {type: "sap.ui.core.Icon", multiple: false, visibility: "hidden"},
+				/**
+				 * A <code>sap.ui.core.Icon</code> instance that shows the icon of the <code>Avatar</code> control.
+				 * @private
+				 */
+				_icon: {type: "sap.ui.core.Icon", multiple: false, visibility: "hidden"}
 			},
 			associations : {
 				/**
@@ -203,7 +258,9 @@ sap.ui.define([
 			},
 			dnd: { draggable: true, droppable: false },
 			designtime: "sap/m/designtime/Avatar.designtime"
-		}
+		},
+
+		renderer: AvatarRenderer
 	});
 
 	/**
@@ -231,7 +288,6 @@ sap.ui.define([
 		"sap-icon://edit": sap.ui.getCore().getLibraryResourceBundle("sap.m").getText("AVATAR_TOOLTIP_EDIT")
 	};
 
-
 	Avatar.prototype.init = function () {
 		// Property holding the actual display type of the avatar
 		this._sActualType = null;
@@ -246,10 +302,21 @@ sap.ui.define([
 		this._badgeRef = null;
 	};
 
-	Avatar.prototype.exit = function () {
-		if (this._icon) {
-			this._icon.destroy();
+	Avatar.prototype.onBeforeRendering = function () {
+		if (this._getImageCustomData() && !this._iCacheBustingValue) {
+			this._setNewCacheBustingValue();
 		}
+	};
+
+	Avatar.prototype.onAfterRendering = function() {
+		this._checkInitialsHolderWidth();
+	};
+
+	Avatar.prototype.onThemeChanged = function() {
+		this._checkInitialsHolderWidth();
+	};
+
+	Avatar.prototype.exit = function () {
 		if (this._fnLightBoxOpen) {
 			this._fnLightBoxOpen = null;
 		}
@@ -258,13 +325,18 @@ sap.ui.define([
 			this._badgeRef.destroy();
 		}
 
+		if (this._oInvisibleText) {
+			this._oInvisibleText.destroy();
+			this._oInvisibleText = null;
+		}
+
 		this._sPickedRandomColor = null;
 	};
 
 	/**
 	 * Sets the <code>detailBox</code> aggregation.
 	 * @param {sap.m.LightBox|undefined} oLightBox - Instance of the <code>LightBox</code> control or undefined
-	 * @returns {object} <code>this</code> for chaining
+	 * @returns {this} <code>this</code> for chaining
 	 * @override
 	 * @public
 	 */
@@ -292,6 +364,16 @@ sap.ui.define([
 		}
 
 		return this.setAggregation("detailBox", oLightBox);
+	};
+
+	Avatar.prototype.setBadgeValueState = function(sValue) {
+
+		Object.keys(ValueState).forEach(function(val){
+			this.toggleStyleClass('sapFAvatar' + val, val === sValue);
+		}.bind(this));
+
+		this.setProperty("badgeValueState", sValue, true);
+		return this;
 	};
 
 	/*
@@ -346,7 +428,7 @@ sap.ui.define([
 	 * @private
 	 */
 	Avatar.prototype.ontap = function () {
-		this.firePress({/* no parameters */});
+		this._handlePress();
 	};
 
 	/**
@@ -366,7 +448,7 @@ sap.ui.define([
 		}
 
 		if (oEvent.which === KeyCodes.ENTER) {
-			this.firePress({/* no parameters */});
+			this._handlePress();
 		}
 	};
 
@@ -379,7 +461,7 @@ sap.ui.define([
 	Avatar.prototype.onkeyup = function (oEvent) {
 		if (oEvent.which === KeyCodes.SPACE) {
 			if (!this._bShouldInterupt) {
-				this.firePress({/* no parameters */});
+				this._handlePress();
 			}
 
 			this._bShouldInterupt = false;
@@ -390,6 +472,13 @@ sap.ui.define([
 		}
 	};
 
+	Avatar.prototype._handlePress = function () {
+		if (!this.getEnabled()) {
+			return;
+		}
+		this.firePress({/* no parameters */});
+	};
+
 	/**
 	 * Checks the validity of the <code>initials</code> parameter and returns <code>true</code> if the
 	 * initials are correct.
@@ -398,10 +487,10 @@ sap.ui.define([
 	 * @returns {boolean} The initials are valid or not
 	 * @private
 	 */
-	Avatar.prototype._areInitialsValid = function (sInitials) {
-		var validInitials = /^[a-zA-Z]{1,2}$/;
+	 Avatar.prototype._areInitialsValid = function (sInitials) {
+		var validInitials = /^[a-zA-Z\xc0-\xd6\xd8-\xdc\xe0-\xf6\xf8-\xfc]{1,3}$/;
 		if (!validInitials.test(sInitials)) {
-			Log.warning("Initials should consist of only 1 or 2 latin letters", this);
+			Log.warning("Initials should consist of only 1,2 or 3 latin letters", this);
 			this._sActualType = AvatarType.Icon;
 			this._bIsDefaultIcon = true;
 			return false;
@@ -414,7 +503,7 @@ sap.ui.define([
 	 * Validates the <code>src</code> parameter, and sets the actual type appropriately.
 	 *
 	 * @param {string} sSrc
-	 * @returns {sap.m.Avatar}
+	 * @returns {this}
 	 * @private
 	 */
 	Avatar.prototype._validateSrc = function (sSrc) {
@@ -425,8 +514,8 @@ sap.ui.define([
 			this._bIsDefaultIcon = true;
 			this._sActualType = AvatarType.Image;
 
-		// we perform this action in order to validate the image source and
-		// take further actions depending on that
+			// we perform this action in order to validate the image source and
+			// take further actions depending on that
 			this.preloadedImage = new window.Image();
 			this.preloadedImage.src = sSrc;
 			this.preloadedImage.onload = this._onImageLoad.bind(this);
@@ -436,20 +525,19 @@ sap.ui.define([
 		return this;
 	};
 
-
 	/**
 	 * Validates the <code>src</code> parameter, and returns sap.ui.core.Icon object.
 	 *
 	 * @param {string} sSrc
-	 * @returns {sap.m.Avatar}
+	 * @returns {sap.ui.core.Icon|null}
 	 * @private
 	 */
 	Avatar.prototype._getDisplayIcon = function (sSrc) {
 
-	return IconPool.isIconURI(sSrc) && IconPool.getIconInfo(sSrc) ?
-		IconPool.createControlByURI({
-			src: sSrc
-		}) : null;
+		return IconPool.isIconURI(sSrc) && IconPool.getIconInfo(sSrc) ?
+			IconPool.createControlByURI({
+				src: sSrc
+			}) : null;
 	};
 
 	/**
@@ -459,7 +547,7 @@ sap.ui.define([
 	 * @private
 	 */
 	Avatar.prototype._getActualDisplayType = function () {
-		var sSrc = this.getSrc(),
+		var sSrc = this._getAvatarSrc(),
 			sInitials = this.getInitials();
 
 		if (sSrc) {
@@ -521,22 +609,24 @@ sap.ui.define([
 	 */
 	Avatar.prototype._getIcon = function () {
 		var sSrc = this.getSrc(),
+			oIcon = this.getAggregation("_icon"),
 			sDisplayShape = this.getDisplayShape();
 
 		if (this._bIsDefaultIcon) {
 			sSrc = this._getDefaultIconPath(sDisplayShape);
 		}
 
-		if (!this._icon) {
-			this._icon = IconPool.createControlByURI({
+		if (!oIcon) {
+			oIcon = IconPool.createControlByURI({
 				alt: "Image placeholder",
 				src: sSrc
 			});
-		} else if (this._icon.getSrc() !== sSrc) {
-			this._icon.setSrc(sSrc);
+			this.setAggregation("_icon", oIcon);
+		} else if (oIcon.getSrc() !== sSrc) {
+			oIcon.setSrc(sSrc);
 		}
 
-		return this._icon;
+		return oIcon;
 	};
 
 	Avatar.prototype._getDefaultTooltip = function() {
@@ -643,6 +733,129 @@ sap.ui.define([
 		}
 
 		return sBackground;
+	};
+
+	// Checks the scrollWidth of the initials holder inside the control.
+	// This is related with the initials property and the case where there are 3 letter initials,
+	// which width is bigger than the initials holder`s width.
+
+	Avatar.prototype._checkInitialsHolderWidth = function() {
+		var $this = this.$(),
+			iInitials = this.getInitials().length;
+
+		this.$oInitialsHolder = $this.children(".sapFAvatarInitialsHolder");
+
+			if (this.$oInitialsHolder.length !== 0 && iInitials === 3) {
+				var iAvatarWidth = $this[0].offsetWidth,
+				iInitialsHolderWidth = this.$oInitialsHolder[0].offsetWidth;
+
+				if (iInitialsHolderWidth > iAvatarWidth) {
+					this._wideInitialsIcon();
+				}
+			}
+	};
+
+	// In case when there are 3 initials set to the avatar and they are overflowing,
+	// we want to show icon inatead of the initials.
+
+	Avatar.prototype._wideInitialsIcon = function() {
+		var $this = this.$(),
+			$oHiddenIcon = 	$this.children(".sapFAvatarHiddenIcon");
+
+		$oHiddenIcon.removeClass("sapFAvatarHiddenIcon");
+		this.$oInitialsHolder.css("display", "none");
+
+		$this.removeClass("sapFAvatarInitials");
+		$this.addClass("sapFAvatarIcon");
+	};
+
+	Avatar.prototype._getInvisibleText = function() {
+
+		if (!this._oInvisibleText && this.sInitials) {
+			this._oInvisibleText = new InvisibleText({ id: this.getId() + "-InvisibleText"});
+			this._oInvisibleText.setText(this.sInitials).toStatic();
+		}
+
+		return this._oInvisibleText;
+	};
+
+	Avatar.prototype._getAriaLabelledBy = function () {
+		var aLabelledBy = this.getAriaLabelledBy(),
+			sInitialsAriaLabelledBy;
+			this.sInitials = this.getInitials();
+
+		if (this.sInitials && aLabelledBy.length > 0) {
+			sInitialsAriaLabelledBy = this._getInvisibleText().getId();
+			aLabelledBy.push(sInitialsAriaLabelledBy);
+		}
+		return aLabelledBy;
+	};
+
+	/**
+	 * Retrieves the custom data object for the Avatar control.
+	 *
+	 * @function
+	 * @param {sap.m.Avatar} oAvatar - The Avatar control to retrieve the custom data for.
+	 * @returns {sap.m.ImageCustomData|undefined} The custom data object or undefined if no custom data is found.
+	 * @private
+	 */
+	Avatar.prototype._getImageCustomData = function (oAvatar) {
+		var oImageCustomData = this.getCustomData().filter(function (item) {
+			return item.isA("sap.m.ImageCustomData");
+		});
+		return oImageCustomData.length ? oImageCustomData[0] : undefined;
+	};
+
+	/**
+	 * Sets the cache busting value for the Avatar control.
+	 * This is needed in order to force the browser to reload the image.
+	 *
+	 * @function
+	 * @private
+	 */
+	Avatar.prototype._setNewCacheBustingValue = function () {
+		if (this._getImageCustomData()) {
+			this._iCacheBustingValue = Date.now();
+		}
+	};
+
+	/**
+	 * Returns the Avatar control's source URL with cache busting applied if necessary, based on the ImageCustomData configuration.
+	 * If cache busting is applied, the source URL is updated; otherwise, the original source URL is returned.
+	 *
+	 * @function
+	 * @returns {string} sSrc - The Avatar control's source URL
+	 * @private
+	 */
+	Avatar.prototype._getAvatarSrc = function () {
+		var aImageCustomData = this._getImageCustomData(),
+			sSrc = this.getSrc();
+
+		if (aImageCustomData && sSrc) {
+			var oConfig = {
+				sUrl: sSrc,
+				sParamName: aImageCustomData.getParamName(),
+				sParamValue: this._iCacheBustingValue
+			};
+
+			return getCacheBustedUrl(oConfig);
+		}
+
+		return sSrc;
+	};
+
+	/**
+ 	 * Refreshes the cache busting value for the Avatar and invalidates the control.
+	 * It can be used when you have applied ImageCustomData to the Avatar control and you want to force the browser to reload the image.
+	 *
+	 * @function
+	 * @experimental
+	 * @private
+	 * @ui5-restricted sap.fe
+	 */
+	Avatar.prototype.refreshAvatarCacheBusting = function () {
+		this._setNewCacheBustingValue();
+		this.invalidate();
 	};
 
 	return Avatar;

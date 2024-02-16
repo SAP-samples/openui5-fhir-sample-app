@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2024 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -40,38 +40,44 @@ sap.ui.define([
 	 * The inherited <code>counter</code> property of <code>sap.m.ListItemBase</code> is not supported.
 	 *
 	 * @extends sap.m.ListItemBase
+	 * @implements sap.m.ITableItem
 	 *
 	 * @author SAP SE
-	 * @version 1.79.0
+	 * @version 1.120.6
 	 *
 	 * @constructor
 	 * @public
 	 * @since 1.12
 	 * @alias sap.m.ColumnListItem
-	 * @ui5-metamodel This control/element also will be described in the UI5 (legacy) designtime metamodel
 	 */
-	var ColumnListItem = ListItemBase.extend("sap.m.ColumnListItem", /** @lends sap.m.ColumnListItem.prototype */ { metadata : {
+	var ColumnListItem = ListItemBase.extend("sap.m.ColumnListItem", /** @lends sap.m.ColumnListItem.prototype */ {
+		metadata : {
+			interfaces : [
+				"sap.m.ITableItem"
+			],
+			library : "sap.m",
+			properties : {
 
-		library : "sap.m",
-		properties : {
+				/**
+				 * Sets the vertical alignment of all the cells within the table row (including selection and navigation).
+				 * <b>Note:</b> <code>vAlign</code> property of <code>sap.m.Column</code> overrides the property for cell vertical alignment if both are set.
+				 * @since 1.20
+				 */
+				vAlign : {type : "sap.ui.core.VerticalAlign", group : "Appearance", defaultValue : VerticalAlign.Inherit}
+			},
+			defaultAggregation : "cells",
+			aggregations : {
 
-			/**
-			 * Sets the vertical alignment of all the cells within the table row (including selection and navigation).
-			 * <b>Note:</b> <code>vAlign</code> property of <code>sap.m.Column</code> overrides the property for cell vertical alignment if both are set.
-			 * @since 1.20
-			 */
-			vAlign : {type : "sap.ui.core.VerticalAlign", group : "Appearance", defaultValue : VerticalAlign.Inherit}
+				/**
+				 * Every <code>control</code> inside the <code>cells</code> aggregation defines one cell of the row.
+				 * <b>Note:</b> The order of the <code>cells</code> aggregation must match the order of the <code>columns</code> aggregation of <code>sap.m.Table</code>.
+				 */
+				cells : {type : "sap.ui.core.Control", multiple : true, singularName : "cell", bindable : "bindable"}
+			}
 		},
-		defaultAggregation : "cells",
-		aggregations : {
 
-			/**
-			 * Every <code>control</code> inside the <code>cells</code> aggregation defines one cell of the row.
-			 * <b>Note:</b> The order of the <code>cells</code> aggregation must match the order of the <code>columns</code> aggregation of <code>sap.m.Table</code>.
-			 */
-			cells : {type : "sap.ui.core.Control", multiple : true, singularName : "cell", bindable : "bindable"}
-		}
-	}});
+		renderer: ColumnListItemRenderer
+	});
 
 	/**
 	 * TablePopin element that handles own events.
@@ -82,33 +88,9 @@ sap.ui.define([
 			if (oEvent.isMarked() || ListItemBase.detectTextSelection(this.getDomRef())) {
 				return oEvent.stopImmediatePropagation(true);
 			}
-
-			// focus to the main row if there is nothing to focus in the popin
 			if (oEvent.srcControl === this || !jQuery(oEvent.target).is(":sapFocusable")) {
 				this.getParent().focus();
 			}
-		},
-
-		_onMouseEnter: function() {
-			var $this = jQuery(this),
-				$parent = $this.prev();
-
-			if (!$parent.length || !$parent.hasClass("sapMLIBHoverable") || $parent.hasClass("sapMPopinHovered")) {
-				return;
-			}
-
-			$parent.addClass("sapMPopinHovered");
-		},
-
-		_onMouseLeave: function() {
-			var $this = jQuery(this),
-				$parent = $this.prev();
-
-			if (!$parent.length || !$parent.hasClass("sapMLIBHoverable") || !$parent.hasClass("sapMPopinHovered")) {
-				return;
-			}
-
-			$parent.removeClass("sapMPopinHovered");
 		}
 	});
 
@@ -121,14 +103,24 @@ sap.ui.define([
 		this._aClonedHeaders = [];
 	};
 
+	ColumnListItem.prototype.onBeforeRendering = function() {
+		ListItemBase.prototype.onBeforeRendering.call(this);
+		this.aAriaOwns = [];
+		if (this._oPopin && this._oDomRef) {
+			this.$Popin().off();
+		}
+	};
+
 	ColumnListItem.prototype.onAfterRendering = function() {
+		if (this._oPopin) {
+			this.$().attr("aria-owns", this.aAriaOwns.join(" "));
+			this.isActionable(true) && this.$Popin().on("mouseenter mouseleave", function(oEvent) {
+				this.previousSibling.classList.toggle("sapMPopinHovered", oEvent.type == "mouseenter");
+			});
+		}
+
 		ListItemBase.prototype.onAfterRendering.call(this);
 		this._checkTypeColumn();
-
-		var oPopin = this.hasPopin();
-		if (oPopin) {
-			this.$Popin().hover(oPopin._onMouseEnter, oPopin._onMouseLeave);
-		}
 	};
 
 	ColumnListItem.prototype.exit = function() {
@@ -177,11 +169,10 @@ sap.ui.define([
 				ontap: this.ontap,
 				ontouchend: this.ontouchend,
 				ontouchcancel: this.ontouchcancel,
-				onsaptabnext: this.onsaptabnext,
-				onsaptabprevious: this.onsaptabprevious,
 				onsapup: this.onsapup,
 				onsapdown: this.onsapdown,
-				oncontextmenu: this.oncontextmenu
+				oncontextmenu: this.oncontextmenu,
+				onkeydown: this.onkeydown
 			}, this).setParent(this, null, true);
 		}
 
@@ -218,12 +209,32 @@ sap.ui.define([
 	 * Returns the tabbable DOM elements as a jQuery collection
 	 * When popin is available this separated dom should also be included
 	 *
+	 * @param [bContentOnly] Whether only tabbables of data cells
 	 * @returns {jQuery} jQuery object
 	 * @protected
 	 * @since 1.26
 	 */
-	ColumnListItem.prototype.getTabbables = function() {
-		return this.$().add(this.$Popin()).find(":sapTabbable");
+	ColumnListItem.prototype.getTabbables = function(bContentOnly) {
+		const $Content = bContentOnly ? this.$().find(".sapMListTblCell") : this.$();
+		return $Content.add(this.$Popin()).find(":sapTabbable");
+	};
+
+	/**
+	 * Calculates and returns the bounding client rectangle
+	 * of the drop area taking the popin area into account.
+	 * @private
+	 */
+	ColumnListItem.prototype.getDropAreaRect = function() {
+		var oPopin = null;
+		var oDomRef = this.getDomRef();
+		var mDropRect = oDomRef.getBoundingClientRect().toJSON();
+		if (this._oPopin && (oPopin = this.getDomRef("sub"))) {
+			var mPopinRect = oPopin.getBoundingClientRect();
+			mDropRect.bottom = mPopinRect.bottom;
+			mDropRect.height += mPopinRect.height;
+		}
+
+		return mDropRect;
 	};
 
 	ColumnListItem.prototype.getAccessibilityType = function(oBundle) {
@@ -236,34 +247,34 @@ sap.ui.define([
 			return;
 		}
 
-		var sAnnouncement = "",
+		var aOutput = [],
 			aCells = this.getCells(),
-			aColumns = oTable.getColumns(true);
+			aColumns = oTable.getRenderedColumns();
 
 		aColumns.forEach(function(oColumn) {
 			var oCell = aCells[oColumn.getInitialOrder()];
-			if (!oCell || !oColumn.getVisible() || (oColumn.isHidden() && !oColumn.isPopin())) {
+			if (!oCell) {
 				return;
 			}
 
 			var oHeader = oColumn.getHeader();
 			if (oHeader && oHeader.getVisible()) {
-				sAnnouncement += ListItemBase.getAccessibilityText(oHeader) + " ";
+				aOutput.push(ListItemBase.getAccessibilityText(oHeader) + " " + ListItemBase.getAccessibilityText(oCell, true));
+			} else {
+				aOutput.push(ListItemBase.getAccessibilityText(oCell, true));
 			}
-
-			sAnnouncement += ListItemBase.getAccessibilityText(oCell, true) + " ";
 		});
 
-		return sAnnouncement;
+		return aOutput.filter(Boolean).join(" . ").trim();
 	};
 
 	// update the aria-selected for the cells
 	ColumnListItem.prototype.updateSelectedDOM = function(bSelected, $This) {
 		ListItemBase.prototype.updateSelectedDOM.apply(this, arguments);
 
-		// update popin as well
+		$This.find(".sapMTblCellFocusable").attr("aria-selected", bSelected);
 		if (this.hasPopin()) {
-			this.$Popin().attr("aria-selected", bSelected);
+			this.$("subcont").attr("aria-selected", bSelected);
 		}
 	};
 
@@ -279,12 +290,50 @@ sap.ui.define([
 		ListItemBase.prototype.onfocusin.apply(this, arguments);
 	};
 
+	ColumnListItem.prototype.onsapenter = ColumnListItem.prototype.onsapspace = function(oEvent) {
+		if (oEvent.isMarked()) {
+			return;
+		}
+
+		var sTargetId = oEvent.target.id;
+		var sEventHandler = "on" + oEvent.type;
+		if (sTargetId == this.getId() + "-ModeCell") {
+			oEvent.target = this.getDomRef();
+			sEventHandler = this.getMode() == "Delete" ? "onsapdelete" : "onsapspace";
+		} else if (sTargetId == this.getId() + "-TypeCell") {
+			oEvent.target = this.getDomRef();
+			if (this.getType() == "Navigation") {
+				sEventHandler = "onsapenter";
+			} else {
+				oEvent.code = "KeyE";
+				oEvent.ctrlKey = true;
+				sEventHandler = "onkeydown";
+			}
+		}
+
+		ListItemBase.prototype[sEventHandler].call(this, oEvent);
+	};
+
+	ColumnListItem.prototype.setType = function(sType) {
+		ListItemBase.prototype.setType.call(this, sType);
+		this._checkTypeColumn();
+		return this;
+	};
+
+	ColumnListItem.prototype.setParent = function() {
+		ListItemBase.prototype.setParent.apply(this, arguments);
+		this._checkTypeColumn();
+		return this;
+	};
+
 	// informs the table when item's type column requirement is changed
 	ColumnListItem.prototype._checkTypeColumn = function(bNeedsTypeColumn) {
+		if (!this.getParent()) {
+			return;
+		}
 		if (bNeedsTypeColumn == undefined) {
 			bNeedsTypeColumn = this._needsTypeColumn();
 		}
-
 		if (this._bNeedsTypeColumn != bNeedsTypeColumn) {
 			this._bNeedsTypeColumn = bNeedsTypeColumn;
 			this.informList("TypeColumnChange", bNeedsTypeColumn);

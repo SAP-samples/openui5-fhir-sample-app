@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2024 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -13,9 +13,7 @@ sap.ui.define(['sap/ui/base/Object', "sap/base/assert", "sap/base/Log"],
 	/**
 	 * Creates a service for the given context.
 	 *
-	 * @param {object} oServiceContext Context for which the service is created
-	 * @param {object} oServiceContext.scopeObject Object that is in scope (e.g. component instance)
-	 * @param {string} oServiceContext.scopeType Type of object that is in scope (e.g. component, ...)
+	 * @param {sap.ui.core.service.Service.Context} oServiceContext Context for which the service is created
 	 *
 	 * @class
 	 * A service provides a specific functionality. A service instance can be obtained
@@ -71,7 +69,7 @@ sap.ui.define(['sap/ui/base/Object', "sap/base/assert", "sap/base/Log"],
 	 *
 	 * @extends sap.ui.base.Object
 	 * @author SAP SE
-	 * @version 1.79.0
+	 * @version 1.120.6
 	 * @alias sap.ui.core.service.Service
 	 * @abstract
 	 * @private
@@ -107,6 +105,13 @@ sap.ui.define(['sap/ui/base/Object', "sap/base/assert", "sap/base/Log"],
 
 	});
 
+	/**
+	 * @typedef {object} sap.ui.core.service.Service.Context
+	 * @property {sap.ui.core.Component} scopeObject Object that is in scope (e.g. component instance)
+	 * @property {"component"} scopeType Type of object that is in scope
+	 * @property {object} [oServiceContext.settings={}] The settings object for the service
+	 * @public
+	 */
 
 	/**
 	 * Creates an anonymous service for the provided structured object with
@@ -165,7 +170,7 @@ sap.ui.define(['sap/ui/base/Object', "sap/base/assert", "sap/base/Log"],
 	 *
 	 * This function is not available on the service interface.
 	 *
-	 * @return {object} the public interface of the service
+	 * @returns {sap.ui.core.service.Service} the public interface of the service
 	 * @protected
 	 */
 	Service.prototype.getInterface = function() {
@@ -203,7 +208,7 @@ sap.ui.define(['sap/ui/base/Object', "sap/base/assert", "sap/base/Log"],
 	 *
 	 * This function is not available on the service interface.
 	 *
-	 * @return {object} the context of the service
+	 * @return {sap.ui.core.service.Service.Context} the context of the service
 	 * @protected
 	 */
 	Service.prototype.getContext = function() {

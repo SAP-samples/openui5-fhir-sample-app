@@ -1,19 +1,20 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2024 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 // Provides control sap.m.Panel.
 sap.ui.define([
 	'./library',
+	'sap/ui/core/Configuration',
 	'sap/ui/core/Control',
 	'sap/ui/core/IconPool',
 	'sap/ui/Device',
 	'./PanelRenderer',
 	'sap/m/Button'
 ],
-	function(library, Control, IconPool, Device, PanelRenderer, Button) {
+	function(library, Configuration, Control, IconPool, Device, PanelRenderer, Button) {
 	"use strict";
 
 	// shortcut for sap.m.PanelAccessibleRole
@@ -66,126 +67,138 @@ sap.ui.define([
 	 * @extends sap.ui.core.Control
 	 *
 	 * @author SAP SE
-	 * @version 1.79.0
+	 * @version 1.120.6
 	 *
 	 * @constructor
 	 * @public
 	 * @since 1.16
 	 * @alias sap.m.Panel
 	 * @see {@link fiori:https://experience.sap.com/fiori-design-web/panel/ Panel}
-	 * @ui5-metamodel This control/element also will be described in the UI5 (legacy) designtime metamodel
 	 */
-	var Panel = Control.extend("sap.m.Panel", /** @lends sap.m.Panel.prototype */ { metadata: {
-		library: "sap.m",
-		properties: {
+	var Panel = Control.extend("sap.m.Panel", /** @lends sap.m.Panel.prototype */ {
+		metadata: {
+			library: "sap.m",
+			properties: {
 
-			/**
-			 * This property is used to set the header text of the Panel.
-			 * The "headerText" is visible in both expanded and collapsed state.
-			 * Note: This property is overwritten by the "headerToolbar" aggregation.
-			 */
-			headerText: {type: "string", group: "Data", defaultValue: ""},
+				/**
+				 * This property is used to set the header text of the Panel.
+				 * The "headerText" is visible in both expanded and collapsed state.
+				 * Note: This property is overwritten by the "headerToolbar" aggregation.
+				 */
+				headerText: {type: "string", group: "Data", defaultValue: ""},
 
-			/**
-			 * Determines the Panel width.
-			 */
-			width: {type: "sap.ui.core.CSSSize", group: "Appearance", defaultValue: "100%"},
+				/**
+				 * Determines the Panel width.
+				 */
+				width: {type: "sap.ui.core.CSSSize", group: "Appearance", defaultValue: "100%"},
 
-			/**
-			 * Determines the Panel height.
-			 */
-			height: {type: "sap.ui.core.CSSSize", group: "Appearance", defaultValue: "auto"},
+				/**
+				 * Determines the Panel height.
+				 */
+				height: {type: "sap.ui.core.CSSSize", group: "Appearance", defaultValue: "auto"},
 
-			/**
-			 * Specifies whether the control is expandable.
-			 * This allows for collapsing or expanding the infoToolbar (if available) and content of the Panel.
-			 * Note: If expandable is set to false, the Panel will always be rendered expanded.
-			 * @since 1.22
-			 */
-			expandable: {type: "boolean", group: "Appearance", defaultValue: false},
+				/**
+				 * Specifies whether the control is expandable.
+				 * This allows for collapsing or expanding the infoToolbar (if available) and content of the Panel.
+				 * Note: If expandable is set to false, the Panel will always be rendered expanded.
+				 * @since 1.22
+				 */
+				expandable: {type: "boolean", group: "Appearance", defaultValue: false},
 
-			/**
-			 * Indicates whether the Panel is expanded or not.
-			 * If expanded is set to true, then both the infoToolbar (if available) and the content are rendered.
-			 * If expanded is set to false, then only the headerText or headerToolbar is rendered.
-			 * @since 1.22
-			 */
-			expanded: {type: "boolean", group: "Appearance", defaultValue: false},
+				/**
+				 * Indicates whether the Panel is expanded or not.
+				 * If expanded is set to true, then both the infoToolbar (if available) and the content are rendered.
+				 * If expanded is set to false, then only the headerText or headerToolbar is rendered.
+				 * @since 1.22
+				 */
+				expanded: {type: "boolean", group: "Appearance", defaultValue: false},
 
-			/**
-			 * Indicates whether the transition between the expanded and the collapsed state of the control is animated.
-			 * By default the animation is enabled.
-			 * @since 1.26
-			 */
-			expandAnimation: {type: "boolean", group: "Behavior", defaultValue: true},
+				/**
+				 * Indicates whether the transition between the expanded and the collapsed state of the control is animated.
+				 * By default the animation is enabled.
+				 * @since 1.26
+				 */
+				expandAnimation: {type: "boolean", group: "Behavior", defaultValue: true},
 
-			/**
-			 * This property is used to set the background color of the Panel.
-			 * Depending on the theme you can change the state of the background from "Solid" over "Translucent" to "Transparent".
-			 * @since 1.30
-			 */
-			backgroundDesign: {type: "sap.m.BackgroundDesign", group: "Appearance", defaultValue: BackgroundDesign.Translucent},
+				/**
+				 * This property is used to set the background color of the Panel.
+				 * Depending on the theme you can change the state of the background from "Solid" over "Translucent" to "Transparent".
+				 * @since 1.30
+				 */
+				backgroundDesign: {type: "sap.m.BackgroundDesign", group: "Appearance", defaultValue: BackgroundDesign.Translucent},
 
-			/**
-			 * This property is used to set the accessible aria role of the Panel.
-			 * Depending on the usage you can change the role from the default <code>Form</code> to <code>Region</code> or <code>Complementary</code>.
-			 * @since 1.46
-			 */
-			accessibleRole: {type: "sap.m.PanelAccessibleRole", group: "Accessibility", defaultValue: PanelAccessibleRole.Form}
+				/**
+				 * This property is used to set the accessible aria role of the Panel.
+				 * Depending on the usage you can change the role from the default <code>Form</code> to <code>Region</code> or <code>Complementary</code>.
+				 * @since 1.46
+				 */
+				accessibleRole: {type: "sap.m.PanelAccessibleRole", group: "Accessibility", defaultValue: PanelAccessibleRole.Form},
 
-		},
-		defaultAggregation: "content",
-		aggregations: {
+				/**
+				 * Indicates whether the Panel header is sticky or not.
+				 * If stickyHeader is set to true, then whenever you scroll the content or
+				 * the application, the header of the panel will be always visible and
+				 * a solid color will be used for its design.
+				 * @since 1.117
+				 */
+				 stickyHeader: {type: "boolean", group: "Appearance", defaultValue: false}
 
-			/**
-			 * Determines the content of the Panel.
-			 * The content will be visible only when the Panel is expanded.
-			 */
-			content: {type: "sap.ui.core.Control", multiple: true, singularName: "content"},
+			},
+			defaultAggregation: "content",
+			aggregations: {
 
-			/**
-			 * This aggregation allows the use of a custom Toolbar as header for the Panel.
-			 * The "headerToolbar" is visible in both expanded and collapsed state.
-			 * Use it when you want to add extra controls for user interactions in the header.
-			 * Note: This aggregation overwrites "headerText" property.
-			 * @since 1.16
-			 */
-			headerToolbar: {type: "sap.m.Toolbar", multiple: false},
+				/**
+				 * Determines the content of the Panel.
+				 * The content will be visible only when the Panel is expanded.
+				 */
+				content: {type: "sap.ui.core.Control", multiple: true, singularName: "content"},
 
-			/**
-			 * This aggregation allows the use of a custom Toolbar as information bar for the Panel.
-			 * The "infoToolbar" is placed below the header and is visible only in expanded state.
-			 * Use it when you want to show extra information to the user.
-			 * @since 1.16
-			 */
-			infoToolbar: {type: "sap.m.Toolbar", multiple: false}
-		},
-		events: {
+				/**
+				 * This aggregation allows the use of a custom Toolbar as header for the Panel.
+				 * The "headerToolbar" is visible in both expanded and collapsed state.
+				 * Use it when you want to add extra controls for user interactions in the header.
+				 * Note: This aggregation overwrites "headerText" property.
+				 * @since 1.16
+				 */
+				headerToolbar: {type: "sap.m.Toolbar", multiple: false},
 
-			/**
-			 * Indicates that the panel will expand or collapse.
-			 * @since 1.22
-			 */
-			expand: {
-				parameters: {
+				/**
+				 * This aggregation allows the use of a custom Toolbar as information bar for the Panel.
+				 * The "infoToolbar" is placed below the header and is visible only in expanded state.
+				 * Use it when you want to show extra information to the user.
+				 * @since 1.16
+				 */
+				infoToolbar: {type: "sap.m.Toolbar", multiple: false}
+			},
+			events: {
 
-					/**
-					 * If the panel will expand, this is true.
-					 * If the panel will collapse, this is false.
-					 */
-					expand: {type : "boolean"},
+				/**
+				 * Indicates that the panel will expand or collapse.
+				 * @since 1.22
+				 */
+				expand: {
+					parameters: {
 
-					/**
-					 * Identifies whether the event is triggered by an user interaction or by calling setExpanded.
-					 * @since 1.50
-					 */
-					triggeredByInteraction: {type: "boolean"}
+						/**
+						 * If the panel will expand, this is true.
+						 * If the panel will collapse, this is false.
+						 */
+						expand: {type : "boolean"},
+
+						/**
+						 * Identifies whether the event is triggered by an user interaction or by calling setExpanded.
+						 * @since 1.50
+						 */
+						triggeredByInteraction: {type: "boolean"}
+					}
 				}
-			}
+			},
+			dnd: { draggable: true, droppable: true },
+			designtime: "sap/m/designtime/Panel.designtime"
 		},
-		dnd: { draggable: true, droppable: true },
-		designtime: "sap/m/designtime/Panel.designtime"
-	}});
+
+		renderer: PanelRenderer
+	});
 
 	Panel.prototype.init = function () {
 
@@ -194,19 +207,6 @@ sap.ui.define([
 		this.data("sap-ui-fastnavgroup", "true", true); // Define group for F6 handling
 	};
 
-	/**
-	 * Sets the width of the panel.
-	 * @param {sap.ui.core.CSSSize} sWidth The width of the Panel as CSS size.
-	 * @returns {sap.m.Panel} Pointer to the control instance to allow method chaining.
-	 * @public
-	 */
-
-	/**
-	 * Sets the height of the panel.
-	 * @param {sap.ui.core.CSSSize} sHeight The height of the panel as CSS size.
-	 * @returns {sap.m.Panel} Pointer to the control instance to allow method chaining.
-	 * @public
-	 */
 	Panel.prototype.onThemeChanged = function () {
 		this._setContentHeight();
 	};
@@ -214,22 +214,31 @@ sap.ui.define([
 	/**
 	 * Sets the expanded property of the control.
 	 * @param {boolean} bExpanded Defines whether control is expanded or not.
-	 * @returns {sap.m.Panel} Pointer to the control instance to allow method chaining.
+	 * @returns {this} Pointer to the control instance to allow method chaining.
 	 * @public
 	 */
 	Panel.prototype.setExpanded = function (bExpanded) {
+		var that = this;
 
 		if (bExpanded === this.getExpanded()) {
 			return this;
 		}
 
-		this.setProperty("expanded", bExpanded);
+		this.setProperty("expanded", bExpanded, true);
+
+		// toggle class to apply styles during animation
+		this.addStyleClass("sapMPanelAnimating");
 
 		if (!this.getExpandable()) {
 			return this;
 		}
 
-		this._toggleExpandCollapse();
+		this._toggleExpandCollapse(function () {
+			// invalidate once the animation is over so rerendering could be smoоth
+			that.removeStyleClass("sapMPanelAnimating");
+			that.invalidate();
+		});
+
 		this._toggleButtonIcon(bExpanded);
 		this.fireExpand({ expand: bExpanded, triggeredByInteraction: this._bInteractiveExpand });
 		this._bInteractiveExpand = false;
@@ -247,11 +256,7 @@ sap.ui.define([
 			this._oExpandButton = this._createExpandButton();
 		}
 
-		if (Device.browser.msie || Device.browser.edge) {
-			this._updateButtonAriaLabelledBy();
-		}
-
-		if (sap.ui.getCore().getConfiguration().getAccessibility()) {
+		if (Configuration.getAccessibility()) {
 			this.$().attr("role", this.getAccessibleRole().toLowerCase());
 		}
 	};
@@ -309,6 +314,16 @@ sap.ui.define([
 	 * @private
 	 */
 	Panel.prototype.onsapspace = function(oEvent) {
+		var aHeaderTargets = [
+			this.getDomRef().querySelector(".sapMPanelWrappingDiv"),
+			this.getDomRef("expandButton")
+		];
+
+		if (aHeaderTargets.includes(oEvent.target)) {
+			// prevent browser scrolling
+			oEvent.preventDefault();
+		}
+
 		this.ontap(oEvent);
 	};
 
@@ -341,7 +356,7 @@ sap.ui.define([
 			});
 		}
 
-		oButton = new Button({
+		oButton = new Button(this.getId() + "-expandButton", {
 			icon: sIconURI,
 			tooltip: sTooltipBundleText,
 			type: ButtonType.Transparent,
@@ -385,38 +400,20 @@ sap.ui.define([
 
 		// 'offsetTop' measures the vertical space occupied by siblings before this one
 		// Earlier each previous sibling's height was calculated separately and then all height values were summed up
-		sAdjustedContentHeight =  'calc(' + this.getHeight() + ' - ' + oPanelContent.offsetTop + 'px)';
+		sAdjustedContentHeight =  'calc(' + "100%" + ' - ' + oPanelContent.offsetTop + 'px)';
 		oPanelContent.style.height = sAdjustedContentHeight;
 	};
 
-	Panel.prototype._toggleExpandCollapse = function () {
-		var oOptions = {};
+	Panel.prototype._toggleExpandCollapse = function (fnAnimationComplete) {
+		var oOptions = {
+			complete: fnAnimationComplete
+		};
+
 		if (!this.getExpandAnimation()) {
 			oOptions.duration = 0;
 		}
 
 		this.$().children(".sapMPanelExpandablePart").slideToggle(oOptions);
-	};
-
-	Panel.prototype._updateButtonAriaLabelledBy = function () {
-		var sLabelId, aAriaLabels, bFormRole;
-
-		if (!this._oExpandButton || !this.getHeaderToolbar()) {
-			return;
-		}
-
-		if (this.getAccessibleRole() === PanelAccessibleRole.Form) {
-			bFormRole = true;
-		}
-
-		sLabelId = this._getLabellingElementId();
-		aAriaLabels = this._oExpandButton.getAriaLabelledBy();
-
-		// If the old label is different we should reinitialize the association, because we can have only one label
-		if (sLabelId && aAriaLabels.indexOf(sLabelId) === -1) {
-			this._oExpandButton.removeAllAssociation("ariaLabelledBy");
-			!bFormRole && this._oExpandButton.addAriaLabelledBy(sLabelId);
-		}
 	};
 
 	Panel.prototype._getLabellingElementId = function () {

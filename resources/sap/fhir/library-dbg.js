@@ -8,12 +8,12 @@ sap.ui.define(function() {
 	 * @namespace
 	 * @name sap.fhir.model.r4
 	 * @author SAP SE
-	 * @version 2.2.8
+	 * @version 2.3.6
 	 * @public
 	 */
 	sap.ui.getCore().initLibrary({
 		name : "sap.fhir",
-		version : "2.2.8",
+		version : "2.3.6",
 		noLibraryCSS: true,
 		dependencies : [ "sap.ui.core" ],
 		controls : [ ],

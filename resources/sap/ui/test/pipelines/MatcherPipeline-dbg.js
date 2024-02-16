@@ -1,15 +1,14 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2024 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 sap.ui.define([
 	"sap/ui/test/_OpaLogger",
 	"sap/ui/base/Object",
-	"sap/ui/test/pipelines/PipelineFactory",
-	"sap/ui/thirdparty/jquery"
-], function(_OpaLogger, UI5Object, PipelineFactory, jQueryDOM) {
+	"sap/ui/test/pipelines/PipelineFactory"
+], function(_OpaLogger, UI5Object, PipelineFactory) {
 		"use strict";
 		var oPipelineFactory = new PipelineFactory({
 				name: "Matcher",
@@ -89,7 +88,7 @@ sap.ui.define([
 					return vControl;
 				}
 
-				if (!jQueryDOM.isArray(vControl)) {
+				if (!Array.isArray(vControl)) {
 					iExpectedAmount = 1;
 					aControls = [vControl];
 				} else {
@@ -110,7 +109,7 @@ sap.ui.define([
 					}
 				}, this);
 
-				oLogger.debug(!!aControls.length ? aMatchedValues.length + " out of " + aControls.length + " controls met the matchers pipeline requirements" :
+				oLogger.debug(aControls.length ? aMatchedValues.length + " out of " + aControls.length + " controls met the matchers pipeline requirements" :
 					"No controls found so matcher pipeline processing was skipped");
 
 				if (!aMatchedValues.length) {

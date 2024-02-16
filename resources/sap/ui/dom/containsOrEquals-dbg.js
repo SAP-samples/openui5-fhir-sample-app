@@ -1,15 +1,14 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2024 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
-sap.ui.define(['sap/ui/thirdparty/jquery'], function(jQuery) {
+sap.ui.define([], function() {
 	"use strict";
 
 	/**
 	 * Returns whether <code>oDomRefChild</code> is contained in or equal to <code>oDomRefContainer</code>.
 	 *
-	 * This is a browser-independent version of the <code>.contains</code> method of Internet Explorer.
 	 * For compatibility reasons it returns <code>true</code> if <code>oDomRefContainer</code> and
 	 * <code>oDomRefChild</code> are equal.
 	 *
@@ -26,7 +25,7 @@ sap.ui.define(['sap/ui/thirdparty/jquery'], function(jQuery) {
 	 */
 	var fnContainsOrEquals = function(oDomRefContainer, oDomRefChild) {
 		if (oDomRefChild && oDomRefContainer && oDomRefChild != document && oDomRefChild != window) {
-			return (oDomRefContainer === oDomRefChild) || jQuery.contains(oDomRefContainer, oDomRefChild);
+			return oDomRefContainer.contains(oDomRefChild); //native a.contains(b) also returns true if a === b
 		}
 		return false;
 	};

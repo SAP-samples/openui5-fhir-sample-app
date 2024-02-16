@@ -1,18 +1,19 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2024 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 // Provides control sap.ui.core.search.OpenSearchProvider.
 sap.ui.define([
-	'sap/ui/core/library',
 	'./SearchProvider',
 	"sap/base/Log",
 	"sap/base/security/encodeURL",
-	"sap/ui/thirdparty/jquery"
+	"sap/base/util/fetch",
+	"sap/ui/thirdparty/jquery",
+	'sap/ui/core/library' // ensure that required DataTypes are available
 ],
-	function(library, SearchProvider, Log, encodeURL, jQuery) {
+	function(SearchProvider, Log, encodeURL, fetch, jQuery) {
 	"use strict";
 
 
@@ -26,11 +27,11 @@ sap.ui.define([
 	 * @class
 	 * A SearchProvider which uses the OpenSearch protocol (either JSON or XML).
 	 * @extends sap.ui.core.search.SearchProvider
-	 * @version 1.79.0
+	 * @version 1.120.6
+	 * @deprecated since 1.120
 	 *
 	 * @public
 	 * @alias sap.ui.core.search.OpenSearchProvider
-	 * @ui5-metamodel This control/element also will be described in the UI5 (legacy) designtime metamodel
 	 */
 	var OpenSearchProvider = SearchProvider.extend("sap.ui.core.search.OpenSearchProvider", /** @lends sap.ui.core.search.OpenSearchProvider.prototype */ { metadata : {
 
@@ -56,7 +57,7 @@ sap.ui.define([
 	 * and an array of the suggestions (type '[string]', 2nd parameter).
 	 *
 	 * @param {string} sValue The value for which suggestions are requested.
-	 * @param {function} fCallback The callback function which is called when the suggestions are available.
+	 * @param {function(string, string[])} fCallback The callback function which is called when the suggestions are available.
 	 * @type void
 	 * @public
 	 */
@@ -88,18 +89,30 @@ sap.ui.define([
 				fCallback(sValue, data[1]);
 			};
 		}
-
-		jQuery.ajax({
-			url: sUrl,
-			dataType: sType,
-			success: fSuccess,
-			error: function(XMLHttpRequest, textStatus, errorThrown) {
-				Log.fatal("The following problem occurred: " + textStatus, XMLHttpRequest.responseText + ","
-						+ XMLHttpRequest.status);
+		fetch(sUrl, {
+			headers: {
+				Accept: fetch.ContentTypes[sType.toUpperCase()]
 			}
+		}).then(function(response) {
+			if (response.ok) {
+				return response.text().then(function (responseText) {
+					var data;
+					if (sType === "json") {
+						data = JSON.parse(responseText);
+					} else {
+						// sType == "xml"
+						var parser = new DOMParser();
+						data = parser.parseFromString(responseText, "text/xml");
+					}
+					fSuccess(data);
+				});
+			} else {
+				throw new Error(response.statusText || response.status);
+			}
+		}).catch(function(error) {
+			Log.fatal("The following problem occurred: " + error.message);
 		});
 	};
-
 
 	return OpenSearchProvider;
 

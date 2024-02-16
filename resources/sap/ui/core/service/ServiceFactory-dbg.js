@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2024 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -83,7 +83,7 @@ sap.ui.define(['sap/ui/base/Object', 'sap/ui/core/service/Service', "sap/base/as
 	 *
 	 * @extends sap.ui.base.Object
 	 * @author SAP SE
-	 * @version 1.79.0
+	 * @version 1.120.6
 	 * @alias sap.ui.core.service.ServiceFactory
 	 * @private
 	 * @ui5-restricted sap.ushell
@@ -131,7 +131,7 @@ sap.ui.define(['sap/ui/base/Object', 'sap/ui/core/service/Service', "sap/base/as
 	 * @param {object} oServiceContext.scopeObject Object that is in scope (e.g. component instance)
 	 * @param {string} oServiceContext.scopeType Type of object that is in scope (e.g. component, ...)
 	 * @param {string} oServiceContext.settings The service settings
-	 * @return {Promise} Promise which resolves with the new Service instance.
+	 * @return {Promise<sap.ui.core.service.Service>} Promise which resolves with the new Service instance.
 	 * @protected
 	 */
 	ServiceFactory.prototype.createInstance = function(oServiceContext) {

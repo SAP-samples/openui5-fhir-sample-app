@@ -1,6 +1,7 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2024 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
-sap.ui.define(["./TileRenderer","sap/ui/core/Renderer"],function(e,i){"use strict";var t=i.extend(e);t.render=function(e,i){var t,n;e.write('<div tabindex="0"');e.writeControlData(i);e.addClass("sapMCustomTile");e.writeClasses();if(i._invisible){e.addStyle("visibility","hidden");e.writeStyles()}if(i.getParent()instanceof sap.m.TileContainer){t=i.getParent();n=t._getVisibleTiles();e.writeAccessibilityState(i,{role:"option",posinset:t._indexOfVisibleTile(i,n)+1,setsize:n.length})}e.write(">");e.write('<div id="'+i.getId()+'-remove" class="sapMTCRemove"></div>');e.write('<div class="sapMCustomTileContent">');this._renderContent(e,i);e.write("</div></div>")};t._renderContent=function(e,i){e.renderControl(i.getContent())};return t},true);
+sap.ui.define(["./TileRenderer","sap/ui/core/Renderer"],function(e,t){"use strict";var i=t.extend(e);i.apiVersion=2;i.render=function(e,t){var i,n;e.openStart("div",t).attr("tabindex","0");e.class("sapMCustomTile");if(t._invisible){e.style("visibility","hidden")}if(t.getParent()&&t.getParent().isA("sap.m.TileContainer")){i=t.getParent();n=i._getVisibleTiles();e.accessibilityState(t,{role:"option",posinset:i._indexOfVisibleTile(t,n)+1,setsize:n.length})}e.openEnd();e.openStart("div",t.getId()+"-remove").class("sapMTCRemove").openEnd().close("div");e.openStart("div").class("sapMCustomTileContent").openEnd();this._renderContent(e,t);e.close("div").close("div")};i._renderContent=function(e,t){e.renderControl(t.getContent())};return i},true);
+//# sourceMappingURL=CustomTileRenderer.js.map

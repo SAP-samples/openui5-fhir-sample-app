@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2024 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -10,13 +10,16 @@ sap.ui.define([
 	"sap/ui/core/Element",
 	"sap/ui/core/util/File",
 	"sap/ui/Device",
-	"sap/ui/core/Item",
-	"sap/m/upload/UploadSetItem"
-], function (Log, MobileLibrary, Element, FileUtil, Device, HeaderField, UploadSetItem) {
+	"sap/m/upload/UploadSetItem",
+	"sap/m/upload/UploaderHttpRequestMethod"
+], function (Log, MobileLibrary, Element, FileUtil, Device, UploadSetItem, UploaderHttpRequestMethod) {
 	"use strict";
 
 	/**
 	 * Constructor for a new Uploader.
+	 *
+	 * @param {string} [sId] ID for the new control, generated automatically if no ID is given
+	 * @param {object} [mSettings] Initial settings for the new control
 	 *
 	 * @class
 	 * A basic implementation for uploading and downloading one or multiple files.
@@ -25,9 +28,8 @@ sap.ui.define([
 	 *
 	 * @constructor
 	 * @public
-	 * @since 1.62
+	 * @since 1.63
 	 * @alias sap.m.upload.Uploader
-	 * @ui5-metamodel This control/element also will be described in the UI5 (legacy) designtime metamodel
 	 */
 	var Uploader = Element.extend("sap.m.upload.Uploader", {
 		metadata: {
@@ -45,8 +47,18 @@ sap.ui.define([
 				/**
 				 * URL where the next file is going to be download from.
 				 */
-				downloadUrl: {type: "string", defaultValue: null}
-			},
+				downloadUrl: {type: "string", defaultValue: null},
+				/**
+				 * HTTP request method chosen for file upload.
+				 * @since 1.90
+				 */
+				httpRequestMethod: {type: "sap.m.upload.UploaderHttpRequestMethod", defaultValue: UploaderHttpRequestMethod.Post},
+				/**
+				* This property decides the type of request. If set to "true", the request gets sent as a multipart/form-data request instead of file only request.
+				* @since 1.92
+				*/
+				useMultipart: { type: "boolean", defaultValue: false }
+            },
 			events: {
 				/**
 				 * The event is fired just after the POST request was sent.
@@ -72,12 +84,12 @@ sap.ui.define([
 						 * The number of bytes transferred since the beginning of the operation.
 						 * This doesn't include headers and other overhead, but only the content itself
 						 */
-						loaded: {type: "long"},
+						loaded: {type: "int"},
 						/**
 						 * The total number of bytes of content that will be transferred during the operation.
 						 * If the total size is unknown, this value is zero.
 						 */
-						total: {type: "long"}
+						total: {type: "int"}
 					}
 				},
 				/**
@@ -88,7 +100,21 @@ sap.ui.define([
 						/**
 						 * The item that was uploaded.
 						 */
-						item: {type: "sap.m.upload.UploadSetItem"}
+						item: {type: "sap.m.upload.UploadSetItem"},
+						/**
+						 * A JSON object containing the additional response parameters like response, responseXML, readyState, status and headers.
+						 * <i>Sample response object:</i>
+						 * <pre><code>
+						 * {
+						 *    response: "<!DOCTYPE html>\n<html>...</html>\n",
+						 *    responseXML: null,
+						 *    readyState: 2,
+						 *    status: 404,
+						 *    headers: "allow: GET, HEAD"
+						 * }
+						 * </code></pre>
+						 */
+						responseXHR: {type: "object"}
 					}
 				},
 				/**
@@ -121,9 +147,10 @@ sap.ui.define([
 	 */
 	Uploader.uploadFile = function (oFile, sUrl, aHeaderFields) {
 		var oXhr = new window.XMLHttpRequest();
+		var sHttpRequestMethod = this.getHttpRequestMethod();
 
 		return new Promise(function(resolve, reject) {
-			oXhr.open("POST", sUrl, true);
+			oXhr.open(sHttpRequestMethod, sUrl, true);
 
 			if ((Device.browser.edge || Device.browser.internet_explorer) && oFile.type && oXhr.readyState === 1) {
 				oXhr.setRequestHeader("Content-Type", oFile.type);
@@ -163,9 +190,11 @@ sap.ui.define([
 			oRequestHandler = {
 				xhr: oXhr,
 				item: oItem
-			};
+			},
+			sHttpRequestMethod = this.getHttpRequestMethod(),
+			sUploadUrl = oItem.getUploadUrl() || this.getUploadUrl();
 
-		oXhr.open("POST", this.getUploadUrl(), true);
+		oXhr.open(sHttpRequestMethod, sUploadUrl, true);
 
 		if ((Device.browser.edge || Device.browser.internet_explorer) && oFile.type && oXhr.readyState === 1) {
 			oXhr.setRequestHeader("Content-Type", oFile.type);
@@ -175,6 +204,18 @@ sap.ui.define([
 			aHeaderFields.forEach(function (oHeader) {
 				oXhr.setRequestHeader(oHeader.getKey(), oHeader.getText());
 			});
+		}
+
+		if (this.getUseMultipart()) {
+			var oFormData = new window.FormData();
+			var name = oFile ? oFile.name : null;
+			if (oFile instanceof window.Blob && name) {
+				oFormData.append(name, oFile, oFile.name);
+			} else {
+				oFormData.append(name, oFile);
+			}
+			oFormData.append("_charset_", "UTF-8");
+			oFile = oFormData;
 		}
 
 		oXhr.upload.addEventListener("progress", function (oEvent) {
@@ -187,14 +228,22 @@ sap.ui.define([
 		});
 
 		oXhr.onreadystatechange = function () {
-			var oHandler = that._mRequestHandlers[oItem.getId()];
+			var oHandler = that._mRequestHandlers[oItem.getId()],
+				oResponseXHRParams = {};
 			if (this.readyState === window.XMLHttpRequest.DONE && !oHandler.aborted) {
-				that.fireUploadCompleted({item: oItem});
+				oResponseXHRParams = {
+					"response": this.response,
+					"responseXML": this.responseXML,
+					"readyState": this.readyState,
+					"status": this.status,
+					"headers": this.getAllResponseHeaders()
+				};
+				that.fireUploadCompleted({item: oItem, responseXHR: oResponseXHRParams});
 			}
 		};
 
 		this._mRequestHandlers[oItem.getId()] = oRequestHandler;
-		oXhr.send(oItem.getFileObject());
+		oXhr.send(oFile);
 		this.fireUploadStarted({item: oItem});
 	};
 

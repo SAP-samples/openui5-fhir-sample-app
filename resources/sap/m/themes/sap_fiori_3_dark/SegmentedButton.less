@@ -59,12 +59,6 @@ html.sap-desktop {
 	}
 }
 
-html[data-sap-ui-browser^="ie"].sap-desktop .sapMSegBBtnFocusable.sapMSegBBtnSel:focus .sapMSegBBtnInner,
-html[data-sap-ui-browser^="ed"].sap-desktop .sapMSegBBtnFocusable.sapMSegBBtnSel:focus .sapMSegBBtnInner {
-		outline-color: @sapUiContentFocusColor;
-		outline-style: dashed;
-}
-
 .sapMSegB.sapMSegBIcons {
 	.sapMSegBBtn:not(.sapMSegBBtnMixed) .sapMSegBBtnInner {
 		padding: 0;
@@ -230,13 +224,6 @@ html.sap-desktop .sapMSegBBtnFocusable.sapMBtnActive:hover .sapMSegBBtnInner {
 				width: auto;//1.5rem;
 			}
 		}
-	}
-}
-
-/* Android size compact fix */
-html[data-sap-ui-os^="Android4.1"][data-sap-ui-browser^="an"] {
-	.sapUiSizeCompact .sapMSegBBtn img {
-		margin-bottom: 0.128rem;
 	}
 }
 

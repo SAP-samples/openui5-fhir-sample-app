@@ -1,12 +1,12 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2024 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.define([
-	"sap/ui/base/Object",
-	"sap/ui/thirdparty/jquery"
-], function (UI5Object, $) {
+	"sap/base/util/isEmptyObject",
+	"sap/ui/base/Object"
+], function (isEmptyObject, UI5Object) {
 	"use strict";
 
 	var MAX_COUNT = 500;
@@ -29,12 +29,13 @@ sap.ui.define([
 
 	var _BrowserLogCollector = UI5Object.extend("sap.ui.test._BrowserLogCollector", {
 		constructor: function () {
+			UI5Object.call(this);
 			this._console = {};
 			this._logs = [];
 		},
 
 		start: function (sLevel, iMaxCount) {
-			if (!$.isEmptyObject(this._console)) {
+			if (!isEmptyObject(this._console)) {
 				throw new Error("_BrowserLogCollector: 'start' has already been called. Call 'stop' before re-starting the _BrowserLogCollector instance.");
 			}
 
@@ -134,6 +135,7 @@ sap.ui.define([
 		if (aArgs[0].match(oSubstituteRegexp)) {
 			var iReplaceIndex = 0;
 			sMessage = aArgs[0].replace(oSubstituteRegexp, function (sMatch) {
+				// eslint-disable-next-line no-return-assign
 				return aArgs.length > iReplaceIndex ? aArgs[iReplaceIndex += 1] : sMatch;
 			});
 		} else if (aArgs.length > 1) {

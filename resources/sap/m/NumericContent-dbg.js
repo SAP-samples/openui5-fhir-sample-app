@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2024 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -12,8 +12,12 @@ sap.ui.define([
 	"sap/m/Image",
 	"./NumericContentRenderer",
 	"sap/ui/events/KeyCodes",
-	"sap/base/util/deepEqual"
-], function (library, Control, IconPool, ResizeHandler, Image, NumericContentRenderer, KeyCodes, deepEqual) {
+	"sap/base/util/deepEqual",
+	"sap/ui/core/Configuration",
+	"sap/ui/core/Core",
+	"sap/ui/core/Lib",
+	"sap/ui/core/Theming"
+], function (library, Control, IconPool, ResizeHandler, Image, NumericContentRenderer, KeyCodes, deepEqual, Configuration, Core, CoreLib, Theming) {
 	"use strict";
 
 	var LANG_MAP = { // keys are compared in lowercase
@@ -25,6 +29,7 @@ sap.ui.define([
 		"cs": 4,
 		"da": 4,
 		"de": 8,
+		"de-de": 8,
 		"de_at": 8,
 		"de_ch": 8,
 		"el": 4,
@@ -93,6 +98,9 @@ sap.ui.define([
 		"zh_tw": 6
 	};
 
+	var DeviationIndicator = library.DeviationIndicator,
+		ValueColor = library.ValueColor;
+
 	/**
 	 * Constructor for a new sap.m.GenericTile control.
 	 *
@@ -103,12 +111,11 @@ sap.ui.define([
 	 * @extends sap.ui.core.Control
 	 *
 	 * @author SAP SE
-	 * @version 1.79.0
+	 * @version 1.120.6
 	 * @since 1.34
 	 *
 	 * @public
 	 * @alias sap.m.NumericContent
-	 * @ui5-metamodel This control/element also will be described in the UI5 (legacy) designtime metamodel
 	 */
 	var NumericContent = Control.extend("sap.m.NumericContent", /** @lends sap.m.NumericContent.prototype */ {
 		metadata: {
@@ -119,43 +126,43 @@ sap.ui.define([
 				/**
 				 * If set to true, the change of the value will be animated.
 				 */
-				"animateTextChange": {type: "boolean", group: "Behavior", defaultValue: true},
+				"animateTextChange": { type: "boolean", group: "Behavior", defaultValue: true },
 
 				/**
 				 * If set to true, the value parameter contains a numeric value and scale. If set to false (default), the value parameter contains a numeric value only.
 				 */
-				"formatterValue": {type: "boolean", group: "Data", defaultValue: false},
+				"formatterValue": { type: "boolean", group: "Data", defaultValue: false },
 
 				/**
 				 * The icon to be displayed as a graphical element within the control. This can be an image or an icon from the icon font.
 				 */
-				"icon": {type: "sap.ui.core.URI", group: "Appearance", defaultValue: null},
+				"icon": { type: "sap.ui.core.URI", group: "Appearance", defaultValue: null },
 
 				/**
 				 * Description of an icon that is used in the tooltip.
 				 */
-				"iconDescription": {type: "string", group: "Accessibility", defaultValue: null},
+				"iconDescription": { type: "string", group: "Accessibility", defaultValue: null },
 
 				/**
 				 * The indicator arrow that shows value deviation.
 				 */
-				"indicator": {type: "sap.m.DeviationIndicator", group: "Appearance", defaultValue: "None"},
+				"indicator": { type: "sap.m.DeviationIndicator", group: "Appearance", defaultValue: "None" },
 
 				/**
 				 * If set to true, the omitted value property is set to 0.
 				 */
-				"nullifyValue": {type: "boolean", group: "Behavior", defaultValue: true},
+				"nullifyValue": { type: "boolean", group: "Behavior", defaultValue: true },
 
 				/**
 				 * The scaling prefix. Financial characters can be used for currencies and counters. The SI prefixes can be used for units. If the scaling prefix contains more than three characters, only the first three characters are displayed.
 				 */
-				"scale": {type: "string", group: "Appearance", defaultValue: null},
+				"scale": { type: "string", group: "Appearance", defaultValue: null },
 
 				/**
 				 * Updates the size of the control. If not set, then the default size is applied based on the device tile.
 				 * @deprecated Since version 1.38.0. The NumericContent control has now a fixed size, depending on the used media (desktop, tablet or phone).
 				 */
-				"size": {type: "sap.m.Size", group: "Appearance", defaultValue: "Auto"},
+				"size": { type: "sap.m.Size", group: "Appearance", defaultValue: "Auto", deprecated: true },
 
 				/**
 				 * The number of characters of the <code>value</code> property to display.
@@ -163,32 +170,32 @@ sap.ui.define([
 				 * <b>Note</b> If <code>adaptiveFontSize</code> is set to <code>true</code> the default value of this property will vary between languages.
 				 * If <code>adaptiveFontSize</code> is set to <code>false</code> the default value of this property is <code>4</code>.
 				 */
-				"truncateValueTo": {type: "int", group: "Appearance"},
+				"truncateValueTo": { type: "int", group: "Appearance" },
 
 				/**
 				 * The actual value.
 				 */
-				"value": {type: "string", group: "Data", defaultValue: null},
+				"value": { type: "string", group: "Data", defaultValue: null },
 
 				/**
 				 * The semantic color of the value.
 				 */
-				"valueColor": {type: "sap.m.ValueColor", group: "Appearance", defaultValue: "Neutral"},
+				"valueColor": { type: "sap.m.ValueColor", group: "Appearance", defaultValue: "Neutral" },
 
 				/**
 				 * The width of the control. If it is not set, the size of the control is defined by the 'size' property.
 				 */
-				"width": {type: "sap.ui.core.CSSSize", group: "Appearance", defaultValue: null},
+				"width": { type: "sap.ui.core.CSSSize", group: "Appearance", defaultValue: null },
 
 				/**
 				 * If the value is set to false, the content is adjusted to the whole size of the control.
 				 */
-				"withMargin": {type: "boolean", group: "Appearance", defaultValue: true},
+				"withMargin": { type: "boolean", group: "Appearance", defaultValue: true },
 
 				/**
 				 * Indicates the load status.
 				 */
-				"state": {type: "sap.m.LoadState", group: "Behavior", defaultValue: "Loaded"},
+				"state": { type: "sap.m.LoadState", group: "Behavior", defaultValue: "Loaded" },
 
 				/**
 				 * If set to its default value true this property applies the appropriate font style class based on the language. When set to false the font size will always be large
@@ -196,7 +203,7 @@ sap.ui.define([
 				 * @experimental As of version 1.73 Disclaimer: this property is in a beta state - incompatible API changes may be done before its official public release. Use at your own discretion.
 				 * @since 1.73
 				 */
-				"adaptiveFontSize": {type: "boolean", group: "Appearance", defaultValue: true}
+				"adaptiveFontSize": { type: "boolean", group: "Appearance", defaultValue: true }
 
 
 			},
@@ -206,15 +213,17 @@ sap.ui.define([
 				 */
 				"press": {}
 			}
-		}
+		},
+
+		renderer: NumericContentRenderer
 	});
 
 	/* --- Lifecycle methods --- */
 
 	NumericContent.prototype.init = function () {
-		this._rb = sap.ui.getCore().getLibraryResourceBundle("sap.m");
+		this._rb = CoreLib.getResourceBundleFor("sap.m");
 		this.setTooltip("{AltText}");
-		sap.ui.getCore().attachInit(this._registerResizeHandler.bind(this));
+		Core.ready(this._registerResizeHandler.bind(this));
 	};
 
 	NumericContent.prototype._getParentTile = function () {
@@ -232,8 +241,8 @@ sap.ui.define([
 
 	NumericContent.prototype._getMaxDigitsData = function () {
 		var sFontClass = null,
-		  sLang = sap.ui.getCore().getConfiguration().getLanguage().toLowerCase(),
-		  iMaxLength = LANG_MAP[sLang] || 4;
+			sLang = Configuration.getLanguage().toLowerCase(),
+			iMaxLength = LANG_MAP[sLang] || 4;
 
 		if (this.getAdaptiveFontSize()) {
 			switch (iMaxLength) {
@@ -277,11 +286,7 @@ sap.ui.define([
 		this.$().on("mouseenter", this._addTooltip.bind(this));
 		this.$().on("mouseleave", this._removeTooltip.bind(this));
 
-		if (!sap.ui.getCore().isThemeApplied()) {
-			sap.ui.getCore().attachThemeChanged(this._checkIfIconFits, this);
-		} else {
-			this._checkIfIconFits();
-		}
+		Theming.attachApplied(this._checkIfIconFits.bind(this));
 	};
 
 	/**
@@ -296,7 +301,7 @@ sap.ui.define([
 	 * Shows/hides icon depending if it fits or not.
 	 * @private
 	 */
-	NumericContent.prototype._checkIfIconFits = function() {
+	NumericContent.prototype._checkIfIconFits = function () {
 		//first check if parent tile is going to resize in the future so resize it now for our calculation
 		var oParentTile = this._getParentTile();
 		if (oParentTile && (oParentTile.isA("sap.m.GenericTile") || oParentTile.isA("sap.m.SlideTile"))) {
@@ -340,13 +345,12 @@ sap.ui.define([
 	/**
 	 * Returns the AltText
 	 *
-	 * @returns {String} The alternative text
+	 * @returns {string} The alternative text
 	 */
 	NumericContent.prototype.getAltText = function () {
 		var sValue = this.getValue();
 		var sScale = this.getScale();
 		var sEmptyValue;
-		var sMeaning = this._rb.getText(("SEMANTIC_COLOR_" + this.getValueColor()).toUpperCase());
 		var sAltText = "";
 		if (this.getNullifyValue()) {
 			sEmptyValue = "0";
@@ -362,12 +366,15 @@ sap.ui.define([
 		} else {
 			sAltText = sAltText.concat(sEmptyValue);
 		}
-		sAltText = sAltText.concat("\n");
-		if (this.getIndicator() && this.getIndicator() !== library.DeviationIndicator.None) {
-			sAltText = sAltText.concat(this._rb.getText(("NUMERICCONTENT_DEVIATION_" + this.getIndicator()).toUpperCase()));
+		if (this.getIndicator() && this.getIndicator() !== DeviationIndicator.None) {
 			sAltText = sAltText.concat("\n");
+			sAltText = sAltText.concat(this._rb.getText(("NUMERICCONTENT_DEVIATION_" + this.getIndicator()).toUpperCase()));
 		}
-		sAltText = sAltText.concat(sMeaning);
+		if (this.getValueColor() !== ValueColor.None) {
+			var sMeaning = this._rb.getText(("SEMANTIC_COLOR_" + this.getValueColor()).toUpperCase());
+			sAltText = sAltText.concat("\n");
+			sAltText = sAltText.concat(sMeaning);
+		}
 		return sAltText;
 	};
 
@@ -405,17 +412,19 @@ sap.ui.define([
 	};
 
 	NumericContent.prototype.setIndicator = function (sDeviationIndicator) {
-		var sSrc = "sap-icon://" + (sDeviationIndicator ? sDeviationIndicator.toLowerCase() : "none");
-		if (this._oIndicatorIcon) {
-			this._oIndicatorIcon.setSrc(sSrc);
-		} else {
-			this._oIndicatorIcon = IconPool.createControlByURI({
-				id: this.getId() + "-icon-indicator",
-				size: "0.875rem",
-				src: sSrc
-			}, Image);
-			this._oIndicatorIcon.addStyleClass("sapMNCIndIcon");
-		}
+        if (sDeviationIndicator !== DeviationIndicator.None && sDeviationIndicator) {
+        var sSrc = "sap-icon://" + sDeviationIndicator.toLowerCase();
+        if (this._oIndicatorIcon) {
+            this._oIndicatorIcon.setSrc(sSrc);
+        } else {
+            this._oIndicatorIcon = IconPool.createControlByURI({
+                id: this.getId() + "-icon-indicator",
+                size: "0.875rem",
+                src: sSrc
+            }, Image);
+            this._oIndicatorIcon.addStyleClass("sapMNCIndIcon");
+        }
+	}
 		return this.setProperty("indicator", sDeviationIndicator);
 	};
 
@@ -499,9 +508,17 @@ sap.ui.define([
 		// remove the invisible unicode character LTR and RTL mark before processing the regular expression.
 		var sTrimmedValue = sValue.replace(String.fromCharCode(8206), "").replace(String.fromCharCode(8207), "");
 
+		// extract value and scale information from string using regex.
+		var aValueMatches = sTrimmedValue.match(/([+-.−, \d]*)/g) || [];
+		var aScaleMatches = sTrimmedValue.match(/[^+-.−, \d]/g) || [];
+
 		return {
-			scale: sTrimmedValue.replace(/[+-., \d]*(.*)$/g, "$1").trim().replace(/\.$/, ""),
-			value: sTrimmedValue.replace(/([+-., \d]*).*$/g, "$1").trim()
+			value: aValueMatches.reduce(function (acc, curVal){
+						return acc + curVal;
+					}, '').trim(),
+			scale: aScaleMatches.reduce(function (acc, curVal){
+						return acc + curVal;
+					}, '').trim()
 		};
 	};
 

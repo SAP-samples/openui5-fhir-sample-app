@@ -4,9 +4,9 @@
 	<name>sap.fhir</name>
 	<vendor>SAP SE</vendor>
 	<copyright>SAP SE
- * (c) Copyright 2009-2021 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2024 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.</copyright>
-	<version>2.2.8</version>
+	<version>2.3.6</version>
 	<documentation>The sap.fhir library provides a model to build state of the art UI5 applications in context of health industries.</documentation>
 	<dependencies>
 		<dependency>

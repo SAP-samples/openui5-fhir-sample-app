@@ -1,5 +1,7 @@
 {
 	"__license": "This file has been derived from Unicode Common Locale Data Repository (CLDR) files (http://cldr.unicode.org). See the copyright and permission notice in the Unicode-Data-Files-LICENSE.txt available at the same location as this file or visit http://www.unicode.org/copyright.html",
+	"__version": "43.0.0",
+	"__buildtime": "2023-09-28T11:39:07.908Z",
 	"languages": {
 		"aa": "アファル語",
 		"ab": "アブハズ語",
@@ -22,6 +24,7 @@
 		"am": "アムハラ語",
 		"an": "アラゴン語",
 		"ang": "古英語",
+		"ann": "オボロ語",
 		"anp": "アンギカ語",
 		"ar": "アラビア語",
 		"ar_001": "現代標準アラビア語",
@@ -31,6 +34,7 @@
 		"arp": "アラパホー語",
 		"arq": "アルジェリア・アラビア語",
 		"ars": "ナジュド地方・アラビア語",
+		"ars_alt-menu": "アラビア語（ナジュド地方）",
 		"arw": "アラワク語",
 		"ary": "モロッコ・アラビア語",
 		"arz": "エジプト・アラビア語",
@@ -38,6 +42,7 @@
 		"asa": "アス語",
 		"ase": "アメリカ手話",
 		"ast": "アストゥリアス語",
+		"atj": "アティカメク語",
 		"av": "アヴァル語",
 		"avk": "コタヴァ",
 		"awa": "アワディー語",
@@ -104,14 +109,25 @@
 		"chr": "チェロキー語",
 		"chy": "シャイアン語",
 		"ckb": "中央クルド語",
+		"ckb_alt-menu": "クルド語（中央）",
+		"ckb_alt-variant": "クルド語（ソラニー）",
+		"clc": "チルコーティン語",
+		"cnr": "モンテネグロ語",
 		"co": "コルシカ語",
 		"cop": "コプト語",
 		"cps": "カピス語",
 		"cr": "クリー語",
+		"crg": "ミチフ語",
 		"crh": "クリミア・タタール語",
+		"crj": "東部クリー語(南部)",
+		"crk": "平原クリー語",
+		"crl": "東部クリー語(北部)",
+		"crm": "ムースクリー語",
+		"crr": "カロライナ・アルゴンキン語",
 		"crs": "セーシェル・クレオール語",
 		"cs": "チェコ語",
 		"csb": "カシューブ語",
+		"csw": "湿原クリー語",
 		"cu": "教会スラブ語",
 		"cv": "チュヴァシ語",
 		"cy": "ウェールズ語",
@@ -120,7 +136,6 @@
 		"dar": "ダルグワ語",
 		"dav": "タイタ語",
 		"de": "ドイツ語",
-		"de_AT": "ドイツ語 (オーストリア)",
 		"de_CH": "標準ドイツ語 (スイス)",
 		"del": "デラウェア語",
 		"den": "スレイビー語",
@@ -155,15 +170,14 @@
 		"enm": "中英語",
 		"eo": "エスペラント語",
 		"es": "スペイン語",
-		"es_419": "スペイン語 (ラテンアメリカ)",
 		"es_ES": "スペイン語 (イベリア半島)",
-		"es_MX": "スペイン語 (メキシコ)",
 		"esu": "中央アラスカ・ユピック語",
 		"et": "エストニア語",
 		"eu": "バスク語",
 		"ewo": "エウォンド語",
 		"ext": "エストレマドゥーラ語",
 		"fa": "ペルシア語",
+		"fa_AF": "ダリー語",
 		"fan": "ファング語",
 		"fat": "ファンティー語",
 		"ff": "フラ語",
@@ -174,8 +188,6 @@
 		"fo": "フェロー語",
 		"fon": "フォン語",
 		"fr": "フランス語",
-		"fr_CA": "フランス語 (カナダ)",
-		"fr_CH": "フランス語 (スイス)",
 		"frc": "ケイジャン・フランス語",
 		"frm": "中期フランス語",
 		"fro": "古フランス語",
@@ -216,8 +228,11 @@
 		"hai": "ハイダ語",
 		"hak": "客家語",
 		"haw": "ハワイ語",
+		"hax": "南部ハイダ語",
 		"he": "ヘブライ語",
 		"hi": "ヒンディー語",
+		"hi_Latn": "ヒンディー語 (ラテン文字)",
+		"hi_Latn-alt-variant": "インド英語 (ヒングリッシュ)",
 		"hif": "フィジー・ヒンディー語",
 		"hil": "ヒリガイノン語",
 		"hit": "ヒッタイト語",
@@ -229,6 +244,7 @@
 		"ht": "ハイチ・クレオール語",
 		"hu": "ハンガリー語",
 		"hup": "フパ語",
+		"hur": "ハルコメレム語",
 		"hy": "アルメニア語",
 		"hz": "ヘレロ語",
 		"ia": "インターリングア",
@@ -239,6 +255,7 @@
 		"ig": "イボ語",
 		"ii": "四川イ語",
 		"ik": "イヌピアック語",
+		"ikt": "イヌイナクトゥン語",
 		"ilo": "イロカノ語",
 		"inh": "イングーシ語",
 		"io": "イド語",
@@ -305,6 +322,7 @@
 		"kut": "クテナイ語",
 		"kv": "コミ語",
 		"kw": "コーンウォール語",
+		"kwk": "クヮキゥワラ語",
 		"ky": "キルギス語",
 		"la": "ラテン語",
 		"lad": "ラディノ語",
@@ -317,6 +335,7 @@
 		"lg": "ガンダ語",
 		"li": "リンブルフ語",
 		"lij": "リグリア語",
+		"lil": "リルエット語",
 		"liv": "リヴォニア語",
 		"lkt": "ラコタ語",
 		"lmo": "ロンバルド語",
@@ -326,6 +345,7 @@
 		"lou": "ルイジアナ・クレオール語",
 		"loz": "ロジ語",
 		"lrc": "北ロル語",
+		"lsm": "サーミア語",
 		"lt": "リトアニア語",
 		"ltg": "ラトガリア語",
 		"lu": "ルバ・カタンガ語",
@@ -364,6 +384,7 @@
 		"mn": "モンゴル語",
 		"mnc": "満州語",
 		"mni": "マニプリ語",
+		"moe": "イヌー＝アイムン語",
 		"moh": "モーホーク語",
 		"mos": "モシ語",
 		"mr": "マラーティー語",
@@ -387,7 +408,6 @@
 		"nb": "ノルウェー語(ブークモール)",
 		"nd": "北ンデベレ語",
 		"nds": "低地ドイツ語",
-		"nds_NL": "低地ドイツ語 (オランダ)",
 		"ne": "ネパール語",
 		"new": "ネワール語",
 		"ng": "ンドンガ語",
@@ -395,7 +415,7 @@
 		"niu": "ニウーエイ語",
 		"njo": "アオ・ナガ語",
 		"nl": "オランダ語",
-		"nl_BE": "フレミッシュ語",
+		"nl_BE": "フラマン語",
 		"nmg": "クワシオ語",
 		"nn": "ノルウェー語(ニーノシュク)",
 		"nnh": "ンジエムブーン語",
@@ -416,6 +436,11 @@
 		"nzi": "ンゼマ語",
 		"oc": "オック語",
 		"oj": "オジブウェー語",
+		"ojb": "北西部オジブワ語",
+		"ojc": "中部オジブワ語",
+		"ojs": "セヴァーン・オジブワ語",
+		"ojw": "西部オジブワ語",
+		"oka": "オカナガン語",
 		"om": "オロモ語",
 		"or": "オディア語",
 		"os": "オセット語",
@@ -435,16 +460,17 @@
 		"pfl": "プファルツ語",
 		"phn": "フェニキア語",
 		"pi": "パーリ語",
+		"pis": "ピジン語",
 		"pl": "ポーランド語",
 		"pms": "ピエモンテ語",
 		"pnt": "ポントス・ギリシャ語",
 		"pon": "ポンペイ語",
+		"pqm": "マリシート＝パサマコディ語",
 		"prg": "プロシア語",
 		"pro": "古期プロバンス語",
 		"ps": "パシュトゥー語",
 		"ps_alt-variant": "パシュトゥ語",
 		"pt": "ポルトガル語",
-		"pt_BR": "ポルトガル語 (ブラジル)",
 		"pt_PT": "ポルトガル語 (イベリア半島)",
 		"qu": "ケチュア語",
 		"quc": "キチェ語",
@@ -453,6 +479,7 @@
 		"rap": "ラパヌイ語",
 		"rar": "ラロトンガ語",
 		"rgn": "ロマーニャ語",
+		"rhg": "ロヒンギャ語",
 		"rif": "リーフ語",
 		"rm": "ロマンシュ語",
 		"rn": "ルンディ語",
@@ -460,7 +487,6 @@
 		"ro_MD": "モルダビア語",
 		"rof": "ロンボ語",
 		"rom": "ロマーニー語",
-		"root": "ルート",
 		"rtm": "ロツマ語",
 		"ru": "ロシア語",
 		"rue": "ルシン語",
@@ -501,6 +527,7 @@
 		"sid": "シダモ語",
 		"sk": "スロバキア語",
 		"sl": "スロベニア語",
+		"slh": "南部ルシュツィード語",
 		"sli": "低シレジア語",
 		"sly": "スラヤール語",
 		"sm": "サモア語",
@@ -520,6 +547,7 @@
 		"ssy": "サホ語",
 		"st": "南部ソト語",
 		"stq": "ザーターフリジア語",
+		"str": "ストレイツセイリッシュ語",
 		"su": "スンダ語",
 		"suk": "スクマ語",
 		"sus": "スス語",
@@ -532,6 +560,7 @@
 		"syr": "シリア語",
 		"szl": "シレジア語",
 		"ta": "タミル語",
+		"tce": "南部トゥショーニ語",
 		"tcy": "トゥル語",
 		"te": "テルグ語",
 		"tem": "テムネ語",
@@ -539,7 +568,9 @@
 		"ter": "テレーノ語",
 		"tet": "テトゥン語",
 		"tg": "タジク語",
+		"tgx": "タギシュ語",
 		"th": "タイ語",
+		"tht": "タールタン語",
 		"ti": "ティグリニア語",
 		"tig": "ティグレ語",
 		"tiv": "ティブ語",
@@ -554,6 +585,7 @@
 		"tn": "ツワナ語",
 		"to": "トンガ語",
 		"tog": "トンガ語(ニアサ)",
+		"tok": "トキポナ語",
 		"tpi": "トク・ピシン語",
 		"tr": "トルコ語",
 		"tru": "トゥロヨ語",
@@ -562,6 +594,7 @@
 		"tsd": "ツァコン語",
 		"tsi": "チムシュ語",
 		"tt": "タタール語",
+		"ttm": "北部トゥショーニ語",
 		"ttt": "ムスリム・タタール語",
 		"tum": "トゥンブカ語",
 		"tvl": "ツバル語",
@@ -610,6 +643,7 @@
 		"yo": "ヨルバ語",
 		"yrl": "ニェエンガトゥ語",
 		"yue": "広東語",
+		"yue_alt-menu": "中国語 (広東語)",
 		"za": "チワン語",
 		"zap": "サポテカ語",
 		"zbl": "ブリスシンボル",
@@ -617,20 +651,23 @@
 		"zen": "ゼナガ語",
 		"zgh": "標準モロッコ タマジクト語",
 		"zh": "中国語",
+		"zh_alt-menu": "中国語 (標準語)",
 		"zh_Hans": "簡体中国語",
+		"zh_Hans-alt-long": "標準中国語 (簡体字)",
 		"zh_Hant": "繁体中国語",
+		"zh_Hant-alt-long": "標準中国語 (繁体字)",
 		"zu": "ズールー語",
 		"zun": "ズニ語",
 		"zxx": "言語的内容なし",
 		"zza": "ザザ語"
 	},
 	"scripts": {
-		"Adlm": "Adlm",
+		"Adlm": "アドラム文字",
 		"Afak": "アファカ文字",
 		"Aghb": "カフカス・アルバニア文字",
-		"Ahom": "Ahom",
 		"Arab": "アラビア文字",
 		"Arab-alt-variant": "ペルソ・アラビア文字",
+		"Aran": "ナスタアリーク体",
 		"Armi": "帝国アラム文字",
 		"Armn": "アルメニア文字",
 		"Avst": "アヴェスター文字",
@@ -639,7 +676,6 @@
 		"Bass": "バサ文字",
 		"Batk": "バタク文字",
 		"Beng": "ベンガル文字",
-		"Bhks": "Bhks",
 		"Blis": "ブリスシンボル",
 		"Bopo": "注音字母",
 		"Brah": "ブラーフミー文字",
@@ -657,20 +693,16 @@
 		"Cyrl": "キリル文字",
 		"Cyrs": "古代教会スラブ語キリル文字",
 		"Deva": "デーバナーガリー文字",
-		"Dogr": "Dogr",
 		"Dsrt": "デセレット文字",
 		"Dupl": "デュプロワエ式速記",
 		"Egyd": "エジプト民衆文字",
 		"Egyh": "エジプト神官文字",
 		"Egyp": "エジプト聖刻文字",
 		"Elba": "エルバサン文字",
-		"Elym": "Elym",
 		"Ethi": "エチオピア文字",
 		"Geok": "ジョージア文字(フツリ)",
 		"Geor": "ジョージア文字",
 		"Glag": "グラゴル文字",
-		"Gong": "Gong",
-		"Gonm": "Gonm",
 		"Goth": "ゴート文字",
 		"Gran": "グランタ文字",
 		"Grek": "ギリシャ文字",
@@ -684,12 +716,10 @@
 		"Hans-alt-stand-alone": "漢字(簡体字)",
 		"Hant": "繁体字",
 		"Hant-alt-stand-alone": "漢字(繁体字)",
-		"Hatr": "Hatr",
 		"Hebr": "ヘブライ文字",
 		"Hira": "ひらがな",
 		"Hluw": "アナトリア象形文字",
 		"Hmng": "パハウ・フモン文字",
-		"Hmnp": "Hmnp",
 		"Hrkt": "仮名",
 		"Hung": "古代ハンガリー文字",
 		"Inds": "インダス文字",
@@ -721,12 +751,9 @@
 		"Lyci": "リキア文字",
 		"Lydi": "リディア文字",
 		"Mahj": "マハージャニー文字",
-		"Maka": "Maka",
 		"Mand": "マンダ文字",
 		"Mani": "マニ文字",
-		"Marc": "Marc",
 		"Maya": "マヤ象形文字",
-		"Medf": "Medf",
 		"Mend": "メンデ文字",
 		"Merc": "メロエ文字草書体",
 		"Mero": "メロエ文字",
@@ -736,20 +763,16 @@
 		"Moon": "ムーン文字",
 		"Mroo": "ムロ文字",
 		"Mtei": "メイテイ文字",
-		"Mult": "Mult",
 		"Mymr": "ミャンマー文字",
-		"Nand": "Nand",
 		"Narb": "古代北アラビア文字",
 		"Nbat": "ナバテア文字",
-		"Newa": "Newa",
 		"Nkgb": "ナシ族ゲバ文字",
 		"Nkoo": "ンコ文字",
 		"Nshu": "女書",
 		"Ogam": "オガム文字",
 		"Olck": "オルチキ文字",
 		"Orkh": "オルホン文字",
-		"Orya": "オリヤー文字",
-		"Osge": "Osge",
+		"Orya": "オディア文字",
 		"Osma": "オスマニア文字",
 		"Palm": "パルミラ文字",
 		"Pauc": "パウ・チン・ハウ文字",
@@ -761,9 +784,8 @@
 		"Phnx": "フェニキア文字",
 		"Plrd": "ポラード音声記号",
 		"Prti": "碑文パルティア文字",
-		"Qaag": "Qaag",
 		"Rjng": "ルジャン文字",
-		"Rohg": "Rohg",
+		"Rohg": "ロヒンギャ文字",
 		"Roro": "ロンゴロンゴ文字",
 		"Runr": "ルーン文字",
 		"Samr": "サマリア文字",
@@ -776,10 +798,7 @@
 		"Sidd": "梵字",
 		"Sind": "クダワディ文字",
 		"Sinh": "シンハラ文字",
-		"Sogd": "Sogd",
-		"Sogo": "Sogo",
 		"Sora": "ソラング・ソンペング文字",
-		"Soyo": "Soyo",
 		"Sund": "スンダ文字",
 		"Sylo": "シロティ・ナグリ文字",
 		"Syrc": "シリア文字",
@@ -790,7 +809,7 @@
 		"Takr": "タークリー文字",
 		"Tale": "タイ・レ文字",
 		"Talu": "新タイ・ルー文字",
-		"Taml": "タミール文字",
+		"Taml": "タミル文字",
 		"Tang": "西夏文字",
 		"Tavt": "タイ・ヴェト文字",
 		"Telu": "テルグ文字",
@@ -805,19 +824,17 @@
 		"Vaii": "ヴァイ文字",
 		"Visp": "視話法",
 		"Wara": "バラン・クシティ文字",
-		"Wcho": "Wcho",
 		"Wole": "ウォレアイ文字",
 		"Xpeo": "古代ペルシア文字",
 		"Xsux": "シュメール＝アッカド語楔形文字",
 		"Yiii": "イ文字",
-		"Zanb": "Zanb",
 		"Zinh": "基底文字の種別を継承する結合文字",
 		"Zmth": "数学記号",
 		"Zsye": "絵文字",
 		"Zsym": "記号文字",
 		"Zxxx": "非表記",
 		"Zyyy": "共通文字",
-		"Zzzz": "未定義文字"
+		"Zzzz": "不明な文字"
 	},
 	"territories": {
 		"142": "アジア",
@@ -957,7 +974,7 @@
 		"GU": "グアム",
 		"GW": "ギニアビサウ",
 		"GY": "ガイアナ",
-		"HK": "香港 (中国)",
+		"HK": "香港",
 		"HK-alt-short": "香港",
 		"HM": "ハード島・マクドナルド諸島",
 		"HN": "ホンジュラス",
@@ -1009,11 +1026,10 @@
 		"MG": "マダガスカル",
 		"MH": "マーシャル諸島",
 		"MK": "北マケドニア",
-		"MK-alt-variant": "MK",
 		"ML": "マリ",
 		"MM": "ミャンマー (ビルマ)",
 		"MN": "モンゴル",
-		"MO": "マカオ (中国)",
+		"MO": "マカオ",
 		"MO-alt-short": "マカオ",
 		"MP": "北マリアナ諸島",
 		"MQ": "マルティニーク",
@@ -1038,6 +1054,7 @@
 		"NR": "ナウル",
 		"NU": "ニウエ",
 		"NZ": "ニュージーランド",
+		"NZ-alt-variant": "アオテアロア・ニュージーランド",
 		"OM": "オマーン",
 		"PA": "パナマ",
 		"PE": "ペルー",
@@ -1097,9 +1114,10 @@
 		"TN": "チュニジア",
 		"TO": "トンガ",
 		"TR": "トルコ",
+		"TR-alt-variant": "テュルキエ",
 		"TT": "トリニダード・トバゴ",
 		"TV": "ツバル",
-		"TW": "台湾 (中国)",
+		"TW": "台湾",
 		"TZ": "タンザニア",
 		"UA": "ウクライナ",
 		"UG": "ウガンダ",
@@ -1119,8 +1137,8 @@
 		"VU": "バヌアツ",
 		"WF": "ウォリス・フツナ",
 		"WS": "サモア",
-		"XA": "XA",
-		"XB": "XB",
+		"XA": "疑似アクセント",
+		"XB": "疑似 BIDI",
 		"XK": "コソボ",
 		"YE": "イエメン",
 		"YT": "マヨット",
@@ -1163,6 +1181,7 @@
 				"Ehms": "aK:mm:ss (E)",
 				"EHms": "H:mm:ss (E)",
 				"Gy": "Gy年",
+				"GyMd": "Gy/M/d",
 				"GyMMM": "Gy年M月",
 				"GyMMMd": "Gy年M月d日",
 				"GyMMMEd": "Gy年M月d日(E)",
@@ -1602,6 +1621,66 @@
 				]
 			}
 		},
+		"flexibleDayPeriods": {
+			"format": {
+				"abbreviated": {
+					"midnight": "真夜中",
+					"noon": "正午",
+					"morning1": "朝",
+					"afternoon1": "昼",
+					"evening1": "夕方",
+					"night1": "夜",
+					"night2": "夜中"
+				},
+				"narrow": {
+					"midnight": "真夜中",
+					"noon": "正午",
+					"morning1": "朝",
+					"afternoon1": "昼",
+					"evening1": "夕方",
+					"night1": "夜",
+					"night2": "夜中"
+				},
+				"wide": {
+					"midnight": "真夜中",
+					"noon": "正午",
+					"morning1": "朝",
+					"afternoon1": "昼",
+					"evening1": "夕方",
+					"night1": "夜",
+					"night2": "夜中"
+				}
+			},
+			"stand-alone": {
+				"abbreviated": {
+					"midnight": "真夜中",
+					"noon": "正午",
+					"morning1": "朝",
+					"afternoon1": "昼",
+					"evening1": "夕方",
+					"night1": "夜",
+					"night2": "夜中"
+				},
+				"narrow": {
+					"midnight": "真夜中",
+					"noon": "正午",
+					"morning1": "朝",
+					"afternoon1": "昼",
+					"evening1": "夕方",
+					"night1": "夜",
+					"night2": "夜中"
+				},
+				"wide": {
+					"midnight": "真夜中",
+					"noon": "正午",
+					"morning1": "朝",
+					"afternoon1": "昼",
+					"evening1": "夕方",
+					"night1": "夜",
+					"night2": "夜中"
+				}
+			}
+		},
 		"era-wide": {
 			"0": "紀元前",
 			"1": "西暦"
@@ -1648,6 +1727,7 @@
 				"Ehms": "aK:mm:ss (E)",
 				"EHms": "H:mm:ss (E)",
 				"Gy": "Gy年",
+				"GyMd": "GGGGGy/M/d",
 				"GyMMM": "Gy年M月",
 				"GyMMMd": "Gy年M月d日",
 				"GyMMMEd": "Gy年M月d日(E)",
@@ -2098,6 +2178,66 @@
 				]
 			}
 		},
+		"flexibleDayPeriods": {
+			"format": {
+				"abbreviated": {
+					"midnight": "真夜中",
+					"noon": "正午",
+					"morning1": "朝",
+					"afternoon1": "昼",
+					"evening1": "夕方",
+					"night1": "夜",
+					"night2": "夜中"
+				},
+				"narrow": {
+					"midnight": "真夜中",
+					"noon": "正午",
+					"morning1": "朝",
+					"afternoon1": "昼",
+					"evening1": "夕方",
+					"night1": "夜",
+					"night2": "夜中"
+				},
+				"wide": {
+					"midnight": "真夜中",
+					"noon": "正午",
+					"morning1": "朝",
+					"afternoon1": "昼",
+					"evening1": "夕方",
+					"night1": "夜",
+					"night2": "夜中"
+				}
+			},
+			"stand-alone": {
+				"abbreviated": {
+					"midnight": "真夜中",
+					"noon": "正午",
+					"morning1": "朝",
+					"afternoon1": "昼",
+					"evening1": "夕方",
+					"night1": "夜",
+					"night2": "夜中"
+				},
+				"narrow": {
+					"midnight": "真夜中",
+					"noon": "正午",
+					"morning1": "朝",
+					"afternoon1": "昼",
+					"evening1": "夕方",
+					"night1": "夜",
+					"night2": "夜中"
+				},
+				"wide": {
+					"midnight": "真夜中",
+					"noon": "正午",
+					"morning1": "朝",
+					"afternoon1": "昼",
+					"evening1": "夕方",
+					"night1": "夜",
+					"night2": "夜中"
+				}
+			}
+		},
 		"era-wide": {
 			"0": "AH"
 		},
@@ -2141,6 +2281,7 @@
 				"Ehms": "aK:mm:ss (E)",
 				"EHms": "H:mm:ss (E)",
 				"Gy": "Gy年",
+				"GyMd": "GGGGGy/M/d",
 				"GyMMM": "Gy年M月",
 				"GyMMMd": "Gy年M月d日",
 				"GyMMMEd": "Gy年M月d日(E)",
@@ -2600,6 +2741,66 @@
 				]
 			}
 		},
+		"flexibleDayPeriods": {
+			"format": {
+				"abbreviated": {
+					"midnight": "真夜中",
+					"noon": "正午",
+					"morning1": "朝",
+					"afternoon1": "昼",
+					"evening1": "夕方",
+					"night1": "夜",
+					"night2": "夜中"
+				},
+				"narrow": {
+					"midnight": "真夜中",
+					"noon": "正午",
+					"morning1": "朝",
+					"afternoon1": "昼",
+					"evening1": "夕方",
+					"night1": "夜",
+					"night2": "夜中"
+				},
+				"wide": {
+					"midnight": "真夜中",
+					"noon": "正午",
+					"morning1": "朝",
+					"afternoon1": "昼",
+					"evening1": "夕方",
+					"night1": "夜",
+					"night2": "夜中"
+				}
+			},
+			"stand-alone": {
+				"abbreviated": {
+					"midnight": "真夜中",
+					"noon": "正午",
+					"morning1": "朝",
+					"afternoon1": "昼",
+					"evening1": "夕方",
+					"night1": "夜",
+					"night2": "夜中"
+				},
+				"narrow": {
+					"midnight": "真夜中",
+					"noon": "正午",
+					"morning1": "朝",
+					"afternoon1": "昼",
+					"evening1": "夕方",
+					"night1": "夜",
+					"night2": "夜中"
+				},
+				"wide": {
+					"midnight": "真夜中",
+					"noon": "正午",
+					"morning1": "朝",
+					"afternoon1": "昼",
+					"evening1": "夕方",
+					"night1": "夜",
+					"night2": "夜中"
+				}
+			}
+		},
 		"era-wide": {
 			"232": "明治",
 			"233": "大正",
@@ -2655,6 +2856,7 @@
 				"Ehms": "aK:mm:ss (E)",
 				"EHms": "H:mm:ss (E)",
 				"Gy": "Gy年",
+				"GyMd": "GGGGGy/M/d",
 				"GyMMM": "Gy年M月",
 				"GyMMMd": "Gy年M月d日",
 				"GyMMMEd": "Gy年M月d日(E)",
@@ -3103,6 +3305,66 @@
 					"午前",
 					"午後"
 				]
+			}
+		},
+		"flexibleDayPeriods": {
+			"format": {
+				"abbreviated": {
+					"midnight": "真夜中",
+					"noon": "正午",
+					"morning1": "朝",
+					"afternoon1": "昼",
+					"evening1": "夕方",
+					"night1": "夜",
+					"night2": "夜中"
+				},
+				"narrow": {
+					"midnight": "真夜中",
+					"noon": "正午",
+					"morning1": "朝",
+					"afternoon1": "昼",
+					"evening1": "夕方",
+					"night1": "夜",
+					"night2": "夜中"
+				},
+				"wide": {
+					"midnight": "真夜中",
+					"noon": "正午",
+					"morning1": "朝",
+					"afternoon1": "昼",
+					"evening1": "夕方",
+					"night1": "夜",
+					"night2": "夜中"
+				}
+			},
+			"stand-alone": {
+				"abbreviated": {
+					"midnight": "真夜中",
+					"noon": "正午",
+					"morning1": "朝",
+					"afternoon1": "昼",
+					"evening1": "夕方",
+					"night1": "夜",
+					"night2": "夜中"
+				},
+				"narrow": {
+					"midnight": "真夜中",
+					"noon": "正午",
+					"morning1": "朝",
+					"afternoon1": "昼",
+					"evening1": "夕方",
+					"night1": "夜",
+					"night2": "夜中"
+				},
+				"wide": {
+					"midnight": "真夜中",
+					"noon": "正午",
+					"morning1": "朝",
+					"afternoon1": "昼",
+					"evening1": "夕方",
+					"night1": "夜",
+					"night2": "夜中"
+				}
 			}
 		},
 		"era-wide": {
@@ -3600,6 +3862,66 @@
 				]
 			}
 		},
+		"flexibleDayPeriods": {
+			"format": {
+				"abbreviated": {
+					"midnight": "真夜中",
+					"noon": "正午",
+					"morning1": "朝",
+					"afternoon1": "昼",
+					"evening1": "夕方",
+					"night1": "夜",
+					"night2": "夜中"
+				},
+				"narrow": {
+					"midnight": "真夜中",
+					"noon": "正午",
+					"morning1": "朝",
+					"afternoon1": "昼",
+					"evening1": "夕方",
+					"night1": "夜",
+					"night2": "夜中"
+				},
+				"wide": {
+					"midnight": "真夜中",
+					"noon": "正午",
+					"morning1": "朝",
+					"afternoon1": "昼",
+					"evening1": "夕方",
+					"night1": "夜",
+					"night2": "夜中"
+				}
+			},
+			"stand-alone": {
+				"abbreviated": {
+					"midnight": "真夜中",
+					"noon": "正午",
+					"morning1": "朝",
+					"afternoon1": "昼",
+					"evening1": "夕方",
+					"night1": "夜",
+					"night2": "夜中"
+				},
+				"narrow": {
+					"midnight": "真夜中",
+					"noon": "正午",
+					"morning1": "朝",
+					"afternoon1": "昼",
+					"evening1": "夕方",
+					"night1": "夜",
+					"night2": "夜中"
+				},
+				"wide": {
+					"midnight": "真夜中",
+					"noon": "正午",
+					"morning1": "朝",
+					"afternoon1": "昼",
+					"evening1": "夕方",
+					"night1": "夜",
+					"night2": "夜中"
+				}
+			}
+		},
 		"era-wide": {
 			"0": "仏暦"
 		},
@@ -3618,7 +3940,7 @@
 			"displayName": "年",
 			"relative-type--1": "昨年",
 			"relative-type-0": "今年",
-			"relative-type-1": "翌年",
+			"relative-type-1": "来年",
 			"relativeTime-type-future": {
 				"relativeTimePattern-count-other": "{0} 年後"
 			},
@@ -3630,7 +3952,7 @@
 			"displayName": "年",
 			"relative-type--1": "昨年",
 			"relative-type-0": "今年",
-			"relative-type-1": "翌年",
+			"relative-type-1": "来年",
 			"relativeTime-type-future": {
 				"relativeTimePattern-count-other": "{0} 年後"
 			},
@@ -3642,7 +3964,7 @@
 			"displayName": "年",
 			"relative-type--1": "昨年",
 			"relative-type-0": "今年",
-			"relative-type-1": "翌年",
+			"relative-type-1": "来年",
 			"relativeTime-type-future": {
 				"relativeTimePattern-count-other": "{0}年後"
 			},
@@ -3690,7 +4012,7 @@
 			"displayName": "月",
 			"relative-type--1": "先月",
 			"relative-type-0": "今月",
-			"relative-type-1": "翌月",
+			"relative-type-1": "来月",
 			"relativeTime-type-future": {
 				"relativeTimePattern-count-other": "{0} か月後"
 			},
@@ -3702,7 +4024,7 @@
 			"displayName": "月",
 			"relative-type--1": "先月",
 			"relative-type-0": "今月",
-			"relative-type-1": "翌月",
+			"relative-type-1": "来月",
 			"relativeTime-type-future": {
 				"relativeTimePattern-count-other": "{0} か月後"
 			},
@@ -3714,7 +4036,7 @@
 			"displayName": "月",
 			"relative-type--1": "先月",
 			"relative-type-0": "今月",
-			"relative-type-1": "翌月",
+			"relative-type-1": "来月",
 			"relativeTime-type-future": {
 				"relativeTimePattern-count-other": "{0}か月後"
 			},
@@ -3726,7 +4048,7 @@
 			"displayName": "週",
 			"relative-type--1": "先週",
 			"relative-type-0": "今週",
-			"relative-type-1": "翌週",
+			"relative-type-1": "来週",
 			"relativeTime-type-future": {
 				"relativeTimePattern-count-other": "{0} 週間後"
 			},
@@ -3739,7 +4061,7 @@
 			"displayName": "週",
 			"relative-type--1": "先週",
 			"relative-type-0": "今週",
-			"relative-type-1": "翌週",
+			"relative-type-1": "来週",
 			"relativeTime-type-future": {
 				"relativeTimePattern-count-other": "{0} 週間後"
 			},
@@ -3752,7 +4074,7 @@
 			"displayName": "週",
 			"relative-type--1": "先週",
 			"relative-type-0": "今週",
-			"relative-type-1": "翌週",
+			"relative-type-1": "来週",
 			"relativeTime-type-future": {
 				"relativeTimePattern-count-other": "{0}週間後"
 			},
@@ -3900,6 +4222,476 @@
 			"displayName": "タイムゾーン"
 		}
 	},
+	"timezoneNames": {
+		"Africa": {
+			"Abidjan": "アビジャン",
+			"Accra": "アクラ",
+			"Addis_Ababa": "アジスアベバ",
+			"Algiers": "アルジェ",
+			"Asmara": "アスマラ",
+			"Bamako": "バマコ",
+			"Bangui": "バンギ",
+			"Banjul": "バンジュール",
+			"Bissau": "ビサウ",
+			"Blantyre": "ブランタイヤ",
+			"Brazzaville": "ブラザビル",
+			"Bujumbura": "ブジュンブラ",
+			"Cairo": "カイロ",
+			"Casablanca": "カサブランカ",
+			"Ceuta": "セウタ",
+			"Conakry": "コナクリ",
+			"Dakar": "ダカール",
+			"Dar_es_Salaam": "ダルエスサラーム",
+			"Djibouti": "ジブチ",
+			"Douala": "ドゥアラ",
+			"El_Aaiun": "アイウン",
+			"Freetown": "フリータウン",
+			"Gaborone": "ハボローネ",
+			"Harare": "ハラレ",
+			"Johannesburg": "ヨハネスブルグ",
+			"Juba": "ジュバ",
+			"Kampala": "カンパラ",
+			"Khartoum": "ハルツーム",
+			"Kigali": "キガリ",
+			"Kinshasa": "キンシャサ",
+			"Lagos": "ラゴス",
+			"Libreville": "リーブルヴィル",
+			"Lome": "ロメ",
+			"Luanda": "ルアンダ",
+			"Lubumbashi": "ルブンバシ",
+			"Lusaka": "ルサカ",
+			"Malabo": "マラボ",
+			"Maputo": "マプト",
+			"Maseru": "マセル",
+			"Mbabane": "ムババーネ",
+			"Mogadishu": "モガディシオ",
+			"Monrovia": "モンロビア",
+			"Nairobi": "ナイロビ",
+			"Ndjamena": "ンジャメナ",
+			"Niamey": "ニアメ",
+			"Nouakchott": "ヌアクショット",
+			"Ouagadougou": "ワガドゥグー",
+			"Porto-Novo": "ポルトノボ",
+			"Sao_Tome": "サントメ",
+			"Tripoli": "トリポリ",
+			"Tunis": "チュニス",
+			"Windhoek": "ウィントフック",
+			"_parent": "アフリカ"
+		},
+		"America": {
+			"Adak": "アダック",
+			"Anchorage": "アンカレッジ",
+			"Anguilla": "アンギラ",
+			"Antigua": "アンティグア",
+			"Araguaina": "アラグァイナ",
+			"Argentina": {
+				"Buenos_Aires": "ブエノスアイレス",
+				"Catamarca": "カタマルカ",
+				"Cordoba": "コルドバ",
+				"Jujuy": "フフイ",
+				"La_Rioja": "ラリオハ",
+				"Mendoza": "メンドーサ",
+				"Rio_Gallegos": "リオガジェゴス",
+				"Salta": "サルタ",
+				"San_Juan": "サンファン",
+				"San_Luis": "サンルイス",
+				"Tucuman": "トゥクマン",
+				"Ushuaia": "ウシュアイア",
+				"_parent": "アルゼンチン"
+			},
+			"Aruba": "アルバ",
+			"Asuncion": "アスンシオン",
+			"Atikokan": "アティコカン",
+			"Bahia": "バイーア",
+			"Bahia_Banderas": "バイアバンデラ",
+			"Barbados": "バルバドス",
+			"Belem": "ベレン",
+			"Belize": "ベリーズ",
+			"Blanc-Sablon": "ブラン・サブロン",
+			"Boa_Vista": "ボアビスタ",
+			"Bogota": "ボゴタ",
+			"Boise": "ボイシ",
+			"Cambridge_Bay": "ケンブリッジベイ",
+			"Campo_Grande": "カンポグランデ",
+			"Cancun": "カンクン",
+			"Caracas": "カラカス",
+			"Cayenne": "カイエンヌ",
+			"Cayman": "ケイマン",
+			"Chicago": "シカゴ",
+			"Chihuahua": "チワワ",
+			"Ciudad_Juarez": "シウダー・フアレス",
+			"Costa_Rica": "コスタリカ",
+			"Creston": "クレストン",
+			"Cuiaba": "クイアバ",
+			"Curacao": "キュラソー",
+			"Danmarkshavn": "デンマークシャウン",
+			"Dawson": "ドーソン",
+			"Dawson_Creek": "ドーソンクリーク",
+			"Denver": "デンバー",
+			"Detroit": "デトロイト",
+			"Dominica": "ドミニカ",
+			"Edmonton": "エドモントン",
+			"Eirunepe": "エイルネペ",
+			"El_Salvador": "エルサルバドル",
+			"Fort_Nelson": "フォートネルソン",
+			"Fortaleza": "フォルタレザ",
+			"Glace_Bay": "グレースベイ",
+			"Goose_Bay": "グースベイ",
+			"Grand_Turk": "グランドターク",
+			"Grenada": "グレナダ",
+			"Guadeloupe": "グアドループ",
+			"Guatemala": "グアテマラ",
+			"Guayaquil": "グアヤキル",
+			"Guyana": "ガイアナ",
+			"Halifax": "ハリファクス",
+			"Havana": "ハバナ",
+			"Hermosillo": "エルモシヨ",
+			"Indiana": {
+				"Indianapolis": "インディアナポリス",
+				"Knox": "インディアナ州ノックス",
+				"Marengo": "インディアナ州マレンゴ",
+				"Petersburg": "インディアナ州ピーターズバーグ",
+				"Tell_City": "インディアナ州テルシティ",
+				"Vevay": "インディアナ州ビベー",
+				"Vincennes": "インディアナ州ビンセンス",
+				"Winamac": "インディアナ州ウィナマック"
+			},
+			"Inuvik": "イヌヴィク",
+			"Iqaluit": "イカルイット",
+			"Jamaica": "ジャマイカ",
+			"Juneau": "ジュノー",
+			"Kentucky": {
+				"Louisville": "ルイビル",
+				"Monticello": "ケンタッキー州モンティチェロ"
+			},
+			"Kralendijk": "クラレンダイク",
+			"La_Paz": "ラパス",
+			"Lima": "リマ",
+			"Los_Angeles": "ロサンゼルス",
+			"Lower_Princes": "ローワー・プリンセズ・クウォーター",
+			"Maceio": "マセイオ",
+			"Managua": "マナグア",
+			"Manaus": "マナウス",
+			"Marigot": "マリゴ",
+			"Martinique": "マルティニーク",
+			"Matamoros": "マタモロス",
+			"Mazatlan": "マサトラン",
+			"Menominee": "メノミニー",
+			"Merida": "メリダ",
+			"Metlakatla": "メトラカトラ",
+			"Mexico_City": "メキシコシティー",
+			"Miquelon": "ミクロン島",
+			"Moncton": "モンクトン",
+			"Monterrey": "モンテレイ",
+			"Montevideo": "モンテビデオ",
+			"Montserrat": "モントセラト",
+			"Nassau": "ナッソー",
+			"New_York": "ニューヨーク",
+			"Nipigon": "ニピゴン",
+			"Nome": "ノーム",
+			"Noronha": "ノローニャ",
+			"North_Dakota": {
+				"Beulah": "ノースダコタ州ビューラー",
+				"Center": "ノースダコタ州センター",
+				"New_Salem": "ノースダコタ州ニューセーラム"
+			},
+			"Nuuk": "ヌーク",
+			"Ojinaga": "オヒナガ",
+			"Panama": "パナマ",
+			"Pangnirtung": "パンナータング",
+			"Paramaribo": "パラマリボ",
+			"Phoenix": "フェニックス",
+			"Port-au-Prince": "ポルトープランス",
+			"Port_of_Spain": "ポートオブスペイン",
+			"Porto_Velho": "ポルトベーリョ",
+			"Puerto_Rico": "プエルトリコ",
+			"Punta_Arenas": "プンタアレナス",
+			"Rainy_River": "レイニーリバー",
+			"Rankin_Inlet": "ランキンインレット",
+			"Recife": "レシフェ",
+			"Regina": "レジャイナ",
+			"Resolute": "レゾリュート",
+			"Rio_Branco": "リオブランコ",
+			"Santa_Isabel": "サンタイサベル",
+			"Santarem": "サンタレム",
+			"Santiago": "サンチアゴ",
+			"Santo_Domingo": "サントドミンゴ",
+			"Sao_Paulo": "サンパウロ",
+			"Scoresbysund": "イトコルトルミット",
+			"Sitka": "シトカ",
+			"St_Barthelemy": "サン・バルテルミー",
+			"St_Johns": "セントジョンズ",
+			"St_Kitts": "セントクリストファー",
+			"St_Lucia": "セントルシア",
+			"St_Thomas": "セントトーマス",
+			"St_Vincent": "セントビンセント",
+			"Swift_Current": "スウィフトカレント",
+			"Tegucigalpa": "テグシガルパ",
+			"Thule": "チューレ",
+			"Thunder_Bay": "サンダーベイ",
+			"Tijuana": "ティフアナ",
+			"Toronto": "トロント",
+			"Tortola": "トルトーラ",
+			"Vancouver": "バンクーバー",
+			"Whitehorse": "ホワイトホース",
+			"Winnipeg": "ウィニペグ",
+			"Yakutat": "ヤクタット",
+			"Yellowknife": "イエローナイフ",
+			"_parent": "アメリカ大陸"
+		},
+		"Antarctica": {
+			"Casey": "ケーシー基地",
+			"Davis": "デービス基地",
+			"DumontDUrville": "デュモン・デュルヴィル基地",
+			"Macquarie": "マッコリー",
+			"Mawson": "モーソン基地",
+			"McMurdo": "マクマード基地",
+			"Palmer": "パーマー基地",
+			"Rothera": "ロゼラ基地",
+			"Syowa": "昭和基地",
+			"Troll": "トロル基地",
+			"Vostok": "ボストーク基地",
+			"_parent": "南極"
+		},
+		"Arctic": {
+			"Longyearbyen": "ロングイェールビーン"
+		},
+		"Asia": {
+			"Aden": "アデン",
+			"Almaty": "アルマトイ",
+			"Amman": "アンマン",
+			"Anadyr": "アナディリ",
+			"Aqtau": "アクタウ",
+			"Aqtobe": "アクトベ",
+			"Ashgabat": "アシガバード",
+			"Atyrau": "アティラウ",
+			"Baghdad": "バグダッド",
+			"Bahrain": "バーレーン",
+			"Baku": "バクー",
+			"Bangkok": "バンコク",
+			"Barnaul": "バルナウル",
+			"Beirut": "ベイルート",
+			"Bishkek": "ビシュケク",
+			"Brunei": "ブルネイ",
+			"Chita": "チタ",
+			"Choibalsan": "チョイバルサン",
+			"Colombo": "コロンボ",
+			"Damascus": "ダマスカス",
+			"Dhaka": "ダッカ",
+			"Dili": "ディリ",
+			"Dubai": "ドバイ",
+			"Dushanbe": "ドゥシャンベ",
+			"Famagusta": "ファマグスタ",
+			"Gaza": "ガザ",
+			"Hebron": "ヘブロン",
+			"Ho_Chi_Minh": "ホーチミン",
+			"Hong_Kong": "香港",
+			"Hovd": "ホブド",
+			"Irkutsk": "イルクーツク",
+			"Jakarta": "ジャカルタ",
+			"Jayapura": "ジャヤプラ",
+			"Jerusalem": "エルサレム",
+			"Kabul": "カブール",
+			"Kamchatka": "カムチャッカ",
+			"Karachi": "カラチ",
+			"Kathmandu": "カトマンズ",
+			"Khandyga": "ハンドゥイガ",
+			"Kolkata": "コルカタ",
+			"Krasnoyarsk": "クラスノヤルスク",
+			"Kuala_Lumpur": "クアラルンプール",
+			"Kuching": "クチン",
+			"Kuwait": "クウェート",
+			"Macau": "マカオ",
+			"Magadan": "マガダン",
+			"Makassar": "マカッサル",
+			"Manila": "マニラ",
+			"Muscat": "マスカット",
+			"Nicosia": "ニコシア",
+			"Novokuznetsk": "ノヴォクズネツク",
+			"Novosibirsk": "ノヴォシビルスク",
+			"Omsk": "オムスク",
+			"Oral": "オラル",
+			"Phnom_Penh": "プノンペン",
+			"Pontianak": "ポンティアナック",
+			"Pyongyang": "平壌",
+			"Qatar": "カタール",
+			"Qostanay": "コスタナイ",
+			"Qyzylorda": "クズロルダ",
+			"Riyadh": "リヤド",
+			"Sakhalin": "サハリン",
+			"Samarkand": "サマルカンド",
+			"Seoul": "ソウル",
+			"Shanghai": "上海",
+			"Singapore": "シンガポール",
+			"Srednekolymsk": "スレドネコリムスク",
+			"Taipei": "台北",
+			"Tashkent": "タシケント",
+			"Tbilisi": "トビリシ",
+			"Tehran": "テヘラン",
+			"Thimphu": "ティンプー",
+			"Tokyo": "東京",
+			"Tomsk": "トムスク",
+			"Ulaanbaatar": "ウランバートル",
+			"Urumqi": "ウルムチ",
+			"Ust-Nera": "ウスチネラ",
+			"Vientiane": "ビエンチャン",
+			"Vladivostok": "ウラジオストク",
+			"Yakutsk": "ヤクーツク",
+			"Yangon": "ヤンゴン",
+			"Yekaterinburg": "エカテリンブルグ",
+			"Yerevan": "エレバン",
+			"_parent": "アジア"
+		},
+		"Atlantic": {
+			"Azores": "アゾレス",
+			"Bermuda": "バミューダ",
+			"Canary": "カナリア",
+			"Cape_Verde": "カーボベルデ",
+			"Faroe": "フェロー",
+			"Madeira": "マデイラ",
+			"Reykjavik": "レイキャビク",
+			"South_Georgia": "サウスジョージア",
+			"St_Helena": "セントヘレナ",
+			"Stanley": "スタンレー"
+		},
+		"Australia": {
+			"Adelaide": "アデレード",
+			"Brisbane": "ブリスベン",
+			"Broken_Hill": "ブロークンヒル",
+			"Darwin": "ダーウィン",
+			"Eucla": "ユークラ",
+			"Hobart": "ホバート",
+			"Lindeman": "リンデマン",
+			"Lord_Howe": "ロードハウ",
+			"Melbourne": "メルボルン",
+			"Perth": "パース",
+			"Sydney": "シドニー",
+			"_parent": "オーストラリア"
+		},
+		"Etc": {
+			"UTC": "UTC",
+			"Universal": "協定世界時"
+		},
+		"Europe": {
+			"Amsterdam": "アムステルダム",
+			"Andorra": "アンドラ",
+			"Astrakhan": "アストラハン",
+			"Athens": "アテネ",
+			"Belgrade": "ベオグラード",
+			"Berlin": "ベルリン",
+			"Bratislava": "ブラチスラバ",
+			"Brussels": "ブリュッセル",
+			"Bucharest": "ブカレスト",
+			"Budapest": "ブダペスト",
+			"Busingen": "ビュージンゲン",
+			"Chisinau": "キシナウ",
+			"Copenhagen": "コペンハーゲン",
+			"Dublin": "ダブリン",
+			"Gibraltar": "ジブラルタル",
+			"Guernsey": "ガーンジー",
+			"Helsinki": "ヘルシンキ",
+			"Isle_of_Man": "マン島",
+			"Istanbul": "イスタンブール",
+			"Jersey": "ジャージー",
+			"Kaliningrad": "カリーニングラード",
+			"Kiev": "キーウ",
+			"Kirov": "キーロフ",
+			"Lisbon": "リスボン",
+			"Ljubljana": "リュブリャナ",
+			"London": "ロンドン",
+			"Luxembourg": "ルクセンブルク",
+			"Madrid": "マドリード",
+			"Malta": "マルタ",
+			"Mariehamn": "マリエハムン",
+			"Minsk": "ミンスク",
+			"Monaco": "モナコ",
+			"Moscow": "モスクワ",
+			"Oslo": "オスロ",
+			"Paris": "パリ",
+			"Podgorica": "ポドゴリツァ",
+			"Prague": "プラハ",
+			"Riga": "リガ",
+			"Rome": "ローマ",
+			"Samara": "サマラ",
+			"San_Marino": "サンマリノ",
+			"Sarajevo": "サラエボ",
+			"Saratov": "サラトフ",
+			"Simferopol": "シンフェロポリ",
+			"Skopje": "スコピエ",
+			"Sofia": "ソフィア",
+			"Stockholm": "ストックホルム",
+			"Tallinn": "タリン",
+			"Tirane": "ティラナ",
+			"Ulyanovsk": "ウリヤノフスク",
+			"Uzhgorod": "ウージュホロド",
+			"Vaduz": "ファドゥーツ",
+			"Vatican": "バチカン",
+			"Vienna": "ウィーン",
+			"Vilnius": "ヴィリニュス",
+			"Volgograd": "ボルゴグラード",
+			"Warsaw": "ワルシャワ",
+			"Zagreb": "ザグレブ",
+			"Zaporozhye": "ザポリージャ",
+			"Zurich": "チューリッヒ",
+			"_parent": "ヨーロッパ"
+		},
+		"Indian": {
+			"Antananarivo": "アンタナナリボ",
+			"Chagos": "チャゴス",
+			"Christmas": "クリスマス島",
+			"Cocos": "ココス諸島",
+			"Comoro": "コモロ",
+			"Kerguelen": "ケルゲレン諸島",
+			"Mahe": "マヘ",
+			"Maldives": "モルディブ",
+			"Mauritius": "モーリシャス",
+			"Mayotte": "マヨット",
+			"Reunion": "レユニオン"
+		},
+		"Pacific": {
+			"Apia": "アピア",
+			"Auckland": "オークランド",
+			"Bougainville": "ブーゲンビル",
+			"Chatham": "チャタム",
+			"Chuuk": "チューク",
+			"Easter": "イースター島",
+			"Efate": "エフェテ島",
+			"Fakaofo": "ファカオフォ",
+			"Fiji": "フィジー",
+			"Funafuti": "フナフティ",
+			"Galapagos": "ガラパゴス",
+			"Gambier": "ガンビエ諸島",
+			"Guadalcanal": "ガダルカナル",
+			"Guam": "グアム",
+			"Honolulu": "ホノルル",
+			"Kanton": "カントン島",
+			"Kiritimati": "キリスィマスィ島",
+			"Kosrae": "コスラエ",
+			"Kwajalein": "クェゼリン",
+			"Majuro": "マジュロ",
+			"Marquesas": "マルキーズ",
+			"Midway": "ミッドウェー島",
+			"Nauru": "ナウル",
+			"Niue": "ニウエ",
+			"Norfolk": "ノーフォーク島",
+			"Noumea": "ヌメア",
+			"Pago_Pago": "パゴパゴ",
+			"Palau": "パラオ",
+			"Pitcairn": "ピトケアン諸島",
+			"Pohnpei": "ポンペイ島",
+			"Port_Moresby": "ポートモレスビー",
+			"Rarotonga": "ラロトンガ",
+			"Saipan": "サイパン",
+			"Tahiti": "タヒチ",
+			"Tarawa": "タラワ",
+			"Tongatapu": "トンガタプ",
+			"Wake": "ウェーク島",
+			"Wallis": "ウォリス諸島"
+		}
+	},
+	"timezoneNamesFormats": {
+		"gmtFormat": "GMT{0}"
+	},
 	"decimalFormat": {
 		"standard": "#,##0.###"
 	},
@@ -3915,7 +4707,12 @@
 		"100000000000-other": "0000億",
 		"1000000000000-other": "0兆",
 		"10000000000000-other": "00兆",
-		"100000000000000-other": "000兆"
+		"100000000000000-other": "000兆",
+		"1000000000000000-other": "0000兆",
+		"10000000000000000-other": "0京",
+		"100000000000000000-other": "00京",
+		"1000000000000000000-other": "000京",
+		"10000000000000000000-other": "0000京"
 	},
 	"decimalFormat-short": {
 		"1000-other": "0",
@@ -3929,7 +4726,12 @@
 		"100000000000-other": "0000億",
 		"1000000000000-other": "0兆",
 		"10000000000000-other": "00兆",
-		"100000000000000-other": "000兆"
+		"100000000000000-other": "000兆",
+		"1000000000000000-other": "0000兆",
+		"10000000000000000-other": "0京",
+		"100000000000000000-other": "00京",
+		"1000000000000000000-other": "000京",
+		"10000000000000000000-other": "0000京"
 	},
 	"scientificFormat": {
 		"standard": "#E0"
@@ -3942,12 +4744,12 @@
 		"accounting": "¤#,##0.00;(¤#,##0.00)",
 		"currencySpacing": {
 			"beforeCurrency": {
-				"currencyMatch": "[:^S:]",
+				"currencyMatch": "[[:^S:]&[:^Z:]]",
 				"surroundingMatch": "[:digit:]",
 				"insertBetween": " "
 			},
 			"afterCurrency": {
-				"currencyMatch": "[:^S:]",
+				"currencyMatch": "[[:^S:]&[:^Z:]]",
 				"surroundingMatch": "[:digit:]",
 				"insertBetween": " "
 			}
@@ -3963,17 +4765,22 @@
 	},
 	"currencyFormat-short": {
 		"1000-other": "0",
-		"10000-other": "¤0万",
-		"100000-other": "¤00万",
-		"1000000-other": "¤000万",
-		"10000000-other": "¤0000万",
-		"100000000-other": "¤0億",
-		"1000000000-other": "¤00億",
-		"10000000000-other": "¤000億",
-		"100000000000-other": "¤0000億",
-		"1000000000000-other": "¤0兆",
-		"10000000000000-other": "¤00兆",
-		"100000000000000-other": "¤000兆"
+		"10000-other": "¤ 0万",
+		"100000-other": "¤ 00万",
+		"1000000-other": "¤ 000万",
+		"10000000-other": "¤ 0000万",
+		"100000000-other": "¤ 0億",
+		"1000000000-other": "¤ 00億",
+		"10000000000-other": "¤ 000億",
+		"100000000000-other": "¤ 0000億",
+		"1000000000000-other": "¤ 0兆",
+		"10000000000000-other": "¤ 00兆",
+		"100000000000000-other": "¤ 000兆",
+		"1000000000000000-other": "¤ 0000兆",
+		"10000000000000000-other": "¤ 0京",
+		"100000000000000000-other": "¤ 00京",
+		"1000000000000000000-other": "¤ 000京",
+		"10000000000000000000-other": "¤ 0000京"
 	},
 	"symbols-latn-decimal": ".",
 	"symbols-latn-group": ",",
@@ -3981,6 +4788,7 @@
 	"symbols-latn-percentSign": "%",
 	"symbols-latn-plusSign": "+",
 	"symbols-latn-minusSign": "-",
+	"symbols-latn-approximatelySign": "約",
 	"symbols-latn-exponential": "E",
 	"symbols-latn-superscriptingExponent": "×",
 	"symbols-latn-perMille": "‰",
@@ -4006,7 +4814,7 @@
 		"VND": "₫",
 		"XAF": "FCFA",
 		"XCD": "EC$",
-		"XOF": "CFA",
+		"XOF": "F CFA",
 		"XPF": "CFPF"
 	},
 	"rtl": false,
@@ -4036,14 +4844,109 @@
 	},
 	"units": {
 		"short": {
+			"10p-1": {
+				"unitPrefixPattern": "d{0}"
+			},
+			"10p-2": {
+				"unitPrefixPattern": "c{0}"
+			},
+			"10p-3": {
+				"unitPrefixPattern": "m{0}"
+			},
+			"10p-6": {
+				"unitPrefixPattern": "μ{0}"
+			},
+			"10p-9": {
+				"unitPrefixPattern": "n{0}"
+			},
+			"10p-12": {
+				"unitPrefixPattern": "p{0}"
+			},
+			"10p-15": {
+				"unitPrefixPattern": "f{0}"
+			},
+			"10p-18": {
+				"unitPrefixPattern": "a{0}"
+			},
+			"10p-21": {
+				"unitPrefixPattern": "z{0}"
+			},
+			"10p-24": {
+				"unitPrefixPattern": "y{0}"
+			},
+			"10p1": {
+				"unitPrefixPattern": "da{0}"
+			},
+			"10p2": {
+				"unitPrefixPattern": "h{0}"
+			},
+			"10p3": {
+				"unitPrefixPattern": "k{0}"
+			},
+			"10p6": {
+				"unitPrefixPattern": "M{0}"
+			},
+			"10p9": {
+				"unitPrefixPattern": "G{0}"
+			},
+			"10p12": {
+				"unitPrefixPattern": "T{0}"
+			},
+			"10p15": {
+				"unitPrefixPattern": "P{0}"
+			},
+			"10p18": {
+				"unitPrefixPattern": "E{0}"
+			},
+			"10p21": {
+				"unitPrefixPattern": "Z{0}"
+			},
+			"10p24": {
+				"unitPrefixPattern": "Y{0}"
+			},
+			"1024p1": {
+				"unitPrefixPattern": "Ki{0}"
+			},
+			"1024p2": {
+				"unitPrefixPattern": "Mi{0}"
+			},
+			"1024p3": {
+				"unitPrefixPattern": "Gi{0}"
+			},
+			"1024p4": {
+				"unitPrefixPattern": "Ti{0}"
+			},
+			"1024p5": {
+				"unitPrefixPattern": "Pi{0}"
+			},
+			"1024p6": {
+				"unitPrefixPattern": "Ei{0}"
+			},
+			"1024p7": {
+				"unitPrefixPattern": "Zi{0}"
+			},
+			"1024p8": {
+				"unitPrefixPattern": "Yi{0}"
+			},
 			"per": {
 				"compoundUnitPattern": "{0}/{1}"
+			},
+			"power2": {
+				"compoundUnitPattern1": "{0}²",
+				"compoundUnitPattern1-count-other": "{0}²"
+			},
+			"power3": {
+				"compoundUnitPattern1": "{0}³",
+				"compoundUnitPattern1-count-other": "{0}³"
+			},
+			"times": {
+				"compoundUnitPattern": "{0}⋅{1}"
 			},
 			"acceleration-g-force": {
 				"displayName": "重力加速度",
 				"unitPattern-count-other": "{0} G"
 			},
-			"acceleration-meter-per-second-squared": {
+			"acceleration-meter-per-square-second": {
 				"displayName": "m/s²",
 				"unitPattern-count-other": "{0} m/s²"
 			},
@@ -4116,7 +5019,7 @@
 				"displayName": "金",
 				"unitPattern-count-other": "{0} 金"
 			},
-			"concentr-milligram-per-deciliter": {
+			"concentr-milligram-ofglucose-per-deciliter": {
 				"displayName": "ミリグラム毎デシリットル",
 				"unitPattern-count-other": "{0} mg/dL"
 			},
@@ -4124,7 +5027,11 @@
 				"displayName": "ミリモル毎リットル",
 				"unitPattern-count-other": "{0} mmol/L"
 			},
-			"concentr-part-per-million": {
+			"concentr-item": {
+				"displayName": "項目",
+				"unitPattern-count-other": "{0} 項目"
+			},
+			"concentr-permillion": {
 				"displayName": "ppm",
 				"unitPattern-count-other": "{0} ppm"
 			},
@@ -4148,7 +5055,7 @@
 				"displayName": "L/km",
 				"unitPattern-count-other": "{0} L/km"
 			},
-			"consumption-liter-per-100kilometers": {
+			"consumption-liter-per-100-kilometer": {
 				"displayName": "L/100km",
 				"unitPattern-count-other": "{0} L/100km"
 			},
@@ -4189,8 +5096,8 @@
 				"unitPattern-count-other": "{0} Mb"
 			},
 			"digital-kilobyte": {
-				"displayName": "kB",
-				"unitPattern-count-other": "{0} kB"
+				"displayName": "KB",
+				"unitPattern-count-other": "{0} KB"
 			},
 			"digital-kilobit": {
 				"displayName": "キロビット",
@@ -4208,10 +5115,19 @@
 				"displayName": "世紀",
 				"unitPattern-count-other": "{0} 世紀"
 			},
+			"duration-decade": {
+				"displayName": "十年",
+				"unitPattern-count-other": "{0} 十年"
+			},
 			"duration-year": {
 				"displayName": "年",
 				"unitPattern-count-other": "{0} 年",
 				"perUnitPattern": "{0}/年"
+			},
+			"duration-quarter": {
+				"displayName": "四半期",
+				"unitPattern-count-other": "{0}四半期",
+				"perUnitPattern": "{0}/四半期"
 			},
 			"duration-month": {
 				"displayName": "か月",
@@ -4303,6 +5219,10 @@
 				"displayName": "英熱量",
 				"unitPattern-count-other": "{0} BTU"
 			},
+			"energy-therm-us": {
+				"displayName": "米サーム",
+				"unitPattern-count-other": "{0} 米サーム"
+			},
 			"force-pound-force": {
 				"displayName": "重量ポンド",
 				"unitPattern-count-other": "{0} lbf"
@@ -4310,6 +5230,10 @@
 			"force-newton": {
 				"displayName": "ニュートン",
 				"unitPattern-count-other": "{0} N"
+			},
+			"force-kilowatt-hour-per-100-kilometer": {
+				"displayName": "kWh/100km",
+				"unitPattern-count-other": "{0} kWh/100km"
 			},
 			"frequency-gigahertz": {
 				"displayName": "GHz",
@@ -4326,6 +5250,42 @@
 			"frequency-hertz": {
 				"displayName": "Hz",
 				"unitPattern-count-other": "{0} Hz"
+			},
+			"graphics-em": {
+				"displayName": "em",
+				"unitPattern-count-other": "{0} em"
+			},
+			"graphics-pixel": {
+				"displayName": "ピクセル",
+				"unitPattern-count-other": "{0} px"
+			},
+			"graphics-megapixel": {
+				"displayName": "メガピクセル",
+				"unitPattern-count-other": "{0} MP"
+			},
+			"graphics-pixel-per-centimeter": {
+				"displayName": "ppcm",
+				"unitPattern-count-other": "{0} ppcm"
+			},
+			"graphics-pixel-per-inch": {
+				"displayName": "ppi",
+				"unitPattern-count-other": "{0} ppi"
+			},
+			"graphics-dot-per-centimeter": {
+				"displayName": "dpcm",
+				"unitPattern-count-other": "{0} dpcm"
+			},
+			"graphics-dot-per-inch": {
+				"displayName": "dpi",
+				"unitPattern-count-other": "{0} dpi"
+			},
+			"graphics-dot": {
+				"displayName": "ドット",
+				"unitPattern-count-other": "{0} ドット"
+			},
+			"length-earth-radius": {
+				"displayName": "R⊕",
+				"unitPattern-count-other": "{0} R⊕"
 			},
 			"length-kilometer": {
 				"displayName": "km",
@@ -4352,7 +5312,7 @@
 			},
 			"length-micrometer": {
 				"displayName": "マイクロメートル",
-				"unitPattern-count-other": "{0} µm"
+				"unitPattern-count-other": "{0} μm"
 			},
 			"length-nanometer": {
 				"displayName": "ナノメートル",
@@ -4420,11 +5380,19 @@
 				"displayName": "ルクス",
 				"unitPattern-count-other": "{0} lx"
 			},
+			"light-candela": {
+				"displayName": "cd",
+				"unitPattern-count-other": "{0} cd"
+			},
+			"light-lumen": {
+				"displayName": "lm",
+				"unitPattern-count-other": "{0} lm"
+			},
 			"light-solar-luminosity": {
 				"displayName": "太陽光度",
 				"unitPattern-count-other": "{0} L☉"
 			},
-			"mass-metric-ton": {
+			"mass-tonne": {
 				"displayName": "トン",
 				"unitPattern-count-other": "{0} t"
 			},
@@ -4444,7 +5412,7 @@
 			},
 			"mass-microgram": {
 				"displayName": "マイクログラム",
-				"unitPattern-count-other": "{0} µg"
+				"unitPattern-count-other": "{0} μg"
 			},
 			"mass-ton": {
 				"displayName": "米トン",
@@ -4484,6 +5452,10 @@
 				"displayName": "太陽質量",
 				"unitPattern-count-other": "{0} M☉"
 			},
+			"mass-grain": {
+				"displayName": "グレーン",
+				"unitPattern-count-other": "{0} グレーン"
+			},
 			"power-gigawatt": {
 				"displayName": "ギガワット",
 				"unitPattern-count-other": "{0} GW"
@@ -4508,21 +5480,21 @@
 				"displayName": "馬力",
 				"unitPattern-count-other": "{0} 馬力"
 			},
-			"pressure-hectopascal": {
-				"displayName": "hPa",
-				"unitPattern-count-other": "{0} hPa"
-			},
-			"pressure-millimeter-of-mercury": {
+			"pressure-millimeter-ofhg": {
 				"displayName": "水銀柱ミリメートル",
 				"unitPattern-count-other": "{0} mm Hg"
 			},
-			"pressure-pound-per-square-inch": {
+			"pressure-pound-force-per-square-inch": {
 				"displayName": "重量ポンド毎平方インチ",
 				"unitPattern-count-other": "{0} psi"
 			},
-			"pressure-inch-hg": {
+			"pressure-inch-ofhg": {
 				"displayName": "水銀柱インチ",
 				"unitPattern-count-other": "{0} inHg"
+			},
+			"pressure-bar": {
+				"displayName": "バール",
+				"unitPattern-count-other": "{0} bar"
 			},
 			"pressure-millibar": {
 				"displayName": "ミリバール",
@@ -4531,6 +5503,14 @@
 			"pressure-atmosphere": {
 				"displayName": "気圧",
 				"unitPattern-count-other": "{0} atm"
+			},
+			"pressure-pascal": {
+				"displayName": "パスカル",
+				"unitPattern-count-other": "{0} Pa"
+			},
+			"pressure-hectopascal": {
+				"displayName": "hPa",
+				"unitPattern-count-other": "{0} hPa"
 			},
 			"pressure-kilopascal": {
 				"displayName": "kPa",
@@ -4572,7 +5552,7 @@
 				"displayName": "K",
 				"unitPattern-count-other": "{0} K"
 			},
-			"torque-pound-foot": {
+			"torque-pound-force-foot": {
 				"displayName": "ポンドフィート",
 				"unitPattern-count-other": "{0} lbf⋅ft"
 			},
@@ -4621,7 +5601,7 @@
 			"volume-liter": {
 				"displayName": "リットル",
 				"unitPattern-count-other": "{0} L",
-				"perUnitPattern": "{0}/l"
+				"perUnitPattern": "{0}/L"
 			},
 			"volume-deciliter": {
 				"displayName": "デシリットル",
@@ -4693,6 +5673,34 @@
 				"displayName": "バレル",
 				"unitPattern-count-other": "{0} bbl"
 			},
+			"volume-dessert-spoon": {
+				"displayName": "中さじ",
+				"unitPattern-count-other": "中さじ {0}"
+			},
+			"volume-dessert-spoon-imperial": {
+				"displayName": "英デザートスプーン",
+				"unitPattern-count-other": "{0} 英デザートスプーン"
+			},
+			"volume-drop": {
+				"displayName": "滴",
+				"unitPattern-count-other": "{0} 滴"
+			},
+			"volume-dram": {
+				"displayName": "液量ドラム",
+				"unitPattern-count-other": "{0} 液量ドラム"
+			},
+			"volume-jigger": {
+				"displayName": "ジガー",
+				"unitPattern-count-other": "{0} ジガー"
+			},
+			"volume-pinch": {
+				"displayName": "つまみ",
+				"unitPattern-count-other": "{0} つまみ"
+			},
+			"volume-quart-imperial": {
+				"displayName": "英クォート",
+				"unitPattern-count-other": "{0} qt Imp."
+			},
 			"coordinateUnit": {
 				"displayName": "方位",
 				"east": "東経{0}",
@@ -4719,7 +5727,12 @@
 		"100000000000-other": "0000億 ¤",
 		"1000000000000-other": "0兆 ¤",
 		"10000000000000-other": "00兆 ¤",
-		"100000000000000-other": "000兆 ¤"
+		"100000000000000-other": "000兆 ¤",
+		"1000000000000000-other": "0000兆 ¤",
+		"10000000000000000-other": "0京 ¤",
+		"100000000000000000-other": "00京 ¤",
+		"1000000000000000000-other": "000京 ¤",
+		"10000000000000000000-other": "0000京 ¤"
 	},
 	"currencyDigits": {
 		"ADP": 0,
@@ -4783,48 +5796,94 @@
 	"weekData-weekendStart": 6,
 	"weekData-weekendEnd": 0,
 	"timeData": {
-		"_allowed": "H h K",
+		"_allowed": "H K h",
 		"_preferred": "H"
 	},
 	"eras-gregorian": {
 		"0": {
+			"_code": "gregory-inverse",
+			"_aliases": "bc bce",
 			"_end": "0-12-31"
 		},
 		"1": {
+			"_code": "gregory",
+			"_aliases": "ad ce",
 			"_start": "1-01-01"
 		}
 	},
 	"eras-islamic": {
 		"0": {
+			"_code": "islamic",
+			"_aliases": "ah",
 			"_start": "622-7-15"
 		}
 	},
 	"eras-persian": {
 		"0": {
+			"_code": "persian",
+			"_aliases": "ap",
 			"_start": "622-01-01"
 		}
 	},
 	"eras-buddhist": {
 		"0": {
+			"_code": "buddhist",
+			"_aliases": "be",
 			"_start": "-542-01-01"
 		}
 	},
 	"eras-japanese": {
 		"232": {
+			"_code": "meiji",
 			"_start": "1868-9-8"
 		},
 		"233": {
+			"_code": "taisho",
 			"_start": "1912-7-30"
 		},
 		"234": {
+			"_code": "showa",
 			"_start": "1926-12-25"
 		},
 		"235": {
+			"_code": "heisei",
 			"_start": "1989-1-8"
 		},
 		"236": {
+			"_code": "reiwa",
 			"_start": "2019-5-1"
 		}
 	},
-	"calendarPreference": "gregorian japanese"
+	"dayPeriodRules": {
+		"afternoon1": {
+			"_before": "16:00",
+			"_from": "12:00"
+		},
+		"evening1": {
+			"_before": "19:00",
+			"_from": "16:00"
+		},
+		"midnight": {
+			"_at": "00:00"
+		},
+		"morning1": {
+			"_before": "12:00",
+			"_from": "04:00"
+		},
+		"night1": {
+			"_before": "23:00",
+			"_from": "19:00"
+		},
+		"night2": {
+			"_before": "04:00",
+			"_from": "23:00"
+		},
+		"noon": {
+			"_at": "12:00"
+		}
+	},
+	"calendarPreference": [
+		"gregorian",
+		"japanese"
+	]
 }

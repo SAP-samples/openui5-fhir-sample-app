@@ -35,6 +35,11 @@
 		display: none;
 	}
 
+	.sapFDynamicPageTitleExpanded.sapUiHidden *,
+	.sapFDynamicPageTitleSnapped.sapUiHidden * {
+		visibility: hidden;
+	}
+
 	.sapFDynamicPageTitleMain > .sapFDynamicPageTitleMainInner {
 		.sapFDynamicPageTitleMainContent .sapMTB {
 			padding-left: 0.5rem;
@@ -120,6 +125,7 @@
 	.sapFDynamicPageTitleActionsBar.sapMTB {
 		justify-content: flex-end;
 		-webkit-justify-content: flex-end;
+		overflow: visible;
 	}
 }
 
@@ -201,11 +207,10 @@ html[data-sap-ui-browser^="ff"].sap-desktop {
 		-webkit-flex-direction: column;
 		justify-content: space-between;
 		-webkit-justify-content: space-between;
-		min-width: 0%;
+		min-width: 0;
 
 		.sapFDynamicPageTitleMainHeadingInner,
 		.sapFDynamicPageTitleMainHeadingSnappedExpandContent {
-			overflow: hidden;
 			text-overflow: ellipsis;
 			white-space: nowrap;
 			box-sizing: border-box;
@@ -216,7 +221,6 @@ html[data-sap-ui-browser^="ff"].sap-desktop {
 			min-width: 1px;
 			max-width: 100%;
 			color: @sapUiGroupTitleTextColor;
-			font-size: @sapMFontHeader3Size;
 			margin-top: 0.1875rem;
 
 			/* Override Title styles, required by VD */
@@ -238,13 +242,23 @@ html[data-sap-ui-browser^="ff"].sap-desktop {
 	}
 
 	.sapFDynamicPageTitleMainContent {
-		min-width: 0;
-		padding: 0 0 0.5rem 0.5rem;
+		min-width: 0.0625rem;
+		padding: 0 0 0 0.5rem;
+
+		&.sapFDynamicPageTitleMainContentHasContent {
+			min-width: 3rem;
+			flex-grow: 1;
+		}
 	}
 
 	.sapFDynamicPageTitleMainActions {
 		margin-left: auto;
-		min-width: 0;
+		min-width: 0.0625rem;
+		flex-grow: 1;
+
+		&.sapFDynamicPageTitleMainActionsHasContent {
+			min-width: 3rem;
+		}
 
 	.sapFDynamicPageTitleActionsBar .sapMLabel.sapMLabelMaxWidth,
 	.sapFDynamicPageTitleActionsBar .sapMLnk.sapMLnkMaxWidth {

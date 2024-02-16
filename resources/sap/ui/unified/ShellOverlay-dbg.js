@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2024 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -13,9 +13,11 @@ sap.ui.define([
 	'sap/ui/core/theming/Parameters',
 	'./ShellOverlayRenderer',
 	"sap/ui/thirdparty/jquery",
-	'sap/ui/dom/jquery/rect', // jQuery Plugin "rect"
-	'sap/ui/dom/jquery/Selectors' // jQuery custom selectors ":sapTabbable"
-],
+	"sap/ui/core/Configuration",
+	// jQuery Plugin "rect"
+	'sap/ui/dom/jquery/rect',
+	// jQuery custom selectors ":sapTabbable"
+	'sap/ui/dom/jquery/Selectors' ],
 	function(
 		Device,
 		Control,
@@ -23,7 +25,8 @@ sap.ui.define([
 		library,
 		Parameters,
 		ShellOverlayRenderer,
-		jQuery
+		jQuery,
+		Configuration
 	) {
 	"use strict";
 
@@ -40,51 +43,55 @@ sap.ui.define([
 	 * @extends sap.ui.core.Control
 	 *
 	 * @author SAP SE
-	 * @version 1.79.0
+	 * @version 1.120.6
 	 *
 	 * @constructor
 	 * @public
 	 * @since 1.16.3
 	 * @alias sap.ui.unified.ShellOverlay
 	 * @deprecated Since version 1.44.0.
-	 * @ui5-metamodel This control/element also will be described in the UI5 (legacy) designtime metamodel
 	 */
-	var ShellOverlay = Control.extend("sap.ui.unified.ShellOverlay", /** @lends sap.ui.unified.ShellOverlay.prototype */ { metadata : {
+	var ShellOverlay = Control.extend("sap.ui.unified.ShellOverlay", /** @lends sap.ui.unified.ShellOverlay.prototype */ {
+		metadata : {
 
-		library : "sap.ui.unified",
-		defaultAggregation : "content",
-		aggregations : {
+			library : "sap.ui.unified",
+			deprecated : true,
+			defaultAggregation : "content",
+			aggregations : {
 
-			/**
-			 * The content to appear in the overlay.
-			 */
-			content : {type : "sap.ui.core.Control", multiple : true, singularName : "content"},
+				/**
+				 * The content to appear in the overlay.
+				 */
+				content : {type : "sap.ui.core.Control", multiple : true, singularName : "content"},
 
-			/**
-			 * Experimental (This aggregation might change in future!): The search control which should be displayed in the overlay header.
-			 */
-			search : {type : "sap.ui.core.Control", multiple : false}
+				/**
+				 * Experimental (This aggregation might change in future!): The search control which should be displayed in the overlay header.
+				 */
+				search : {type : "sap.ui.core.Control", multiple : false}
+			},
+			associations : {
+
+				/**
+				 * Reference to the sap.ui.unified.Shell or sap.ui.unified.ShellLayout control.
+				 */
+				shell : {type : "sap.ui.unified.ShellLayout", multiple : false},
+
+				/**
+				 * Association to controls / ids which label this control (see WAI-ARIA attribute aria-labelledby).
+				 */
+				ariaLabelledBy : {type : "sap.ui.core.Control", multiple : true, singularName : "ariaLabelledBy"}
+			},
+			events : {
+
+				/**
+				 * Fired when the overlay was closed.
+				 */
+				closed : {}
+			}
 		},
-		associations : {
 
-			/**
-			 * Reference to the sap.ui.unified.Shell or sap.ui.unified.ShellLayout control.
-			 */
-			shell : {type : "sap.ui.unified.ShellLayout", multiple : false},
-
-			/**
-			 * Association to controls / ids which label this control (see WAI-ARIA attribute aria-labelledby).
-			 */
-			ariaLabelledBy : {type : "sap.ui.core.Control", multiple : true, singularName : "ariaLabelledBy"}
-		},
-		events : {
-
-			/**
-			 * Fired when the overlay was closed.
-			 */
-			closed : {}
-		}
-	}});
+		renderer: ShellOverlayRenderer
+	});
 
 
 	/**** API ****/
@@ -155,7 +162,7 @@ sap.ui.define([
 
 	ShellOverlay.prototype.setSearch = function(oSearch){
 		this.setAggregation("search", oSearch, true);
-		if (!!this.getDomRef()) {
+		if (this.getDomRef()) {
 			this._headRenderer.render();
 		}
 		return this;
@@ -163,35 +170,35 @@ sap.ui.define([
 
 	ShellOverlay.prototype.insertContent = function(oContent, iIndex) {
 		var res = this.insertAggregation("content", oContent, iIndex, true);
-		if (!!this.getDomRef()) {
+		if (this.getDomRef()) {
 			this._contentRenderer.render();
 		}
 		return res;
 	};
 	ShellOverlay.prototype.addContent = function(oContent) {
 		var res = this.addAggregation("content", oContent, true);
-		if (!!this.getDomRef()) {
+		if (this.getDomRef()) {
 			this._contentRenderer.render();
 		}
 		return res;
 	};
 	ShellOverlay.prototype.removeContent = function(vIndex) {
 		var res = this.removeAggregation("content", vIndex, true);
-		if (!!this.getDomRef()) {
+		if (this.getDomRef()) {
 			this._contentRenderer.render();
 		}
 		return res;
 	};
 	ShellOverlay.prototype.removeAllContent = function() {
 		var res = this.removeAllAggregation("content", true);
-		if (!!this.getDomRef()) {
+		if (this.getDomRef()) {
 			this._contentRenderer.render();
 		}
 		return res;
 	};
 	ShellOverlay.prototype.destroyContent = function() {
 		var res = this.destroyAggregation("content", true);
-		if (!!this.getDomRef()) {
+		if (this.getDomRef()) {
 			this._contentRenderer.render();
 		}
 		return res;
@@ -204,7 +211,7 @@ sap.ui.define([
 		this._animOpenDuration = -1;
 		this._animCloseDuration = -1;
 		this._animBlockLayerDuration = -1;
-		this._animation = sap.ui.getCore().getConfiguration().getAnimation();
+		this._animation = Configuration.getAnimation();
 		this._opening = false;
 
 		var that = this;
@@ -305,7 +312,7 @@ sap.ui.define([
 	};
 
 	ShellOverlay.prototype._getAnimActive = function(){
-		if (!this._animation || (Device.browser.internet_explorer && Device.browser.version < 10)) {
+		if (!this._animation) {
 			return false;
 		}
 		return true;

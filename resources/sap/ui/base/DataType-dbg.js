@@ -1,8 +1,10 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2024 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
+
+/* global Set */
 
 // Provides class sap.ui.base.DataType
 sap.ui.define([
@@ -14,7 +16,6 @@ sap.ui.define([
 ],
 	function(ObjectPath, assert, Log, isPlainObject, resolveReference) {
 	"use strict";
-
 
 	/**
 	 * Pseudo-Constructor for class <code>DataType</code>, never to be used.
@@ -125,7 +126,7 @@ sap.ui.define([
 	 * Returns the object with keys and values from which this enum type was created
 	 * or <code>undefined</code> if this is not an enum type.
 	 *
-	 * @returns {object} Object with enum keys and values or <code>undefined</code>
+	 * @returns {Object<string,string>|undefined} Object with enum keys and values or <code>undefined</code>
 	 * @public
 	 */
 	DataType.prototype.getEnumValues = function() {
@@ -177,7 +178,7 @@ sap.ui.define([
 	 * they are applied to controls. It is not intended to break-out of the value range
 	 * defined by a type.
 	 *
-	 * @param {function} fnNormalizer Function to apply for normalizing
+	 * @param {function(any):any} fnNormalizer Function to apply for normalizing
 	 * @public
 	 */
 	DataType.prototype.setNormalizer = function(fnNormalizer) {
@@ -197,7 +198,6 @@ sap.ui.define([
 	DataType.prototype.normalize = function(oValue) {
 		return this._fnNormalizer ? this._fnNormalizer(oValue) : oValue;
 	};
-
 
 	function createType(sName, mSettings, oBase) {
 
@@ -239,126 +239,6 @@ sap.ui.define([
 		// return the base type
 		oType.getBaseType = function() {
 			return oBase;
-		};
-
-		return oType;
-	}
-
-	// The generic "array" type must not be exposed by DataType.getType to avoid direct usage
-	// as type of a managed property. It is therefore not stored in the mTypes map
-	var arrayType = createType("array", {
-		defaultValue : []
-	});
-
-	function createArrayType(componentType) {
-		assert(componentType instanceof DataType, "DataType.<createArrayType>: componentType must be a DataType");
-
-		// create a new type object with the base type as prototype
-		var oType = Object.create(DataType.prototype);
-
-		// getter for the name
-		oType.getName = function() {
-			return componentType.getName() + "[]";
-		};
-
-		// getter for component type
-		oType.getComponentType = function() {
-			return componentType;
-		};
-
-		// array validator
-		oType.isValid = function(aValues) {
-			if (aValues === null) {
-				return true;
-			}
-			if (Array.isArray(aValues)) {
-				for (var i = 0; i < aValues.length; i++) {
-					if (!componentType.isValid(aValues[i])) {
-						return false;
-					}
-				}
-				return true;
-			}
-			return false;
-		};
-
-		// array parser
-		oType.parseValue = function(sValue) {
-			var aValues = sValue.split(",");
-			for (var i = 0; i < aValues.length; i++) {
-				aValues[i] = componentType.parseValue(aValues[i]);
-			}
-			return aValues;
-		};
-
-		// is an array type
-		oType.isArrayType = function() {
-			return true;
-		};
-
-		// return the base type
-		oType.getBaseType = function() {
-			return arrayType;
-		};
-
-		return oType;
-	}
-
-	function createEnumType(sTypeName, oEnum) {
-
-		var mValues = {},
-			sDefaultValue;
-		for (var sName in oEnum) {
-			var sValue = oEnum[sName];
-			// the first entry will become the default value
-			if (!sDefaultValue) {
-				sDefaultValue = sValue;
-			}
-			if ( typeof sValue !== "string") {
-				throw new Error("Value " + sValue + " for enum type " + sTypeName + " is not a string");
-			}
-			// if there are multiple entries with the same value, the one where name
-			// and value are matching is taken
-			if (!mValues.hasOwnProperty(sValue) || sName == sValue) {
-				mValues[sValue] = sName;
-			}
-		}
-
-		var oType = Object.create(DataType.prototype);
-
-		// getter for the name
-		oType.getName = function() {
-			return sTypeName;
-		};
-
-		// enum validator
-		oType.isValid = function(v) {
-			return typeof v === "string" && mValues.hasOwnProperty(v);
-		};
-
-		// enum parser
-		oType.parseValue = function(sValue) {
-			return oEnum[sValue];
-		};
-
-		// default value
-		oType.getDefaultValue = function() {
-			return sDefaultValue;
-		};
-
-		// return the base type
-		oType.getBaseType = function() {
-			return mTypes.string;
-		};
-
-		// is an enum type
-		oType.isEnumType = function() {
-			return true;
-		};
-
-		// enum values are best represented by the existing global object
-		oType.getEnumValues = function() {
-			return oEnum;
 		};
 
 		return oType;
@@ -467,6 +347,128 @@ sap.ui.define([
 
 	};
 
+	// The generic "array" type must not be exposed by DataType.getType to avoid direct usage
+	// as type of a managed property. It is therefore not stored in the mTypes map
+	var arrayType = createType("array", {
+		defaultValue : []
+	});
+
+	function createArrayType(componentType) {
+		assert(componentType instanceof DataType, "DataType.<createArrayType>: componentType must be a DataType");
+
+		// create a new type object with the base type as prototype
+		var oType = Object.create(DataType.prototype);
+
+		// getter for the name
+		oType.getName = function() {
+			return componentType.getName() + "[]";
+		};
+
+		// getter for component type
+		oType.getComponentType = function() {
+			return componentType;
+		};
+
+		// array validator
+		oType.isValid = function(aValues) {
+			if (aValues === null) {
+				return true;
+			}
+			if (Array.isArray(aValues)) {
+				for (var i = 0; i < aValues.length; i++) {
+					if (!componentType.isValid(aValues[i])) {
+						return false;
+					}
+				}
+				return true;
+			}
+			return false;
+		};
+
+		// array parser
+		oType.parseValue = function(sValue) {
+			var aValues = sValue.split(",");
+			for (var i = 0; i < aValues.length; i++) {
+				aValues[i] = componentType.parseValue(aValues[i]);
+			}
+			return aValues;
+		};
+
+		// is an array type
+		oType.isArrayType = function() {
+			return true;
+		};
+
+		// return the base type
+		oType.getBaseType = function() {
+			return arrayType;
+		};
+
+		return oType;
+	}
+
+	const mEnumRegistry = Object.create(null);
+
+	function createEnumType(sTypeName, oEnum) {
+
+		var mValues = {},
+			sDefaultValue;
+		for (var sName in oEnum) {
+			var sValue = oEnum[sName];
+			// the first entry will become the default value
+			if (!sDefaultValue) {
+				sDefaultValue = sValue;
+			}
+			if ( typeof sValue !== "string") {
+				throw new Error("Value " + sValue + " for enum type " + sTypeName + " is not a string");
+			}
+			// if there are multiple entries with the same value, the one where name
+			// and value are matching is taken
+			if (!mValues.hasOwnProperty(sValue) || sName == sValue) {
+				mValues[sValue] = sName;
+			}
+		}
+
+		var oType = Object.create(DataType.prototype);
+
+		// getter for the name
+		oType.getName = function() {
+			return sTypeName;
+		};
+
+		// enum validator
+		oType.isValid = function(v) {
+			return typeof v === "string" && mValues.hasOwnProperty(v);
+		};
+
+		// enum parser
+		oType.parseValue = function(sValue) {
+			return oEnum[sValue];
+		};
+
+		// default value
+		oType.getDefaultValue = function() {
+			return sDefaultValue;
+		};
+
+		// return the base type
+		oType.getBaseType = function() {
+			return mTypes.string;
+		};
+
+		// is an enum type
+		oType.isEnumType = function() {
+			return true;
+		};
+
+		// enum values are best represented by the existing global object
+		oType.getEnumValues = function() {
+			return oEnum;
+		};
+
+		return oType;
+	}
+
 	/**
 	 * Looks up the type with the given name and returns it.
 	 *
@@ -524,19 +526,32 @@ sap.ui.define([
 					mTypes[sTypeName] = oType;
 				}
 			} else if ( sTypeName !== 'array') {
-				oType = ObjectPath.get(sTypeName);
+				// check if we have a valid pre-registered enum
+				oType = mEnumRegistry[sTypeName];
+
+				/**
+				 * If an enum was not registered beforehand (either explicitly via registerEnum or
+				 * via a Proxy in the library namespace), we have to look it up in the global object.
+				 * @deprecated since 1.120
+				 */
+				if (oType == null) {
+					oType = ObjectPath.get(sTypeName);
+					if (oType != null) {
+						Log.error(`The type '${sTypeName}' was accessed via globals. Defining enums via globals is deprecated. Please require the module 'sap/ui/base/DataType' and call the static 'DataType.registerEnum' API.`);
+					}
+				}
+
 				if ( oType instanceof DataType ) {
 					mTypes[sTypeName] = oType;
 				} else if ( isPlainObject(oType) ) {
 					oType = mTypes[sTypeName] = createEnumType(sTypeName, oType);
+					delete mEnumRegistry[sTypeName];
+				} else if ( oType ) {
+					Log.warning("[FUTURE FATAL] '" + sTypeName + "' is not a valid data type. Falling back to type 'any'.");
+					oType = mTypes.any;
 				} else {
-					if ( oType ) {
-						Log.warning("'" + sTypeName + "' is not a valid data type. Falling back to type 'any'.");
-						oType = mTypes.any;
-					} else {
-						Log.error("data type '" + sTypeName + "' could not be found.");
-						oType = undefined;
-					}
+					Log.error("[FUTURE FATAL] data type '" + sTypeName + "' could not be found.");
+					oType = undefined;
 				}
 			}
 		}
@@ -571,10 +586,10 @@ sap.ui.define([
 	 * <b>Note:</b> The creation of new primitive types is not supported. When a type is created
 	 * without a base type, it is automatically derived from the primitive type <code>any</code>.
 	 *
-	 * <b>Note:</b> If a type has to be used in classes tagged with <code>@ui5-metamodel</code>,
-	 * then the implementation of <code>isValid</code> must exactly have the structure shown
-	 * in the example above (single return statement, regular expression literal of the form
-	 * <code>/^(...)$/</code>, calling <code>/regex/.test()</code> on the given value).
+	 * <b>Note:</b> If a type has to be used in classes, then the implementation of
+	 * <code>isValid</code> must exactly have the structure shown in the example above (single
+	 * return statement, regular expression literal of the form <code>/^(...)$/</code>, calling
+	 * <code>/regex/.test()</code> on the given value).
 	 * Only the inner part of the regular expression literal can be different.
 	 *
 	 * @param {string} sName Unique qualified name of the new type
@@ -584,63 +599,107 @@ sap.ui.define([
 	 *                       type (inherited if not given)
 	 * @param {function} [mSettings.parseValue] Parse function that converts a locale independent
 	 *                       string into a value of the type (inherited if not given)
-	 * @param {sap.ui.base.DataType|string} [base='any'] Base type for the new type
+	 * @param {sap.ui.base.DataType|string} [vBase='any'] Base type for the new type
 	 * @returns {sap.ui.base.DataType} The newly created type object
 	 * @public
 	 */
-	DataType.createType = function(sName, mSettings, oBase) {
+	DataType.createType = function(sName, mSettings, vBase) {
 		assert(typeof sName === "string" && sName, "DataType.createType: type name must be a non-empty string");
-		assert(oBase == null || oBase instanceof DataType || typeof oBase === "string" && oBase,
+		assert(vBase == null || vBase instanceof DataType || typeof vBase === "string" && vBase,
 				"DataType.createType: base type must be empty or a DataType or a non-empty string");
 		if ( /[\[\]]/.test(sName) ) {
 			Log.error(
-				"DataType.createType: array types ('something[]') must not be created with createType, " +
+				"[FUTURE FATAL] DataType.createType: array types ('something[]') must not be created with createType, " +
 				"they're created on-the-fly by DataType.getType");
 		}
-		if ( typeof oBase === "string" ) {
-			oBase = DataType.getType(oBase);
+		if ( typeof vBase === "string" ) {
+			vBase = DataType.getType(vBase);
 		}
-		oBase = oBase || mTypes.any;
-		if ( oBase.isArrayType() || oBase.isEnumType() ) {
-			Log.error("DataType.createType: base type must not be an array- or enum-type");
+		vBase = vBase || mTypes.any;
+		if ( vBase.isArrayType() || vBase.isEnumType() ) {
+			Log.error("[FUTURE FATAL] DataType.createType: base type must not be an array- or enum-type");
 		}
 		if ( sName === 'array' || mTypes[sName] instanceof DataType ) {
 			if ( sName === 'array' || mTypes[sName].getBaseType() == null ) {
 				throw new Error("DataType.createType: primitive or hidden type " + sName + " can't be re-defined");
 			}
-			Log.warning("DataTypes.createType: type " + sName + " is redefined. " +
+			Log.warning("[FUTURE FATAL] DataTypes.createType: type " + sName + " is redefined. " +
 				"This is an unsupported usage of DataType and might cause issues." );
 		}
-		var oType = mTypes[sName] = createType(sName, mSettings, oBase);
+		var oType = mTypes[sName] = createType(sName, mSettings, vBase);
 		return oType;
 	};
 
 
 	// ---- minimal support for interface types -------------------------------------------------------------------
 
-	var mInterfaces = {};
+	var oInterfaces = new Set();
 
 	/**
 	 * Registers the given array of type names as known interface types.
 	 * Only purpose is to enable the {@link #isInterfaceType} check.
 	 * @param {string[]} aTypes interface types to be registered
 	 * @private
-	 * @ui5-restricted sap.ui.base,sap.ui.core.Core
+	 * @ui5-restricted sap.ui.core.Core
 	 */
 	DataType.registerInterfaceTypes = function(aTypes) {
-		for (var i = 0; i < aTypes.length; i++) {
-			ObjectPath.set(aTypes[i], mInterfaces[aTypes[i]] = new String(aTypes[i]));
-		}
+		aTypes.forEach(function(sType) {
+			oInterfaces.add(sType);
+
+			// Defining the interface on global namespace for compatibility reasons.
+			// This has never been a public feature and it is strongly discouraged it be relied upon.
+			// An interface must always be referenced by a string literal, not via the global namespace.
+			ObjectPath.set(sType, sType);
+		});
+	};
+
+	/**
+	 * Registers an enum under the given name.
+	 * With version 2.0, registering an enum becomes mandatory when said enum is to be used in
+	 * properties of a {@link sap.ui.base.ManagedObject ManagedObject} subclass.
+	 *
+	 * Example:<br>
+	 * <pre>
+	 *    DataType.registerEnum("my.enums.Sample", {
+	 *       "A": "A",
+	 *       "B": "B",
+	 *       ...
+	 *    });
+	 * </pre>
+	 *
+	 * @param {string} sTypeName the type name in dot syntax, e.g. sap.ui.my.EnumType
+	 * @param {object} mContent the enum content
+	 * @public
+	 * @since 1.120.0
+	 */
+	DataType.registerEnum = function(sTypeName, mContent) {
+		mEnumRegistry[sTypeName] = mContent;
+	};
+
+	/**
+	 * Checks if the given object contains only static content
+	 * and can be regarded as an enum candidate.
+	 *
+	 * @param {object} oObject the enum candidate
+	 * @returns {boolean} whether the given object can be regarded as an enum candidate
+	 * @private
+	 * @ui5-restricted sap.ui.core.Lib
+	 */
+	DataType._isEnumCandidate = function(oObject) {
+		return !Object.keys(oObject).some((key) => {
+			const propertyType = typeof oObject[key];
+			return propertyType === "object" || propertyType === "function";
+		});
 	};
 
 	/**
 	 * @param {string} sType name of type to check
 	 * @returns {boolean} whether the given type is known to be an interface type
 	 * @private
-	 * @ui5-restricted sap.ui.base,sap.ui.core.Core
+	 * @ui5-restricted sap.ui.base.ManagedObject
 	 */
 	DataType.isInterfaceType = function(sType) {
-		return mInterfaces.hasOwnProperty(sType) && ObjectPath.get(sType) === mInterfaces[sType];
+		return oInterfaces.has(sType);
 	};
 
 

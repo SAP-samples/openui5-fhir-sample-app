@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2024 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -16,12 +16,8 @@ sap.ui.define([
 	function(library, Control, coreLibrary, Image, Label, BusyIndicatorRenderer) {
 	"use strict";
 
-
-
 	// shortcut for sap.ui.core.TextDirection
 	var TextDirection = coreLibrary.TextDirection;
-
-
 
 	/**
 	 * Constructor for a new BusyIndicator.
@@ -50,86 +46,89 @@ sap.ui.define([
 	 * @extends sap.ui.core.Control
 	 *
 	 * @author SAP SE
-	 * @version 1.79.0
+	 * @version 1.120.6
 	 *
 	 * @constructor
 	 * @public
 	 * @alias sap.m.BusyIndicator
 	 * @see {@link fiori:https://experience.sap.com/fiori-design-web/busy-indicator/ Busy Indicator}
-	 * @ui5-metamodel This control/element also will be described in the UI5 (legacy) designtime metamodel
 	 */
-	var BusyIndicator = Control.extend("sap.m.BusyIndicator", /** @lends sap.m.BusyIndicator.prototype */ { metadata : {
+	var BusyIndicator = Control.extend("sap.m.BusyIndicator", /** @lends sap.m.BusyIndicator.prototype */ {
+		metadata : {
 
-		library : "sap.m",
-		properties : {
+			library : "sap.m",
+			properties : {
 
-			/**
-			 * Defines text to be displayed below the busy indicator.
-			 * It can be used to inform the user of the current operation.
-			 */
-			text : {type : "string", group : "Data", defaultValue : ""},
+				/**
+				 * Defines text to be displayed below the busy indicator.
+				 * It can be used to inform the user of the current operation.
+				 */
+				text : {type : "string", group : "Data", defaultValue : ""},
 
-			/**
-			 * Options for the text direction are RTL and LTR.
-			 * Alternatively, the control can inherit the text direction from its parent container.
-			 */
-			textDirection : {type : "sap.ui.core.TextDirection", group : "Appearance", defaultValue : TextDirection.Inherit},
+				/**
+				 * Options for the text direction are RTL and LTR.
+				 * Alternatively, the control can inherit the text direction from its parent container.
+				 */
+				textDirection : {type : "sap.ui.core.TextDirection", group : "Appearance", defaultValue : TextDirection.Inherit},
 
-			/**
-			 * Icon URL if an icon is used as the busy indicator.
-			 */
-			customIcon : {type : "sap.ui.core.URI", group : "Misc", defaultValue : ""},
+				/**
+				 * Icon URL if an icon is used as the busy indicator.
+				 */
+				customIcon : {type : "sap.ui.core.URI", group : "Misc", defaultValue : ""},
 
-			/**
-			 * Defines the rotation speed of the given image.
-			 * If a .gif is used, the speed has to be set to 0.
-			 * The unit is in ms.
-			 * <b>Note:</b> Values are considered valid when greater than or equal to 0.
-			 * If invalid value is provided the speed defaults to 0.
-			 */
-			customIconRotationSpeed : {type : "int", group : "Appearance", defaultValue : 1000},
+				/**
+				 * Defines the rotation speed of the given image.
+				 * If a .gif is used, the speed has to be set to 0.
+				 * The unit is in ms.
+				 * <b>Note:</b> Values are considered valid when greater than or equal to 0.
+				 * If invalid value is provided the speed defaults to 0.
+				 */
+				customIconRotationSpeed : {type : "int", group : "Appearance", defaultValue : 1000},
 
-			/**
-			 * If this is set to false, the src image will be loaded directly without attempting
-			 * to fetch the density perfect image for high density device.
-			 * By default, this is set to true but then one or more requests are sent to the server,
-			 * trying to get the density perfect version of the specified image.
-			 * If bandwidth is the key for the application, set this value to false.
-			 */
-			customIconDensityAware : {type : "boolean", defaultValue : true},
+				/**
+				 * If this is set to false, the src image will be loaded directly without attempting
+				 * to fetch the density perfect image for high density device.
+				 * By default, this is set to true but then one or more requests are sent to the server,
+				 * trying to get the density perfect version of the specified image.
+				 * If bandwidth is the key for the application, set this value to false.
+				 */
+				customIconDensityAware : {type : "boolean", defaultValue : true},
 
-			/**
-			 * Width of the provided icon. By default 44px are used.
-			 */
-			customIconWidth : {type : "sap.ui.core.CSSSize", group : "Appearance", defaultValue : "44px"},
+				/**
+				 * Width of the provided icon. By default 44px are used.
+				 */
+				customIconWidth : {type : "sap.ui.core.CSSSize", group : "Appearance", defaultValue : "44px"},
 
-			/**
-			 * Height of the provided icon. By default 44px are used.
-			 */
-			customIconHeight : {type : "sap.ui.core.CSSSize", group : "Appearance", defaultValue : "44px"},
+				/**
+				 * Height of the provided icon. By default 44px are used.
+				 */
+				customIconHeight : {type : "sap.ui.core.CSSSize", group : "Appearance", defaultValue : "44px"},
 
-			/**
-			 * Defines the size of the busy indicator.
-			 * The animation consists of three circles, each of which will be this size.
-			 * Therefore the total width of the control amounts to three times the given size.
-			 */
-			size : {type : "sap.ui.core.CSSSize", group : "Misc", defaultValue : "1rem"},
+				/**
+				 * Defines the size of the busy indicator.
+				 * The animation consists of three circles, each of which will be this size.
+				 * Therefore the total width of the control amounts to three times the given size.
+				 */
+				size : {type : "sap.ui.core.CSSSize", group : "Misc", defaultValue : "1rem"},
 
-			/**
-			 * Setting this property will not have any effect on the appearance of the BusyIndicator
-			 * in versions greater than or equal to 1.32.1
-			 * @deprecated Since version 1.32.1
-			 */
-			design : {type : "string", group : "Appearance", defaultValue : "auto"}
+				/**
+				 * Setting this property will not have any effect on the appearance of the BusyIndicator
+				 * in versions greater than or equal to 1.32.1
+				 * @deprecated Since version 1.32.1
+				 */
+				design : {type : "string", group : "Appearance", defaultValue : "auto", deprecated: true}
+			},
+			associations: {
+				/**
+				 * Association to controls / ids which label this control (see WAI-ARIA attribute aria-labelledby).
+				 * @since 1.27.0
+				 */
+				ariaLabelledBy: {type: "sap.ui.core.Control", multiple: true, singularName: "ariaLabelledBy"}
+			}
 		},
-		associations: {
-			/**
-			 * Association to controls / ids which label this control (see WAI-ARIA attribute aria-labelledby).
-			 * @since 1.27.0
-			 */
-			ariaLabelledBy: {type: "sap.ui.core.Control", multiple: true, singularName: "ariaLabelledBy"}
-		}
-	}});
+
+		renderer: BusyIndicatorRenderer
+	});
 
 	BusyIndicator.prototype.init = function () {
 		this.setBusyIndicatorDelay(0);
@@ -160,11 +159,6 @@ sap.ui.define([
 			this._busyLabel.setTextDirection(this.getTextDirection());
 		} else if (!this._busyLabel && this.getText()) {
 			this._createLabel(this.getText());
-		}
-
-		var sRotationSpeed = this.getCustomIconRotationSpeed();
-		if (sRotationSpeed < 0) {
-			this.setCustomIconRotationSpeed(0);
 		}
 	};
 
@@ -209,13 +203,20 @@ sap.ui.define([
 			return;
 		}
 
+		var iCustomIconRotationSpeed = this.getCustomIconRotationSpeed();
+
+		if (iCustomIconRotationSpeed === this.getMetadata().getProperty("customIconRotationSpeed").getDefaultValue()) {
+			return;
+		}
+
+		iCustomIconRotationSpeed = Math.max(0, iCustomIconRotationSpeed);
+
 		var $icon = this._iconImage.$();
-		var sRotationSpeed = this.getCustomIconRotationSpeed() + "ms";
+		var sRotationSpeed = iCustomIconRotationSpeed + "ms";
 
-		$icon.css("-webkit-animation-duration", sRotationSpeed)
-			.css("animation-duration", sRotationSpeed);
+		$icon.css("animation-duration", sRotationSpeed);
 
-		//Bug in Chrome: After changing height of image -> changing the rotationspeed will have no affect
+		//Bug in Chrome: After changing height of image -> changing the rotation speed will have no affect
 		//chrome needs a rerendering of this element.
 		$icon.css("display", "none");
 		setTimeout(function() {

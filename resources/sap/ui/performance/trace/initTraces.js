@@ -1,6 +1,7 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2024 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
-sap.ui.define(["sap/ui/performance/trace/FESR","sap/base/Log"],function(e,t){"use strict";return function(){var i=document.querySelector("meta[name=sap-ui-fesr]"),n=i?i.getAttribute("content"):undefined,r=!!n&&n!=="false",s=window.location.search.match(/[\?|&]sap-ui-(?:xx-)?fesr=(true|x|X|false|.+)&?/),a=n&&n!=="true"?n:undefined;if(s){r=s[1]&&s[1]!="false";a=["true","false","x","X",undefined].indexOf(s[1])===-1?s[1]:a}if(typeof window.performance.getEntriesByType==="function"){e.setActive(r,a)}else{t.debug("FESR is not supported in clients without support of window.Performance extensions.")}if(/sap-ui-xx-e2e-trace=(true|x|X)/.test(location.search)){sap.ui.requireSync("sap/ui/core/support/trace/E2eTraceLib")}}});
+sap.ui.define(["sap/ui/performance/trace/FESR","sap/base/Log","sap/base/config"],function(e,t,r){"use strict";return function(){var n,i=false,a=r.get({name:"sapUiFesr",type:r.Type.String,external:true,freeze:true});if(a){i=a!="false";n=["true","false","x","X",undefined].indexOf(a)===-1?a:undefined}if(typeof window.performance.getEntriesByType==="function"){e.setActive(i,n)}else{t.debug("FESR is not supported in clients without support of window.Performance extensions.")}if(r.get({name:"sapUiXxE2eTrace",type:r.Type.Boolean,external:true,freeze:true})){sap.ui.require(["sap/ui/core/support/trace/E2eTraceLib"])}}});
+//# sourceMappingURL=initTraces.js.map

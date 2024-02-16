@@ -1,21 +1,20 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2024 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
-
-// Ensure that sap.ui.unified is loaded before the module dependencies will be required.
-// Loading it synchronously is the only compatible option and doesn't harm when sap.ui.unified
-// already has been loaded asynchronously (e.g. via a dependency declared in the manifest)
-sap.ui.getCore().loadLibrary("sap.ui.unified");
 
 sap.ui.define([
 	'./library',
 	'./SinglePlanningCalendarView',
+	'sap/ui/core/LocaleData',
 	'sap/ui/unified/calendar/CalendarDate',
-	'sap/ui/unified/calendar/CalendarUtils'
+	'sap/ui/unified/calendar/CalendarUtils',
+	'sap/ui/core/Configuration',
+	"sap/ui/core/date/CalendarUtils",
+	'sap/ui/core/Locale'
 ],
-function (library, SinglePlanningCalendarView, CalendarDate, CalendarUtils) {
+function (library, SinglePlanningCalendarView, LocaleData, CalendarDate, CalendarUtils, Configuration, CalendarDateUtils, Locale) {
 	"use strict";
 
 	/**
@@ -32,7 +31,7 @@ function (library, SinglePlanningCalendarView, CalendarDate, CalendarUtils) {
 	 * @extends sap.m.SinglePlanningCalendarView
 	 *
 	 * @author SAP SE
-	 * @version 1.79.0
+	 * @version 1.120.6
 	 *
 	 * @constructor
 	 * @public
@@ -79,10 +78,29 @@ function (library, SinglePlanningCalendarView, CalendarDate, CalendarUtils) {
 	 * @public
 	 */
 	SinglePlanningCalendarWeekView.prototype.calculateStartDate = function (oStartDate) {
-		var oCalDate = CalendarDate.fromLocalJSDate(oStartDate),
-			oCalFirstDateOfWeek = CalendarUtils._getFirstDateOfWeek(oCalDate);
 
-		return oCalFirstDateOfWeek.toLocalJSDate();
+		var sLocale = Configuration.getFormatSettings().getFormatLocale().toString();
+
+		var oLocaleData = LocaleData.getInstance(Configuration.getFormatSettings().getFormatLocale()),
+			iFirstDayOfWeek = this.getFirstDayOfWeek();
+
+			if (iFirstDayOfWeek < 0 || iFirstDayOfWeek > 6) {
+				var oWeekConfigurationValues = CalendarDateUtils.getWeekConfigurationValues(this.getCalendarWeekNumbering(), new Locale(sLocale));
+
+				if (oWeekConfigurationValues) {
+					iFirstDayOfWeek = oWeekConfigurationValues.firstDayOfWeek;
+				} else {
+					iFirstDayOfWeek = oLocaleData.getFirstDayOfWeek();
+				}
+			}
+
+		oStartDate.setDate(oStartDate.getDate() - oStartDate.getDay() + iFirstDayOfWeek);
+		return CalendarUtils
+			._getFirstDateOfWeek(CalendarDate.fromLocalJSDate(oStartDate), {
+				firstDayOfWeek: iFirstDayOfWeek,
+				minimalDaysInFirstWeek: oLocaleData.getMinimalDaysInFirstWeek()
+			})
+			.toLocalJSDate();
 	};
 
 	return SinglePlanningCalendarWeekView;

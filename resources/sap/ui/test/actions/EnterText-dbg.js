@@ -1,14 +1,16 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2024 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 sap.ui.define([
+	"sap/base/util/extend",
+	"sap/ui/base/ManagedObject",
 	"sap/ui/test/actions/Action",
 	"sap/ui/events/KeyCodes",
 	"sap/ui/thirdparty/jquery"
-], function(Action, KeyCodes, jQueryDOM) {
+], function (extend, ManagedObject, Action, KeyCodes, jQuery) {
 	"use strict";
 
 	/**
@@ -22,9 +24,15 @@ sap.ui.define([
 	 *     <li><code>sap.m.TextArea</code></li>
 	 * </ul>
 	 *
+	 * @param {string}
+	 *            [sId] Optional ID for the new instance; generated automatically if
+	 *            no non-empty ID is given. Note: this can be omitted, no matter
+	 *            whether <code>mSettings</code> are given or not!
+	 * @param {object}
+	 *            [mSettings] Optional object with initial settings for the new instance
 	 * @extends sap.ui.test.actions.Action
 	 * @public
-	 * @name sap.ui.test.actions.EnterText
+	 * @alias sap.ui.test.actions.EnterText
 	 * @author SAP SE
 	 * @since 1.34
 	 */
@@ -71,9 +79,16 @@ sap.ui.define([
 			publicMethods : [ "executeOn" ]
 		},
 
+		constructor: function (mSettings) {
+			if (mSettings && mSettings.text) {
+				mSettings.text = ManagedObject.escapeSettingsValue(mSettings.text);
+			}
+			Action.prototype.constructor.call(this, mSettings);
+		},
+
 		init: function () {
 			Action.prototype.init.apply(this, arguments);
-			this.controlAdapters = jQueryDOM.extend(this.controlAdapters, EnterText.controlAdapters);
+			this.controlAdapters = extend(this.controlAdapters, EnterText.controlAdapters);
 		},
 
 		/**
@@ -95,6 +110,14 @@ sap.ui.define([
 				this.oLogger.error("Please provide a text for this EnterText action");
 				return;
 			}
+			if (oActionDomRef.readOnly) {
+				this.oLogger.debug("Cannot enter text in control " + oControl + ": control is not editable!");
+				return;
+			}
+			if (oActionDomRef.disabled) {
+				this.oLogger.debug("Cannot enter text in control " + oControl + ": control is not enabled!");
+				return;
+			}
 
 			var oUtils = this.getUtils();
 
@@ -108,16 +131,38 @@ sap.ui.define([
 				oUtils.triggerKeyup(oActionDomRef, KeyCodes.DELETE);
 				$ActionDomRef.val("");
 				oUtils.triggerEvent("input", oActionDomRef);
+				if (typeof oActionDomRef.selectionStart === 'number') { // element supports selection
+					oActionDomRef.selectionStart = 0;
+					oActionDomRef.selectionEnd = 0;
+				}
+			}
+
+			var sTypedInText = $ActionDomRef.val();
+
+			if (($ActionDomRef[0].selectionStart !== $ActionDomRef[0].selectionEnd) &&
+				($ActionDomRef[0].selectionStart !== sTypedInText.length)) {
+				// get non selected value only
+				sTypedInText = sTypedInText.slice(0, $ActionDomRef[0].selectionStart);
+				// remove selection as a new value will be typed there
+				$ActionDomRef[0].setSelectionRange($ActionDomRef[0].selectionStart, $ActionDomRef[0].selectionStart);
 			}
 
 			// Trigger events for every keystroke - livechange controls
-			var sValueBuffer = $ActionDomRef.val();
+			var sValueBuffer = this.getClearTextFirst() ? "" : sTypedInText;
+			var iCursorPosition = oActionDomRef.selectionStart;
 			this.getText().split("").forEach(function (sChar) {
-				sValueBuffer += sChar;
-				// Change the domref and fire the input event
-				oUtils.triggerCharacterInput(oActionDomRef, sChar, sValueBuffer);
+
+				if (iCursorPosition === 0 || typeof iCursorPosition !== 'number') {
+					sValueBuffer += sChar;
+				} else {
+					var sLeftPart = sValueBuffer.slice(0, iCursorPosition);
+					var sRightPart = sValueBuffer.slice(iCursorPosition);
+					sValueBuffer = sLeftPart + sChar + sRightPart;
+				}
+				// Change the domref and fire the mock 'keypress' and 'input' events
+				this.triggerCharacterInput(oActionDomRef, sChar, sValueBuffer, oControl);
 				oUtils.triggerEvent("input", oActionDomRef);
-			});
+			}, this);
 
 			if (this.getPressEnterKey()) {
 				// trigger change event with enter key
@@ -132,12 +177,43 @@ sap.ui.define([
 				// always trigger search since searchfield does not react to loosing the focus
 				oUtils.triggerEvent("search", oActionDomRef);
 			}
+		},
+
+		triggerCharacterInput: function(oInput, sChar, sValue, oControl) {
+			oControl.addEventDelegate({
+				"onkeypress": function(oEvent) {
+					if (!oEvent.isDefaultPrevented()) {
+						// mock the browser default action
+						// upon pressing a key inside a focused input
+						applyInput();
+					}
+					oControl.removeEventDelegate(this);
+				}
+			});
+
+			function applyInput() {
+				if (typeof (oInput) == "string") {
+					oInput = oInput ? document.getElementById(oInput) : null;
+				}
+				var $Input = jQuery(oInput);
+
+				if (typeof sValue !== "undefined") {
+					$Input.val(sValue);
+				} else {
+					$Input.val($Input.val() + sChar);
+				}
+			}
+
+			this.getUtils().triggerKeypress(oInput, sChar);
 		}
 	});
 
 	/**
 	 * A map of ID suffixes for controls that require a special DOM reference for
 	 * <code>EnterText</code> interaction.
+	 *
+	 * You can specify an ID suffix for specific controls in this map.
+	 * The enter text action will be triggered on the DOM element with the specified suffix.
 	 *
 	 * Here is a sublist of supported controls and their <code>EnterText</code> control adapter:
 	 * <ul>
@@ -157,8 +233,8 @@ sap.ui.define([
 	 * </code>
 	 * </pre>
 	 *
-	 * It contains two input tags in its dom.
-	 * When you render your control it creates the following dom:
+	 * It contains two input tags in its DOM.
+	 * When you render your control it creates the following DOM:
 	 *
 	 *
 	 * <pre>
@@ -178,17 +254,14 @@ sap.ui.define([
 	 *
 	 *     // Example usage
 	 *     new EnterText(); // executes on second Input since it is set as default
-	 *     new EnterText({ idSuffix: "firstInput"}); // executes on the first input has to be the same as the last part of the id in the dom
+	 *     new EnterText({ idSuffix: "firstInput"}); // executes on the first input has to be the same as the last part of the ID in the DOM
 	 * </code>
 	 * </pre>
 	 *
 	 *
 	 * @public
 	 * @static
-	 * @name sap.ui.test.actions.EnterText.controlAdapters
-	 * You can specify an Id suffix for specific controls in this map.
-	 * The enter text action will be triggered on the DOM element with the specified suffix
-	 * @type map
+	 * @type Object<string,(string|function(sap.ui.core.Control):string)>
 	 */
 	EnterText.controlAdapters = {};
 	EnterText.controlAdapters["sap.m.StepInput"] = "input-inner"; // focusDomRef: <input>

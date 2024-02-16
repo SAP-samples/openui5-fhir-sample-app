@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2024 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -13,9 +13,10 @@ sap.ui.define([
 	"./library",
 	"./ListItemBase",
 	"./Image",
-	"./StandardListItemRenderer"
+	"./StandardListItemRenderer",
+	"sap/base/Log"
 ],
-	function(coreLibrary, IconPool, ThemeParameters, Device, library, ListItemBase, Image, StandardListItemRenderer) {
+	function(coreLibrary, IconPool, ThemeParameters, Device, library, ListItemBase, Image, StandardListItemRenderer, Log) {
 	"use strict";
 
 
@@ -37,99 +38,129 @@ sap.ui.define([
 	 * @extends sap.m.ListItemBase
 	 *
 	 * @author SAP SE
-	 * @version 1.79.0
+	 * @version 1.120.6
 	 *
 	 * @constructor
 	 * @public
 	 * @alias sap.m.StandardListItem
 	 * @see {@link fiori:/standard-list-item/ Standard List Item}
-	 * @ui5-metamodel This control/element also will be described in the UI5 (legacy) designtime metamodel
 	 */
-	var StandardListItem = ListItemBase.extend("sap.m.StandardListItem", /** @lends sap.m.StandardListItem.prototype */ { metadata : {
+	var StandardListItem = ListItemBase.extend("sap.m.StandardListItem", /** @lends sap.m.StandardListItem.prototype */ {
+		metadata : {
 
-		library : "sap.m",
-		properties : {
+			library : "sap.m",
+			properties : {
 
-			/**
-			 * Defines the title of the list item.
-			 */
-			title : {type : "string", group : "Misc", defaultValue : null},
+				/**
+				 * Defines the title of the list item.
+				 */
+				title : {type : "string", group : "Misc", defaultValue : null},
 
-			/**
-			 * Defines the additional information for the title.
-			 * <b>Note:</b> This is only visible when the <code>title</code> property is not empty.
-			 */
-			description : {type : "string", group : "Misc", defaultValue : null},
+				/**
+				 * Defines the additional information for the title.
+				 * <b>Note:</b> This is only visible when the <code>title</code> property is not empty.
+				 */
+				description : {type : "string", group : "Misc", defaultValue : null},
 
-			/**
-			 * Defines the list item icon.
-			 */
-			icon : {type : "sap.ui.core.URI", group : "Misc", defaultValue : null},
+				/**
+				 * Defines the list item icon.
+				 */
+				icon : {type : "sap.ui.core.URI", group : "Misc", defaultValue : null},
 
-			/**
-			 * Defines the indentation of the icon. If set to <code>false</code>, the icon will not be shown as embedded. Instead it will take the full height of the list item.
-			 */
-			iconInset : {type : "boolean", group : "Appearance", defaultValue : true},
+				/**
+				 * Defines the indentation of the icon. If set to <code>false</code>, the icon will not be shown as embedded. Instead it will take the full height of the list item.
+				 */
+				iconInset : {type : "boolean", group : "Appearance", defaultValue : true},
 
-			/**
-			 * By default, one or more requests are sent to get the density perfect version of the icon if the given version of the icon doesn't exist on the server.
-			 * <b>Note:</b> If bandwidth is a key factor for the application, set this value to <code>false</code>.
-			 */
-			iconDensityAware : {type : "boolean", group : "Misc", defaultValue : true},
+				/**
+				 * By default, one or more requests are sent to get the density perfect version of the icon if the given version of the icon doesn't exist on the server.
+				 * <b>Note:</b> If bandwidth is a key factor for the application, set this value to <code>false</code>.
+				 */
+				iconDensityAware : {type : "boolean", group : "Misc", defaultValue : true},
 
-			/**
-			 * Defines the icon that is shown while the list item is pressed.
-			 */
-			activeIcon : {type : "sap.ui.core.URI", group : "Misc", defaultValue : null},
+				/**
+				 * Defines the icon that is shown while the list item is pressed.
+				 */
+				activeIcon : {type : "sap.ui.core.URI", group : "Misc", defaultValue : null},
 
-			/**
-			 * Defines an additional information text.
-			 */
-			info : {type : "string", group : "Misc", defaultValue : null},
+				/**
+				 * Defines an additional information text.
+				 * <b>Note:</b>
+				 * A wrapping of the information text is also supported as of version 1.95, if <code>wrapping=true</code>. Although long strings are supported for the information text, it is recommended to use short strings. For more details, see {@link #getWrapping wrapping}.
+				 */
+				info : {type : "string", group : "Misc", defaultValue : null},
 
-			/**
-			 * Defines the state of the information text, e.g. <code>Error</code>, <code>Warning</code>, <code>Success</code>.
-			 */
-			infoState : {type : "sap.ui.core.ValueState", group : "Misc", defaultValue : ValueState.None},
+				/**
+				 * Defines the state of the information text, e.g. <code>Error</code>, <code>Warning</code>, <code>Success</code>.
+				 */
+				infoState : {type : "sap.ui.core.ValueState", group : "Misc", defaultValue : ValueState.None},
 
-			/**
-			 * By default, the title size adapts to the available space and gets bigger if the description is empty. If you have list items with and without descriptions, this results in titles with different sizes. In this case, it can be better to switch the size adaption off by setting this property to <code>false</code>.
-			 * @since 1.16.3
-			 */
-			adaptTitleSize : {type : "boolean", group : "Appearance", defaultValue : true},
+				/**
+				 * By default, the title size adapts to the available space and gets bigger if the description is empty. If you have list items with and without descriptions, this results in titles with different sizes. In this case, it can be better to switch the size adaption off by setting this property to <code>false</code>.
+				 * @since 1.16.3
+				 */
+				adaptTitleSize : {type : "boolean", group : "Appearance", defaultValue : true},
 
-			/**
-			 * Defines the <code>title</code> text directionality with enumerated options. By default, the control inherits text direction from the DOM.
-			 * @since 1.28.0
-			 */
-			titleTextDirection : {type : "sap.ui.core.TextDirection", group : "Appearance", defaultValue : TextDirection.Inherit},
+				/**
+				 * Defines the <code>title</code> text directionality with enumerated options. By default, the control inherits text direction from the DOM.
+				 * @since 1.28.0
+				 */
+				titleTextDirection : {type : "sap.ui.core.TextDirection", group : "Appearance", defaultValue : TextDirection.Inherit},
 
-			/**
-			 * Defines the <code>info</code> directionality with enumerated options. By default, the control inherits text direction from the DOM.
-			 * @since 1.28.0
-			 */
-			infoTextDirection : {type : "sap.ui.core.TextDirection", group : "Appearance", defaultValue : TextDirection.Inherit},
+				/**
+				 * Defines the <code>info</code> directionality with enumerated options. By default, the control inherits text direction from the DOM.
+				 * @since 1.28.0
+				 */
+				infoTextDirection : {type : "sap.ui.core.TextDirection", group : "Appearance", defaultValue : TextDirection.Inherit},
 
-			/**
-			 * Defines the wrapping behavior of title and description texts.
-			 *
-			 * <b>Note:</b>
-			 *
-			 * In the desktop mode, initial rendering of the control contains 300 characters along with a button to expand and collapse the text whereas in the phone mode, the character limit is set to 100 characters.
-			 * @since 1.67
-			 */
-			wrapping : {type : "boolean", group : "Behavior", defaultValue : false},
+				/**
+				 * Defines the wrapping behavior of title and description texts.
+				 *
+				 * <b>Note:</b>
+				 *
+				 * In the desktop mode, initial rendering of the control contains 300 characters along with a button to expand and collapse the text whereas in the phone mode, the character limit is set to 100 characters.<br>
+				 * A wrapping of the information text is supported as of 1.95. But expanding and collapsing the information text is not possible.
+				 * A wrapping of the information text is disabled if <code>infoStateInverted</code> is set to <code>true</code>.
+				 * @since 1.67
+				 */
+				wrapping : {type : "boolean", group : "Behavior", defaultValue : false},
 
-			/**
-			 * Determines the inverted rendering behavior of the info text and the info state.
-			 * The color defined by the <code>infoState</code> property is rendered as the background color for the info text, if this property is set to <code>true</code>.
-			 *
-			 * @since 1.74
-			 */
-			infoStateInverted : {type : "boolean", group : "Appearance", defaultValue : false}
+				/**
+				 * Determines the inverted rendering behavior of the info text and the info state.
+				 * The color defined by the <code>infoState</code> property is rendered as the background color for the info text, if this property is set to <code>true</code>.
+				 *
+				 * @since 1.74
+				 */
+				infoStateInverted : {type : "boolean", group : "Appearance", defaultValue : false},
+
+				/**
+				 * This property can be used to change the default character limits for the wrapping behavior.
+				 *
+				 * If this property is set to 0, then the default character limit used by the wrapping behavior is used. For details see {@link #getWrapping wrapping}.
+				 *
+				 * <b>Note:</b>
+				 *
+				 * 0 or a positive integer must be used for this property.
+				 * @since 1.94
+				 */
+				wrapCharLimit : {type : "int", group : "Behavior", defaultValue : 0}
+			},
+			aggregations : {
+				/**
+				 * A <code>sap.m.Avatar</code> control instance that, if set, is used instead of an icon or image.
+				 *
+				 * The size of the <code>Avatar</code> control depends on the <code>insetIcon</code> property of <code>StandardListItem</code>.
+				 * The <code>displaySize</code> property of the <code>Avatar</code> control is not supported. If the <code>insetIcon</code> property of <code>StandardListItem</code> is set to <code>true</code>, the size of the <code>Avatar</code> control is set to XS; if the <code>insetIcon</code> property of <code>StandardListItem</code> is set to <code>false</code>, the size of the <code>Avatar</code> control is set to "S".
+				 *
+				 * @since 1.98
+				 */
+				avatar: {type: 'sap.m.Avatar', multiple: false}
 		},
-		designtime: "sap/m/designtime/StandardListItem.designtime"
-	}});
+			designtime: "sap/m/designtime/StandardListItem.designtime"
+		},
+
+		renderer: StandardListItemRenderer
+	});
 
 	StandardListItem.prototype.exit = function() {
 		if (this._oImage) {
@@ -149,6 +180,35 @@ sap.ui.define([
 			this._oImage = undefined;
 		}
 
+		return this;
+	};
+
+	// overwrite setter of Avatar to control it's display size
+	StandardListItem.prototype.setAvatar = function(oAvatar) {
+		if (this.getAvatar() === oAvatar) {
+			return this;
+		}
+		if (oAvatar) {
+			oAvatar.addStyleClass("sapMSLIAvatar");
+			oAvatar.setDisplaySize = function(){return this;};
+		}
+		this.setAggregation("avatar", oAvatar);
+
+		return this;
+	};
+
+	StandardListItem.prototype.setWrapCharLimit = function(iLimit) {
+		var iOldCharLimit = this.getWrapCharLimit();
+
+		if (iOldCharLimit === iLimit) {
+		  return this;
+		}
+		if (iLimit < 0) {
+		  Log.error("The property wrapCharLimit must be 0 or greater than 0 - " + this.getId());
+		  return this;
+		}
+
+		this.setProperty("wrapCharLimit", iLimit);
 		return this;
 	};
 
@@ -179,6 +239,14 @@ sap.ui.define([
 		return this._oImage;
 	};
 
+	// overwrite base method to hook into the inactive handling
+	StandardListItem.prototype._getAvatar = function() {
+		var oAvatar = this.getAvatar();
+		var sSize = this.getIconInset() ? library.AvatarSize.XS : library.AvatarSize.S;
+		oAvatar.setProperty("displaySize", sSize, true);
+		return oAvatar;
+	};
+
 	// overwrite base method to hook into the active handling
 	StandardListItem.prototype._activeHandlingInheritor = function() {
 		if (this._oImage) {
@@ -195,48 +263,54 @@ sap.ui.define([
 	};
 
 	StandardListItem.prototype.getContentAnnouncement = function(oBundle) {
-		var sAnnouncement = "",
-			sInfoState = this.getInfoState(),
-			sTitle,
-			sTitlButtonText = "",
-			sDescription,
-			sDescriptionButtonText = "",
+		var sInfoState = this.getInfoState(),
+			sTitle = this.getTitle(),
+			sTitleButtonText,
+			sDescription = this.getDescription(),
+			sDescriptionButtonText,
 			oTitleButton,
-			oDescriptionButton;
+			oDescriptionButton,
+			aOutput = [],
+			sInfo = this.getInfo();
 
 		if (this.getWrapping()) {
 			oTitleButton = this.getDomRef("titleButton");
 			oDescriptionButton = this.getDomRef("descriptionButton");
-			sTitle = this._bTitleTextExpanded ? this.getTitle() : this._getCollapsedText(this.getTitle());
-			sDescription = this._bDescriptionTextExpanded ? this.getDescription() : this._getCollapsedText(this.getDescription());
+			sTitle = this._bTitleTextExpanded ? sTitle : this._getCollapsedText(sTitle);
+			sDescription = this._bDescriptionTextExpanded ? sDescription : this._getCollapsedText(sDescription);
+
+			aOutput.push(sTitle);
 
 			if (oTitleButton) {
-				sTitlButtonText = oTitleButton.textContent + " " + oBundle.getText("ACC_CTR_TYPE_BUTTON");
+				sTitleButtonText = oTitleButton.textContent + " " + oBundle.getText("ACC_CTR_TYPE_BUTTON");
+				sTitleButtonText && aOutput.push(sTitleButtonText);
 			}
+
+			aOutput.push(sDescription);
 
 			if (oDescriptionButton) {
-				sDescriptionButtonText = oDescriptionButton.textContent + " " + oBundle.getText("ACC_CTR_TYPE_BUTTON");
+				sDescriptionButtonText = oDescriptionButton.textContent + " . " + oBundle.getText("ACC_CTR_TYPE_BUTTON");
+				sDescriptionButtonText && aOutput.push(sDescriptionButtonText);
 			}
-
-			sAnnouncement += sTitle + " " + sTitlButtonText + " " + sDescription + " " + sDescriptionButtonText + " ";
 		} else {
-			sAnnouncement += this.getTitle() + " " + this.getDescription() + " ";
+			sTitle && aOutput.push(sTitle);
+			sDescription && aOutput.push(sDescription);
 		}
 
-		sAnnouncement += this.getInfo() + " ";
+		sInfo && aOutput.push(sInfo);
 
 		if (sInfoState != "None" && sInfoState != this.getHighlight()) {
-			sAnnouncement += oBundle.getText("LIST_ITEM_STATE_" + sInfoState.toUpperCase());
+			aOutput.push(oBundle.getText("LIST_ITEM_STATE_" + sInfoState.toUpperCase()));
 		}
 
-		return sAnnouncement;
+		return aOutput.join(" . ").trim();
 	};
 
 	/**
 	 * Measures the info text width.
 	 * @param {boolean} bThemeChanged Indicated whether font style should be reinitialized if theme is changed
 	 *
-	 * @returns {integer} Info text width
+	 * @returns {int} Info text width
 	 * @private
 	 */
 	StandardListItem.prototype._measureInfoTextWidth = function(bThemeChanged) {
@@ -244,34 +318,33 @@ sap.ui.define([
 			StandardListItem._themeInfo = {};
 		}
 
+		var fBaseFontSize = parseFloat(library.BaseFontSize) || 16;
+
 		if (!StandardListItem._themeInfo.sFontFamily || bThemeChanged) {
-			StandardListItem._themeInfo.sFontFamily = ThemeParameters.get("sapUiFontFamily");
+			StandardListItem._themeInfo.sFontFamily = ThemeParameters.get({
+				name: "sapUiFontFamily"
+			}) || "Arial";
 		}
 
 		if (!StandardListItem._themeInfo.sFontStyleInfoStateInverted || bThemeChanged) {
-			StandardListItem._themeInfo.sFontStyleInfoStateInverted = "bold " + parseFloat(ThemeParameters.get("sapMFontSmallSize")) * 16 + "px" + " " + StandardListItem._themeInfo.sFontFamily;
+			StandardListItem._themeInfo.sFontStyleInfoStateInverted = "bold " + parseFloat(ThemeParameters.get({
+				name: "sapMFontSmallSize"
+			}) || "0.75rem") * fBaseFontSize + "px " + StandardListItem._themeInfo.sFontFamily;
 		}
 
 		if (!StandardListItem._themeInfo.sFontStyle || bThemeChanged) {
-			StandardListItem._themeInfo.sFontStyle = parseFloat(ThemeParameters.get("sapMFontMediumSize")) * 16 + "px" + " " + StandardListItem._themeInfo.sFontFamily;
+			StandardListItem._themeInfo.sFontStyle = parseFloat(ThemeParameters.get({
+				name: "sapMFontMediumSize"
+			}) || "0.875rem") * fBaseFontSize + "px " + StandardListItem._themeInfo.sFontFamily;
 		}
 
-		if (!StandardListItem._themeInfo.iBaseFontSize || bThemeChanged) {
-			StandardListItem._themeInfo.iBaseFontSize = parseInt(library.BaseFontSize) || 16;
+		if (!StandardListItem._oCtx) {
+			StandardListItem._oCtx = document.createElement("canvas").getContext("2d");
 		}
 
-		if (!StandardListItem._oCanvas) {
-			StandardListItem._oCanvas = document.createElement("canvas");
-			StandardListItem._oCtx = StandardListItem._oCanvas.getContext("2d");
-		}
+		StandardListItem._oCtx.font = StandardListItem._themeInfo[this.getInfoStateInverted() ? "sFontStyleInfoStateInverted" : "sFontStyle"];
 
-		if (this.getInfoStateInverted()) {
-			StandardListItem._oCtx.font = StandardListItem._themeInfo.sFontStyleInfoStateInverted || "";
-		} else {
-			StandardListItem._oCtx.font = StandardListItem._themeInfo.sFontStyle || "";
-		}
-
-		return Math.ceil(StandardListItem._oCtx.measureText(this.getInfo()).width) / StandardListItem._themeInfo.iBaseFontSize;
+		return Math.ceil(StandardListItem._oCtx.measureText(this.getInfo()).width) / fBaseFontSize;
 	};
 
 	/**
@@ -297,10 +370,19 @@ sap.ui.define([
 	StandardListItem.prototype.ontap = function(oEvent) {
 		this._checkExpandCollapse(oEvent);
 
-		if (!oEvent.isMarked()) {
-			return ListItemBase.prototype.ontap.apply(this, arguments);
-		}
+		return ListItemBase.prototype.ontap.apply(this, arguments);
 	};
+
+	StandardListItem.prototype.ontouchstart = function(oEvent) {
+		var sId = oEvent.target && oEvent.target.id,
+			sStdListId = this.getId();
+
+		if (sId === sStdListId + "-titleButton" || sId === sStdListId + "-descriptionButton") {
+			oEvent.setMarked();
+		}
+
+		return ListItemBase.prototype.ontouchstart.apply(this, arguments);
+	  };
 
 	StandardListItem.prototype.onsapspace = function(oEvent) {
 		// prevent default not to scroll down, hence 2nd parameter is true
@@ -350,12 +432,12 @@ sap.ui.define([
 		if (!bTextExpanded) {
 			oText.textContent = sText;
 			oThreeDots.textContent = " ";
-			oButton.textContent = oRb.getText("TEXT_SHOW_LESS");
+			oButton.textContent = oRb.getText("EXPANDABLE_TEXT_SHOW_LESS");
 			bTextExpanded = true;
 		} else {
 			oText.textContent = this._getCollapsedText(sText);
 			oThreeDots.textContent = " ... ";
-			oButton.textContent = oRb.getText("TEXT_SHOW_MORE");
+			oButton.textContent = oRb.getText("EXPANDABLE_TEXT_SHOW_MORE");
 			bTextExpanded = false;
 		}
 
@@ -374,8 +456,11 @@ sap.ui.define([
 	 * @private
 	 */
 	StandardListItem.prototype._getCollapsedText = function(sText) {
-		var iMaxCharacters = Device.system.phone ? 100 : 300;
-		return sText.substr(0, iMaxCharacters);
+		return sText.substr(0, this._getWrapCharLimit());
+	};
+
+	StandardListItem.prototype._getWrapCharLimit = function() {
+		return this.getWrapCharLimit() || (Device.system.phone ? 100 : 300);
 	};
 
 	StandardListItem.prototype.onThemeChanged = function(oEvent) {

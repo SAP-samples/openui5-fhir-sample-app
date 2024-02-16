@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2024 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -25,11 +25,13 @@
 	 * Activate async loading by default.
 	 *
 	 * When URL parameter 'coverage' is used to enable client side coverage (as introduced by qunit-coverage),
-	 * then sync loading is used.
+	 * then it checks for 'coverage-mode' parameter and if it equals to "blanket", then sync loading is used.
 	 */
-	var bCoverage = /(?:^|\?|&)coverage(?:&|=|$)/.test(window.location.search);
+	var oSearchParams = new URLSearchParams(window.location.search);
+	var bCoverage = oSearchParams.has("coverage");
+	var bSyncLoad = bCoverage && oSearchParams.get("coverage-mode") === "blanket";
+	// Only configure loader to be sync if Blanket is used
 	sap.ui.loader.config({
-		async: !bCoverage
+		async: !bSyncLoad
 	});
-
 }());

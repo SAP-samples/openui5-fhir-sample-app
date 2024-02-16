@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2024 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -8,23 +8,25 @@
 sap.ui.define([
 	'./DataType',
 	'./Metadata',
+	'./Object',
 	'sap/base/Log',
 	'sap/base/assert',
-	'sap/base/util/ObjectPath',
+	'sap/base/config',
+	'sap/base/strings/capitalize',
 	'sap/base/strings/escapeRegExp',
 	'sap/base/util/merge',
-	'sap/base/util/extend',
 	'sap/base/util/isPlainObject'
 ],
 function(
 	DataType,
 	Metadata,
+	BaseObject,
 	Log,
 	assert,
-	ObjectPath,
+	BaseConfig,
+	capitalize,
 	escapeRegExp,
 	merge,
-	extend,
 	isPlainObject
 ) {
 	"use strict";
@@ -42,6 +44,8 @@ function(
 	 *
 	 * @param {string} sClassName fully qualified name of the described class
 	 * @param {object} oClassInfo static info to construct the metadata from
+	 * @param {sap.ui.base.ManagedObject.MetadataOptions} [oClassInfo.metadata]
+	 *  The metadata object describing the class
 	 *
 	 * @class
 	 * @classdesc
@@ -75,7 +79,7 @@ function(
 	 *
 	 *
 	 * @author Frank Weigel
-	 * @version 1.79.0
+	 * @version 1.120.6
 	 * @since 0.8.6
 	 * @alias sap.ui.base.ManagedObjectMetadata
 	 * @extends sap.ui.base.Metadata
@@ -88,15 +92,11 @@ function(
 
 	};
 
+	var Element; // lazy dependency to sap/ui/core/Element
+
 	// chain the prototypes
 	ManagedObjectMetadata.prototype = Object.create(Metadata.prototype);
 	ManagedObjectMetadata.prototype.constructor = ManagedObjectMetadata;
-
-	var hasOwnProperty = Object.prototype.hasOwnProperty;
-
-	function capitalize(sName) {
-		return sName.charAt(0).toUpperCase() + sName.slice(1);
-	}
 
 	var rPlural = /(children|ies|ves|oes|ses|ches|shes|xes|s)$/i;
 	var mSingular = {'children' : -3, 'ies' : 'y', 'ves' : 'f', 'oes' : -2, 'ses' : -2, 'ches' : -2, 'shes' : -2, 'xes' : -2, 's' : -1 };
@@ -119,13 +119,36 @@ function(
 		var result = null;
 
 		for (var n in info) {
-			if ( hasOwnProperty.call(info, n) && typeof obj[n] === 'undefined' ) {
+			if ( Object.hasOwn(info, n) && typeof obj[n] === 'undefined' ) {
 				result = result || {};
 				result[n] = info[n];
 			}
 		}
 
 		return result;
+	}
+
+	/**
+	 * Validates the given default class against its aggregation type.
+	 */
+	function validateDefaultClass(oAggregation, oOriginalAggregationInfo, fnClass) {
+		const fnDefaultClass = oOriginalAggregationInfo.defaultClass;
+
+		// we check if:
+		//    1. the defaultClass matches the aggregation type
+		//    2. the defaultClass matches the altTypes ('object' must not be included)
+		//    3. the defaultClass defined with a nullish value
+		if (fnDefaultClass) {
+			if (!BaseObject.isObjectA(fnDefaultClass.prototype, oAggregation.type)) {
+				throw new TypeError(`The 'defaultClass' of the aggregation '${oAggregation.name}' in '${fnClass.getName()}' is not of type '${oAggregation.type}'.`);
+			} else if (oAggregation.altTypes?.includes("object")) {
+				throw new TypeError(`The aggregation '${oAggregation.name}' in '${fnClass.getName()}' must not defined a 'defaultClass' together with the altType 'object'.`);
+			}
+		} else if (oOriginalAggregationInfo.hasOwnProperty("defaultClass")) {
+			throw new TypeError(`The 'defaultClass' of the aggregation '${oAggregation.name}' in '${fnClass.getName()}' is defined with a nullish value (${fnDefaultClass}).`);
+		}
+
+		return fnDefaultClass;
 	}
 
 	var Kind = {
@@ -213,7 +236,10 @@ function(
 	};
 
 	Property.prototype.getType = function() {
-		return this._oType || (this._oType = DataType.getType(this.type));
+		if (!this._oType) {
+			this._oType = DataType.getType(this.type);
+		}
+		return this._oType;
 	};
 
 	Property.prototype.getDefaultValue = function() {
@@ -256,6 +282,7 @@ function(
 		this.name = name;
 		this.type = info.type || 'sap.ui.core.Control';
 		this.altTypes = Array.isArray(info.altTypes) ? info.altTypes : undefined;
+		this.defaultClass = validateDefaultClass(this, info, oClass) || null;
 		this.multiple = typeof info.multiple === 'boolean' ? info.multiple : true;
 		this.singularName = this.multiple ? info.singularName || guessSingularName(name) : undefined;
 		this.bindable = !!info.bindable;
@@ -325,7 +352,10 @@ function(
 	};
 
 	Aggregation.prototype.getType = function() {
-		return this._oType || (this._oType = DataType.getType(this.type));
+		if (!this._oType) {
+			this._oType = DataType.getType(this.type);
+		}
+		return this._oType;
 	};
 
 	Aggregation.prototype.get = function(instance) {
@@ -398,6 +428,15 @@ function(
 		}
 	};
 
+	/**
+	 * Creates a new aggregation forwarder for the given aggregation.
+	 * @param {object} oAggregation Aggregation info object
+	 *
+	 * @class Class to manage the forwarding of an aggregation.
+	 * @alias sap.ui.base.ManagedObjectMetadata.AggregationForwarder
+	 * @private
+	 * @ui5-restricted sap.ui.base
+	 */
 	function AggregationForwarder(oAggregation) {
 		var oForwardTo = oAggregation.forwarding;
 		this.aggregation = oAggregation; // source aggregation info
@@ -421,7 +460,8 @@ function(
 		} else if (oForwardTo.idSuffix) { // target given by ID
 			this._getTarget = (function(sIdSuffix) {
 				return function() {
-					return sap.ui.getCore().byId(this.getId() + sIdSuffix); // "this" context is the ManagedObject instance
+					Element = Element || sap.ui.require("sap/ui/core/Element");
+					return Element && Element.getElementById(this.getId() + sIdSuffix); // "this" context is the ManagedObject instance
 				};
 			})(oForwardTo.idSuffix);
 
@@ -454,6 +494,7 @@ function(
 
 	/*
 	 * Returns the forwarding target instance and ensures that this.targetAggregationInfo is available
+	 * @returns {sap.ui.core.Control}
 	 */
 	AggregationForwarder.prototype.getTarget = function(oInstance, bConnectTargetInfo) {
 		var oTarget = this._getTarget.call(oInstance);
@@ -598,7 +639,7 @@ function(
 	 * @protected
 	 */
 	ManagedObjectMetadata.addAPIParentInfoEnd = function(oAggregatedObject) {
-		oAggregatedObject && oAggregatedObject.aAPIParentInfos.forwardingCounter--;
+		oAggregatedObject && oAggregatedObject.aAPIParentInfos && oAggregatedObject.aAPIParentInfos.forwardingCounter--;
 	};
 
 	AggregationForwarder.prototype.remove = function(oInstance, vAggregatedObject) {
@@ -706,7 +747,10 @@ function(
 	};
 
 	Association.prototype.getType = function() {
-		return this._oType || (this._oType = DataType.getType(this.type));
+		if (!this._oType) {
+			this._oType = DataType.getType(this.type);
+		}
+		return this._oType;
 	};
 
 	Association.prototype.get = function(instance) {
@@ -790,8 +834,8 @@ function(
 		return instance[this._sDetachMutator](fn,listener);
 	};
 
-	Event.prototype.fire = function(instance,params, allowPreventDefault, enableEventBubbling) {
-		return instance[this._sTrigger](params, allowPreventDefault, enableEventBubbling);
+	Event.prototype.fire = function(instance,params) {
+		return instance[this._sTrigger](params, this.allowPreventDefault, this.enableEventBubbling);
 	};
 
 	// ----------------------------------------------------------------------------------------
@@ -818,7 +862,7 @@ function(
 
 			if ( mInfoMap ) {
 				for (sName in mInfoMap) {
-					if ( hasOwnProperty.call(mInfoMap, sName) ) {
+					if ( Object.hasOwn(mInfoMap, sName) ) {
 						mResult[sName] = new FNClass(that, sName, mInfoMap[sName]);
 					}
 				}
@@ -926,7 +970,7 @@ function(
 	 *
 	 * Typically used to enrich UIElement classes in an aspect oriented manner.
 	 * @param {string} sName name of the property to add
-	 * @param {object} oInfo metadata for the property
+	 * @param {sap.ui.base.ManagedObject.MetadataOptions.Property} oInfo metadata for the property
 	 * @private
 	 * @restricted sap.ui.core
 	 * @see sap.ui.core.EnabledPropagator
@@ -935,6 +979,12 @@ function(
 		var oProp = this._mProperties[sName] = new Property(this, sName, oInfo);
 		if (!this._mAllProperties[sName]) {// ensure extended AllProperties meta-data is also enriched
 			this._mAllProperties[sName] = oProp;
+		}
+
+		if (this._fnPropertyBagFactory) {
+			// after the property bag class is already created that has the default values of the properties, the
+			// default value of the added property needs to be added to the property bag class as well
+			this._fnPropertyBagFactory.prototype[sName] = oProp.getDefaultValue();
 		}
 		// TODO notify listeners (subclasses) about change
 	};
@@ -962,7 +1012,7 @@ function(
 	 *   in the constructor documentation of this class.
 	 *
 	 * @param {string} sName name of the property
-	 * @returns {Object} An info object describing the property or <code>undefined</code>
+	 * @returns {sap.ui.base.ManagedObject.MetadataOptions.Property|undefined} An info object describing the property or <code>undefined</code>
 	 * @public
 	 * @since 1.27.0
 	 */
@@ -982,7 +1032,7 @@ function(
 	 *   and therefore not part of the API. See the {@link #constructor Notes about Info objects}
 	 *   in the constructor documentation of this class.
 	 *
-	 * @return {Object<string,Object>} Map of property info objects keyed by the property names
+	 * @return {Object<string,sap.ui.base.ManagedObject.MetadataOptions.Property>} Map of property info objects keyed by the property names
 	 * @public
 	 */
 	ManagedObjectMetadata.prototype.getProperties = function() {
@@ -999,7 +1049,7 @@ function(
 	 *   and therefore not part of the API. See the {@link #constructor Notes about Info objects}
 	 *   in the constructor documentation of this class.
 	 *
-	 * @return {Object<string,Object>} Map of property info objects keyed by the property names
+	 * @return {Object<string,sap.ui.base.ManagedObject.MetadataOptions.Property>} Map of property info objects keyed by the property names
 	 * @public
 	 */
 	ManagedObjectMetadata.prototype.getAllProperties = function() {
@@ -1016,7 +1066,7 @@ function(
 	 *   and therefore not part of the API. See the {@link #constructor Notes about Info objects}
 	 *   in the constructor documentation of this class.
 	 *
-	 * @return {Object<string,Object>} Map of property info objects keyed by property names
+	 * @return {Object<string,sap.ui.base.ManagedObject.MetadataOptions.Property>} Map of property info objects keyed by property names
 	 * @protected
 	 */
 	ManagedObjectMetadata.prototype.getAllPrivateProperties = function() {
@@ -1035,7 +1085,7 @@ function(
 	 *   in the constructor documentation of this class.
 	 *
 	 * @param {string} sName name of the property to be retrieved or empty
-	 * @return {object} property info object or undefined
+	 * @returns {sap.ui.base.ManagedObject.MetadataOptions.Property|undefined} property info object or <code>undefined</code>
 	 * @protected
 	 */
 	ManagedObjectMetadata.prototype.getManagedProperty = function(sName) {
@@ -1064,7 +1114,7 @@ function(
 	 * If the class itself does not define a default property, then the
 	 * info object for the default property of the parent class is returned.
 	 *
-	 * @return {Object} An info object for the default property
+	 * @return {sap.ui.base.ManagedObject.MetadataOptions.Property|undefined} An info object for the default property
 	 */
 	ManagedObjectMetadata.prototype.getDefaultProperty = function() {
 		return this.getProperty(this.getDefaultPropertyName());
@@ -1098,7 +1148,7 @@ function(
 	 *   in the constructor documentation of this class.
 	 *
 	 * @param {string} [sName] name of the aggregation or empty
-	 * @returns {Object} An info object describing the aggregation or <code>undefined</code>
+	 * @returns {sap.ui.base.ManagedObject.MetadataOptions.Aggregation|undefined} An info object describing the aggregation or <code>undefined</code>
 	 * @public
 	 * @since 1.27.0
 	 */
@@ -1120,7 +1170,7 @@ function(
 	 *   and therefore not part of the API. See the {@link #constructor Notes about Info objects}
 	 *   in the constructor documentation of this class.
 	 *
-	 * @return {Object<string,Object>} Map of aggregation info objects keyed by aggregation names
+	 * @return {Object<string,sap.ui.base.ManagedObject.MetadataOptions.Aggregation>} Map of aggregation info objects keyed by aggregation names
 	 * @public
 	 */
 	ManagedObjectMetadata.prototype.getAggregations = function() {
@@ -1139,7 +1189,7 @@ function(
 	 *   and therefore not part of the API. See the {@link #constructor Notes about Info objects}
 	 *   in the constructor documentation of this class.
 	 *
-	 * @return {Object<string,Object>} Map of aggregation info objects keyed by aggregation names
+	 * @return {Object<string,sap.ui.base.ManagedObject.MetadataOptions.Aggregation>} Map of aggregation info objects keyed by aggregation names
 	 * @public
 	 */
 	ManagedObjectMetadata.prototype.getAllAggregations = function() {
@@ -1157,7 +1207,7 @@ function(
 	 *   and therefore not part of the API. See the {@link #constructor Notes about Info objects}
 	 *   in the constructor documentation of this class.
 	 *
-	 * @return {Object<string,Object>} Map of aggregation info objects keyed by aggregation names
+	 * @return {Object<string,sap.ui.base.ManagedObject.MetadataOptions.Aggregation>} Map of aggregation info objects keyed by aggregation names
 	 * @protected
 	 */
 	ManagedObjectMetadata.prototype.getAllPrivateAggregations = function() {
@@ -1176,7 +1226,7 @@ function(
 	 *   in the constructor documentation of this class.
 	 *
 	 * @param {string} sAggregationName name of the aggregation to be retrieved or empty
-	 * @return {object} aggregation info object or undefined
+	 * @returns {sap.ui.base.ManagedObject.MetadataOptions.Aggregation|undefined} aggregation info object or <code>undefined</code>
 	 * @protected
 	 */
 	ManagedObjectMetadata.prototype.getManagedAggregation = function(sAggregationName) {
@@ -1207,7 +1257,7 @@ function(
 	 * If the class itself does not define a default aggregation, then the
 	 * info object for the default aggregation of the parent class is returned.
 	 *
-	 * @return {Object} An info object for the default aggregation
+	 * @return {sap.ui.base.ManagedObject.MetadataOptions.Aggregation} An info object for the default aggregation
 	 * @public
 	 * @since 1.73
 	 */
@@ -1291,7 +1341,7 @@ function(
 	 * @since 1.54
 	 *
 	 * @private
-	 * @ui5-restricted SAPUI5 Distribution libraries only
+	 * @ui5-restricted SAPUI5 Distribution Layer Libraries
 	 * @experimental As of 1.54, this method is still in an experimental state. Its signature might change or it might be removed
 	 *   completely. Controls should prefer to declare aggregation forwarding in the metadata for the aggregation. See property
 	 *   <code>forwarding</code> in the documentation of {@link sap.ui.base.ManagedObject.extend ManagedObject.extend}.
@@ -1332,7 +1382,9 @@ function(
 
 	/**
 	 * Returns a forwarder for the given aggregation (or undefined, when there is no forwarding), considering also inherited aggregations.
+	 * @param {string} sAggregationName Name of the aggregation to get the forwarder for
 	 * @private
+	 * @returns {sap.ui.base.ManagedObjectMetadata.AggregationForwarder|undefined}
 	 */
 	ManagedObjectMetadata.prototype.getAggregationForwarder = function(sAggregationName) {
 		var oAggregation = this._mAllAggregations[sAggregationName];
@@ -1358,7 +1410,7 @@ function(
 	 * If the class itself does not define a default property, then the
 	 * info object for the default property of the parent class is returned.
 	 *
-	 * @return {Object} An info object for the default property
+	 * @return {sap.ui.base.ManagedObject.MetadataOptions.Property} An info object for the default property
 	 */
 	ManagedObjectMetadata.prototype.getDefaultProperty = function() {
 		return this.getProperty(this.getDefaultPropertyName());
@@ -1378,7 +1430,7 @@ function(
 	 *   in the constructor documentation of this class.
 	 *
 	 * @param {string} sName name of the property like setting
-	 * @returns {Object} An info object describing the property or aggregation or <code>undefined</code>
+	 * @returns {sap.ui.base.ManagedObject.MetadataOptions.Property|sap.ui.base.ManagedObject.MetadataOptions.Aggregation|undefined} An info object describing the property or aggregation or <code>undefined</code>
 	 * @public
 	 * @since 1.27.0
 	 */
@@ -1418,7 +1470,7 @@ function(
 	 *   in the constructor documentation of this class.
 	 *
 	 * @param {string} sName name of the association
-	 * @returns {Object} An info object describing the association or <code>undefined</code>
+	 * @returns {sap.ui.base.ManagedObject.MetadataOptions.Association|undefined} An info object describing the association or <code>undefined</code>
 	 * @public
 	 * @since 1.27.0
 	 */
@@ -1439,7 +1491,7 @@ function(
 	 *   and therefore not part of the API. See the {@link #constructor Notes about Info objects}
 	 *   in the constructor documentation of this class.
 	 *
-	 * @return {Object<string,Object>} Map of association info objects keyed by association names
+	 * @return {Object<string,sap.ui.base.ManagedObject.MetadataOptions.Association>} Map of association info objects keyed by association names
 	 * @public
 	 */
 	ManagedObjectMetadata.prototype.getAssociations = function() {
@@ -1457,7 +1509,7 @@ function(
 	 *   and therefore not part of the API. See the {@link #constructor Notes about Info objects}
 	 *   in the constructor documentation of this class.
 	 *
-	 * @return {Object<string,Object>} Map of association info objects keyed by association names
+	 * @return {Object<string,sap.ui.base.ManagedObject.MetadataOptions.Association>} Map of association info objects keyed by association names
 	 * @public
 	 */
 	ManagedObjectMetadata.prototype.getAllAssociations = function() {
@@ -1475,7 +1527,7 @@ function(
 	 *   and therefore not part of the API. See the {@link #constructor Notes about Info objects}
 	 *   in the constructor documentation of this class.
 	 *
-	 * @return {Object<string,Object>} Map of association info objects keyed by association names
+	 * @return {Object<string,sap.ui.base.ManagedObject.MetadataOptions.Association>} Map of association info objects keyed by association names
 	 * @protected
 	 */
 	ManagedObjectMetadata.prototype.getAllPrivateAssociations = function() {
@@ -1491,7 +1543,7 @@ function(
 	 *   in the constructor documentation of this class.
 	 *
 	 * @param {string} sName name of the association to be retrieved
-	 * @return {object} association info object or undefined
+	 * @returns {sap.ui.base.ManagedObject.MetadataOptions.Association|undefined} association info object or <code>undefined</code>
 	 * @protected
 	 */
 	ManagedObjectMetadata.prototype.getManagedAssociation = function(sName) {
@@ -1526,7 +1578,7 @@ function(
 	 *   in the constructor documentation of this class.
 	 *
 	 * @param {string} sName name of the event
-	 * @returns {Object} An info object describing the event or <code>undefined</code>
+	 * @returns {sap.ui.base.ManagedObject.MetadataOptions.Event|undefined} An info object describing the event or <code>undefined</code>
 	 * @public
 	 * @since 1.27.0
 	 */
@@ -1546,7 +1598,7 @@ function(
 	 *   and therefore not part of the API. See the {@link #constructor Notes about Info objects}
 	 *   in the constructor documentation of this class.
 	 *
-	 * @return {Object<string,Object>} Map of event info objects keyed by event names
+	 * @return {Object<string,sap.ui.base.ManagedObject.MetadataOptions.Event>} Map of event info objects keyed by event names
 	 * @public
 	 */
 	ManagedObjectMetadata.prototype.getEvents = function() {
@@ -1563,7 +1615,7 @@ function(
 	 *   and therefore not part of the API. See the {@link #constructor Notes about Info objects}
 	 *   in the constructor documentation of this class.
 	 *
-	 * @return {Object<string,Object>} Map of event info objects keyed by event names
+	 * @return {Object<string,sap.ui.base.ManagedObject.MetadataOptions.Event>} Map of event info objects keyed by event names
 	 * @public
 	 */
 	ManagedObjectMetadata.prototype.getAllEvents = function() {
@@ -1699,16 +1751,17 @@ function(
 
 	/**
 	 * Filter out settings from the given map that are not described in the metadata.
-	 * If null or undefined is given, null or undefined is returned.
 	 *
-	 * @param {object} mSettings original filters or null
-	 * @returns {object} filtered settings or null
+	 * If <code>null</code> or <code>undefined</code> is given, <code>null</code> or <code>undefined</code> is returned.
+	 *
+	 * @param {object|null|undefined} [mSettings] original filters or <code>null</code>
+	 * @returns {object|null|undefined} new object with filtered settings or <code>null</code> or <code>undefined</code>
 	 * @private
 	 * @since 1.27.0
 	 */
 	ManagedObjectMetadata.prototype.removeUnknownSettings = function(mSettings) {
 
-		assert(mSettings == null || typeof mSettings === 'object', "mSettings must be null or an object");
+		assert(mSettings == null || typeof mSettings === 'object', "mSettings must be null or undefined or an object");
 
 		if ( mSettings == null ) {
 			return mSettings;
@@ -1719,7 +1772,7 @@ function(
 			sName;
 
 		for ( sName in mSettings ) {
-			if ( hasOwnProperty.call(mValidKeys, sName) ) {
+			if ( Object.hasOwn(mValidKeys, sName) ) {
 				mResult[sName] = mSettings[sName];
 			}
 		}
@@ -1760,33 +1813,35 @@ function(
 	/**
 	 * Returns a promise that resolves if the designtime preload of a library is loaded for the given oMetadata
 	 * object is loaded.
-	 * If the corresponding library does not contain a designtime setting with a module path to the library.designtime file
-	 * the promise resolves immediately.
 	 *
 	 * @private
 	 */
 	function preloadDesigntimeLibrary(oMetadata) {
-		//preload the designtime data for the library
-		var sLibrary = oMetadata.getLibraryName(),
-			sPreload = sap.ui.getCore().getConfiguration().getPreload(),
-			oLibrary = sap.ui.getCore().getLoadedLibraries()[sLibrary];
-		if (oLibrary && oLibrary.designtime) {
-			var oPromise;
-			if (sPreload === "async" || sPreload === "sync") {
-				//ignore errors _loadJSResourceAsync is true here, do not break if there is no preload.
-				oPromise = sap.ui.loader._.loadJSResourceAsync(oLibrary.designtime.replace(/\.designtime$/, "-preload.designtime.js"), true);
-			} else {
-				oPromise = Promise.resolve();
-			}
-			return new Promise(function(fnResolve, fnReject) {
-				oPromise.then(function() {
-					sap.ui.require([oLibrary.designtime], function(oLib) {
-						fnResolve(oLib);
-					}, fnReject);
-				});
-			});
-		}
-		return Promise.resolve(null);
+		return new Promise(function(resolve, reject) {
+			sap.ui.require(["sap/ui/core/Lib"], function (Library) {
+				//preload the designtime data for the library
+				var sLibrary = oMetadata.getLibraryName(),
+					sPreload = Library.getPreloadMode(),
+					oLibrary = Library.all()[sLibrary];
+				if (oLibrary && oLibrary.designtime) {
+					var oPromise;
+					if (sPreload === "async" || sPreload === "sync") {
+						//ignore errors _loadJSResourceAsync is true here, do not break if there is no preload.
+						oPromise = sap.ui.loader._.loadJSResourceAsync(oLibrary.designtime.replace(/\.designtime$/, "-preload.designtime.js"), true);
+					} else {
+						oPromise = Promise.resolve();
+					}
+					resolve(new Promise(function(fnResolve, fnReject) {
+						oPromise.then(function() {
+							sap.ui.require([oLibrary.designtime], function(oLib) {
+								fnResolve(oLib);
+							}, fnReject);
+						});
+					}));
+				}
+				resolve(null);
+			}, reject);
+		});
 	}
 
 	/**
@@ -1839,7 +1894,7 @@ function(
 	 */
 	function loadInstanceDesignTime(oInstance) {
 		var sInstanceSpecificModule =
-			oInstance instanceof ObjectPath.get('sap.ui.base.ManagedObject')
+			BaseObject.isObjectA(oInstance, "sap.ui.base.ManagedObject")
 			&& typeof oInstance.data === "function"
 			&& oInstance.data("sap-ui-custom-settings")
 			&& oInstance.data("sap-ui-custom-settings")["sap.ui.dt"]
@@ -1914,7 +1969,7 @@ function(
 	 * @param {string} [sScopeKey] scope name for which metadata will be resolved, see sap.ui.base.ManagedObjectMetadataScope
 	 * @return {Promise} A promise which will return the loaded design time metadata
 	 * @private
-	 * @ui5-restricted sap.ui.dt com.sap.webide
+	 * @ui5-restricted sap.ui.dt, com.sap.webide
 	 * @since 1.48.0
 	 */
 	ManagedObjectMetadata.prototype.loadDesignTime = function(oManagedObject, sScopeKey) {
@@ -1964,8 +2019,7 @@ function(
 	function uid(sId) {
 		assert(!/[0-9]+$/.exec(sId), "AutoId Prefixes must not end with numbers");
 
-		//read prefix from configuration only once
-		sId = (sUIDPrefix || (sUIDPrefix = sap.ui.getCore().getConfiguration().getUIDPrefix())) + sId;
+		sId = ManagedObjectMetadata.getUIDPrefix() + sId;
 
 		// read counter (or initialize it)
 		var iCount = mUIDCounts[sId] || 0;
@@ -1990,6 +2044,25 @@ function(
 	 * @function
 	 */
 	ManagedObjectMetadata.uid = uid;
+
+	/**
+	 * Get the prefix used for the generated IDs from configuration
+	 *
+	 * @return {string} The prefix for the generated IDs
+	 * @public
+	 * @since 1.119.0
+	 */
+	ManagedObjectMetadata.getUIDPrefix = function() {
+		if (sUIDPrefix === undefined) {
+			sUIDPrefix = BaseConfig.get({
+				name: "sapUiUidPrefix",
+				type: BaseConfig.Type.String,
+				defaultValue: "__",
+				freeze: true
+			});
+		}
+		return sUIDPrefix;
+	};
 
 	/**
 	 * Calculates a new ID for an instance of this class.
@@ -2045,8 +2118,7 @@ function(
 	 * @public
 	 */
 	ManagedObjectMetadata.isGeneratedId = function(sId) {
-		sUIDPrefix = sUIDPrefix || sap.ui.getCore().getConfiguration().getUIDPrefix();
-		rGeneratedUID = rGeneratedUID || new RegExp( "(^|-{1,3})" + escapeRegExp(sUIDPrefix) );
+		rGeneratedUID = rGeneratedUID || new RegExp( "(^|-{1,3})" + escapeRegExp(ManagedObjectMetadata.getUIDPrefix()) );
 
 		return rGeneratedUID.test(sId);
 	};

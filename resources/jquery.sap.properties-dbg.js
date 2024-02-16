@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2024 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -57,6 +57,12 @@ sap.ui.define(['jquery.sap.global', 'sap/base/util/Properties'],
 	jQuery.sap.properties = Properties.create;
 
 	/**
+	 * @namespace jQuery.sap.util
+	 * @public
+	 * @deprecated as of version 1.120
+	 */
+
+	/**
 	 * @interface Represents a collection of string properties (key/value pairs).
 	 *
 	 * Each key and its corresponding value in the collection is a string, keys are case-sensitive.
@@ -67,7 +73,7 @@ sap.ui.define(['jquery.sap.global', 'sap/base/util/Properties'],
 	 * {@link #setProperty} to store or change a value for a key and {@link #getKeys}
 	 * can be used to retrieve an array of all keys that are currently stored in the collection.
 	 *
-	 * @version 1.79.0
+	 * @version 1.120.6
 	 * @since 0.9.0
 	 * @name jQuery.sap.util.Properties
 	 * @public
@@ -83,7 +89,7 @@ sap.ui.define(['jquery.sap.global', 'sap/base/util/Properties'],
 	 * @param {string} sKey Key to return the value for
 	 * @param {string} [sDefaultValue=null] Optional, a default value that will be returned
 	 *    if the requested key is not in the collection
-	 * @returns {string} Value for the given key or the default value or <code>null</code>
+	 * @returns {string|null} Value for the given key or the default value or <code>null</code>
 	 *    if no default value or a falsy default value was given
 	 * @public
 	 *

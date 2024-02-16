@@ -1,9 +1,9 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2024 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
-
+/*eslint-disable max-len */
 // Provides the JSON model implementation of a property binding
 sap.ui.define([
 	'sap/ui/model/ChangeReason',
@@ -28,7 +28,7 @@ sap.ui.define([
 	 */
 	var MessagePropertyBinding = ClientPropertyBinding.extend("sap.ui.model.message.MessagePropertyBinding");
 
-	/**
+	/*
 	 * @see sap.ui.model.PropertyBinding.prototype.setValue
 	 */
 	MessagePropertyBinding.prototype.setValue = function(oValue){
@@ -42,8 +42,8 @@ sap.ui.define([
 	 * Check whether this Binding would provide new values and in case it changed,
 	 * inform interested parties about this.
 	 *
-	 * @param {boolean} bForceupdate
-	 *
+	 * @param {boolean} [bForceupdate]
+	 *   Whether interested parties should be informed regardless of the bindings state
 	 */
 	MessagePropertyBinding.prototype.checkUpdate = function(bForceupdate){
 		var oValue = this._getValue();

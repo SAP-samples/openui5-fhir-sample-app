@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2024 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -17,7 +17,7 @@ sap.ui.define([
 	 * and returns a promise object whenever execution requested
 	 * @private
 	 * */
-	var ThrottledTask = BaseObject.extend("ThrottledTask", {
+	var ThrottledTask = BaseObject.extend("sap.uxap.ThrottledTask", {
 
 		/**
 		 * @param {function} fnTask - the function to throttle
@@ -64,10 +64,14 @@ sap.ui.define([
 			return oReturnPromise;
 		},
 
+		isPending: function() {
+			return this._iTimer != null;
+		},
+
 		_getPromise: function () {
 
 			if (!this._oPromise) {
-				this._oPromise = new window.Promise(function (resolve, reject) {
+				this._oPromise = new Promise(function (resolve, reject) {
 					this._fnResolvePromise = resolve;
 					this._fnRejectPromise = reject;
 				}.bind(this));

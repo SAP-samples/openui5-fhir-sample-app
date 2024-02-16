@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2024 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -21,7 +21,7 @@ sap.ui.define([
 	 * Have to possibility to hold multiple sap.ui.layout.cssgrid.GridSettings and apply the currently active GridSettings.
 	 *
 	 * @author SAP SE
-	 * @version 1.79.0
+	 * @version 1.120.6
 	 *
 	 * @extends sap.ui.layout.cssgrid.GridLayoutBase
 	 *
@@ -29,7 +29,6 @@ sap.ui.define([
 	 * @constructor
 	 * @public
 	 * @alias sap.ui.layout.cssgrid.GridResponsiveLayout
-	 * @ui5-metamodel This simple type will also be described in the UI5 (legacy) designtime metamodel
 	 */
 	var GridResponsiveLayout = GridLayoutBase.extend("sap.ui.layout.cssgrid.GridResponsiveLayout", {
 		metadata: {
@@ -134,7 +133,8 @@ sap.ui.define([
 	/**
 	 * Handler for IGridConfigurable onAfterRendering
 	 *
-	 * @private
+	 * @override
+	 * @protected
 	 * @param {sap.ui.layout.cssgrid.IGridConfigurable} oGrid The grid
 	 */
 	GridResponsiveLayout.prototype.onGridAfterRendering = function (oGrid) {
@@ -144,7 +144,8 @@ sap.ui.define([
 	/**
 	 * Handler for IGridConfigurable resize
 	 *
-	 * @private
+	 * @override
+	 * @protected
 	 * @param {jQuery.Event} oEvent The event object from a grid resize
 	 */
 	GridResponsiveLayout.prototype.onGridResize = function (oEvent) {

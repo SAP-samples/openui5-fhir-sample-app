@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2024 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -94,7 +94,6 @@ sap.ui.define([
 	 * @public
 	 * @alias sap.uxap.ObjectPageHeader
 	 * @since 1.26
-	 * @ui5-metamodel This control/element also will be described in the UI5 (legacy) designtime metamodel
 	 */
 	var ObjectPageHeader = Control.extend("sap.uxap.ObjectPageHeader", /** @lends sap.uxap.ObjectPageHeader.prototype */ {
 		metadata: {
@@ -169,11 +168,12 @@ sap.ui.define([
 				 * Determines the design of the header - Light or Dark.
 				 * <b>Note: </b>This property is deprecated. It will continue to work in the Blue Crystal theme,
 				 * but it will not be taken into account for the Belize themes.
-				 * @deprecated Since version 1.40.1
+				 * @deprecated As of version 1.40.1
 				 */
 				headerDesign: {
 					type: "sap.uxap.ObjectPageHeaderDesign",
-					defaultValue: ObjectPageHeaderDesign.Light
+					defaultValue: ObjectPageHeaderDesign.Light,
+					deprecated: true
 				},
 
 				/**
@@ -234,9 +234,9 @@ sap.ui.define([
 				/**
 				 *
 				 * A list of all the active link elements in the BreadCrumbs control.
-				 * @deprecated as of version 1.50, use the <code>breadcrumbs</code> aggregation instead.
+				 * @deprecated As of version 1.50, use the <code>breadcrumbs</code> aggregation instead.
 				 */
-				breadCrumbsLinks: {type: "sap.m.Link", multiple: true, singularName: "breadCrumbLink"},
+				breadCrumbsLinks: {type: "sap.m.Link", multiple: true, singularName: "breadCrumbLink", deprecated: true},
 
 				/**
 				 *
@@ -349,7 +349,9 @@ sap.ui.define([
 				}
 			},
 			designtime: "sap/uxap/designtime/ObjectPageHeader.designtime"
-		}
+		},
+
+		renderer: ObjectPageHeaderRenderer
 	});
 
 	ObjectPageHeader.prototype._iAvailablePercentageForActions = 0.3;
@@ -379,6 +381,9 @@ sap.ui.define([
 		this._oChangesIconCont = this._lazyLoadInternalAggregation("_changesIconCont", true).attachPress(this._handleChangesPress, this);
 	};
 
+	/**
+	 * @deprecated As of version 1.50, <code>breadCrumbsLinks</code> has been deprecated
+	 */
 	ObjectPageHeader.getMetadata().forwardAggregation(
 		"breadCrumbsLinks",
 		{
@@ -532,6 +537,9 @@ sap.ui.define([
 		return this;
 	};
 
+	/**
+	 * @deprecated As of version 1.40.1
+	 */
 	ObjectPageHeader.prototype.setHeaderDesign = function (sHeaderDesign) {
 		this.setProperty("headerDesign", sHeaderDesign);
 		if (this.getParent()) {
@@ -647,6 +655,7 @@ sap.ui.define([
 					oAction.setVisible = function (bVisible) {
 						oAction._setInternalVisible(bVisible, true);
 						Button.prototype.setVisible.call(this, bVisible);
+						that._adaptLayout();
 					};
 
 					oAction.onAfterRendering = function () {
@@ -667,6 +676,7 @@ sap.ui.define([
 					fnGenerateSetterProxy("text", oAction, oActionSheetButton);
 					fnGenerateSetterProxy("icon", oAction, oActionSheetButton);
 					fnGenerateSetterProxy("enabled", oAction, oActionSheetButton);
+					fnGenerateSetterProxy("type", oAction, oActionSheetButton);
 				}
 			}, this);
 		}
@@ -704,6 +714,7 @@ sap.ui.define([
 			enabled: oButton.getEnabled(),
 			text: oButton.getText(),
 			icon: oButton.getIcon(),
+			type: oButton.getType(),
 			tooltip: oButton.getTooltip(),
 			customData: new CustomData({
 				key: "originalId",
@@ -740,7 +751,7 @@ sap.ui.define([
 		this._adaptLayout();
 
 		this._clearImageNotFoundHandler();
-		$objectImage.error(this._handleImageNotFoundError.bind(this));
+		$objectImage.on("error", this._handleImageNotFoundError.bind(this));
 
 		if (!this.getObjectImageURI()){
 			this._handleImageNotFoundError();
@@ -910,40 +921,9 @@ sap.ui.define([
 	ObjectPageHeader.prototype._adaptObjectPageHeaderIndentifierLine = function ($domRef) {
 
 		var $identifierLine = this._findById($domRef, "identifierLine"),
-			$title = $identifierLine.find(".sapUxAPObjectPageHeaderIdentifierTitle"),
-			$subtitle = this._findById($domRef, "subtitle"),
-			$innerTitle = this._findById($domRef, "innerTitle"),
-			iSubtitleBottom,
-			iTitleBottom,
-			sOriginalHeight = null,
-			iPixelTolerance = this.$().parents().hasClass('sapUiSizeCompact') ? 7 : 3;  // the tolerance of pixels from which we can tell that the title and subtitle are on the same row
+			$title = $identifierLine.find(".sapUxAPObjectPageHeaderIdentifierTitle");
 
 		this._adaptObjectPageHeaderTitle($title);
-
-		if ($subtitle.length) {
-			if ($subtitle.hasClass("sapOPHSubtitleBlock")) {
-
-				// save the original height and
-				// set the height of the wrapping div to a constant value before temporarily changing its inner state
-				// to avoid flickering (as the temporary inner change will affect its height as well)
-				sOriginalHeight = $identifierLine.get(0).style.height;
-				$identifierLine.css("height", $identifierLine.height());
-
-				// temporarily toggle the default subtitle display
-				$subtitle.removeClass("sapOPHSubtitleBlock");
-			}
-
-			iSubtitleBottom = $subtitle.outerHeight() + $subtitle.position().top;
-			iTitleBottom = $innerTitle.outerHeight() + $innerTitle.position().top;
-			// check if subtitle is below the title and add it a display block class
-			if (Math.abs(iSubtitleBottom - iTitleBottom) > iPixelTolerance) {
-				$subtitle.addClass("sapOPHSubtitleBlock");
-			}
-
-			if (sOriginalHeight !== null) { // restore the original height
-				$identifierLine.get(0).style.height = sOriginalHeight;
-			}
-		}
 
 		this._resizeIdentifierLineContainer($domRef);
 	};
@@ -1073,8 +1053,8 @@ sap.ui.define([
 	 * Finds the sub-element with the given <code>sId</code> contained
 	 * within <code>$headerDomRef</code>
 	 *
-	 * @param {object} jQuery reference to the header dom element
-	 * @param {string} the id of the element to be found
+	 * @param {jQuery} $headerDomRef reference to the header dom element
+	 * @param {string} sId the id of the element to be found
 	 *
 	 * Returns the jQuery reference to the dom element with the given sId
 	 * @private
@@ -1094,11 +1074,13 @@ sap.ui.define([
 
 	/**
 	 * Determines whether to render the <code>breadcrumbs</code> or the <code>breadCrumbsLinks</code> aggregation.
-	 * If <code>breadcrumbs</code> is set, the <code>breadCrumbsLinks</code> is omitted.
 	 * @private
 	 */
 	ObjectPageHeader.prototype._getBreadcrumbsAggregation = function () {
 		var oBreadCrumbs = this.getBreadcrumbs(),
+		/**
+		 * @deprecated As of version 1.50, <code>breadCrumbsLinks</code> has been deprecated
+		 */
 		oBreadCrumbsLegacy = this._lazyLoadInternalAggregation('_breadCrumbs', true);
 
 		return oBreadCrumbs

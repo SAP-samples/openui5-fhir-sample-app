@@ -1,6 +1,6 @@
 /*
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2024 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -21,10 +21,10 @@ sap.ui.define(['sap/ui/base/EventProvider', "sap/base/assert"],
 	 * @class Serializer class.
 	 * @extends sap.ui.base.EventProvider
 	 * @author SAP SE
-	 * @version 1.79.0
+	 * @version 1.120.6
 	 * @alias sap.ui.core.util.serializer.Serializer
 	 * @private
-	 * @ui5-restricted sap.watt com.sap.webide
+	 * @ui5-restricted sap.watt, com.sap.webide
 	 */
 	var Serializer = EventProvider.extend("sap.ui.core.util.serializer.Serializer", /** @lends sap.ui.core.util.serializer.Serializer.prototype */
 	{
@@ -33,7 +33,7 @@ sap.ui.define(['sap/ui/base/EventProvider', "sap/base/assert"],
 			this._oRootControl = oRootControl;
 			this._delegate = serializeDelegate;
 			this._bSkipRoot = !!bSkipRoot;
-			this._oWindow = oWindow || window;
+			this._oWindow = oWindow || globalThis;
 			this._fnSkipAggregations = fnSkipAggregations;
 			this._fnSkipElement = fnSkipElement;
 		}
@@ -128,7 +128,7 @@ sap.ui.define(['sap/ui/base/EventProvider', "sap/base/assert"],
 	 * @private
 	 */
 	Serializer.prototype._isObjectSerializable = function (oObject) {
-		return oObject instanceof this._oWindow.sap.ui.core.Element &&
+		return !!(oObject?.isA?.("sap.ui.core.Element")) &&
 			!(this._fnSkipElement && this._fnSkipElement(oObject));
 	};
 

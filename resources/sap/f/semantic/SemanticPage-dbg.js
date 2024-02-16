@@ -1,11 +1,11 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2024 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.define([
     "sap/ui/core/Control",
-    "sap/ui/base/ManagedObject",
+    "sap/ui/core/Shortcut",
     "sap/f/library",
     "sap/f/DynamicPage",
     "sap/f/DynamicPageTitle",
@@ -19,7 +19,7 @@ sap.ui.define([
     "./SemanticPageRenderer"
 ], function(
     Control,
-	ManagedObject,
+	Shortcut,
 	library,
 	DynamicPage,
 	DynamicPageTitle,
@@ -34,7 +34,9 @@ sap.ui.define([
 ) {
 	"use strict";
 
-	// shortcut for sap.f.DynamicPageTitleArea
+	/**
+	 * @deprecated As of version 1.54
+	 */
 	var DynamicPageTitleArea = library.DynamicPageTitleArea;
 
 	/**
@@ -97,7 +99,7 @@ sap.ui.define([
 	* @extends sap.ui.core.Control
 	*
 	* @author SAP SE
-	* @version 1.79.0
+	* @version 1.120.6
 	*
 	* @constructor
 	* @public
@@ -107,7 +109,6 @@ sap.ui.define([
 	* @see {@link topic:84f3d52f492648d5b594e4f45dca7727 Semantic Pages}
 	* @see {@link topic:4a97a07ec8f5441d901994d82eaab1f5 Semantic Page (sap.m)}
 	* @see {@link fiori:https://experience.sap.com/fiori-design-web/semantic-page/ Semantic Page}
-	* @ui5-metamodel This control/element also will be described in the UI5 (legacy) designtime metamodel
 	*/
 	var SemanticPage = Control.extend("sap.f.semantic.SemanticPage", /** @lends sap.f.semantic.SemanticPage.prototype */ {
 		metadata: {
@@ -174,7 +175,7 @@ sap.ui.define([
 				* <code>titlePrimaryArea=Middle</code> can be achieved by setting a low number for the Content area to
 				* <code>titleAreaShrinkRatio</code>, for example <code>1.6:1:1.6</code>.
 				*/
-				titlePrimaryArea : {type: "sap.f.DynamicPageTitleArea", group: "Appearance", defaultValue: DynamicPageTitleArea.Begin},
+				titlePrimaryArea : {type: "sap.f.DynamicPageTitleArea", group: "Appearance", defaultValue: DynamicPageTitleArea.Begin, deprecated: true},
 
 				/**
 				* Assigns shrinking ratio to the <code>SemanticPage</code> title areas (Heading, Content, Actions).
@@ -190,7 +191,6 @@ sap.ui.define([
 				* If all the areas have assigned values greater than 1, the numbers are scaled so that at least one of them
 				* is equal to 1. For example, value of <code>2:4:8</code> is equal to <code>1:2:4</code>.
 				*
-				* <Note:> When this property is set the <code>titlePrimaryArea</code> property has no effect.
 				*
 				* @since 1.58
 				*/
@@ -231,7 +231,7 @@ sap.ui.define([
 				* the <code>SemanticPage</code> header is in its collapsed (snapped) state.</li>
 				* </ul>
 				*/
-				titleHeading: {type: "sap.ui.core.Control", multiple: false, defaultValue: null, forwarding: {getter: "_getTitle", aggregation: "heading"}},
+				titleHeading: {type: "sap.ui.core.Control", multiple: false, forwarding: {getter: "_getTitle", aggregation: "heading"}},
 
 				/**
 				* The <code>titleExpandedHeading</code> is positioned in the <code>SemanticPage</code> title left area
@@ -244,7 +244,7 @@ sap.ui.define([
 				* <code>titleSnappedHeading</code> to switch content when the header switches state.
 				* @since 1.58
 				*/
-				titleExpandedHeading: {type: "sap.ui.core.Control", multiple: false, defaultValue: null, forwarding: {getter: "_getTitle", aggregation: "expandedHeading"}},
+				titleExpandedHeading: {type: "sap.ui.core.Control", multiple: false, forwarding: {getter: "_getTitle", aggregation: "expandedHeading"}},
 
 				/**
 				* The <code>titleSnappedHeading</code> is positioned in the <code>SemanticPage</code> title left area
@@ -263,7 +263,7 @@ sap.ui.define([
 				* </ul>
 				* @since 1.58
 				*/
-				titleSnappedHeading: {type: "sap.ui.core.Control", multiple: false, defaultValue: null, forwarding: {getter: "_getTitle", aggregation: "snappedHeading"}},
+				titleSnappedHeading: {type: "sap.ui.core.Control", multiple: false, forwarding: {getter: "_getTitle", aggregation: "snappedHeading"}},
 
 				/**
 				 * The <code>SemanticPage</code> breadcrumbs.
@@ -280,7 +280,7 @@ sap.ui.define([
 				 * </ul>
 				 * @since 1.52
 				 */
-				titleBreadcrumbs: {type: "sap.m.IBreadcrumbs", multiple: false, defaultValue: null, forwarding: {getter: "_getTitle", aggregation: "breadcrumbs"}},
+				titleBreadcrumbs: {type: "sap.m.IBreadcrumbs", multiple: false, forwarding: {getter: "_getTitle", aggregation: "breadcrumbs"}},
 
 				/**
 				 * The only content that is displayed in the <code>SemanticPage</code> title
@@ -579,6 +579,8 @@ sap.ui.define([
 				* The <code>customShareActions</code> are placed in the <code>ShareMenu</code> area of the
 				* <code>SemanticPage</code> title, right after the semantic actions.
 				*
+				* The text and icon of the button inside the <code>customShareActions</code> aggregation, can be customized.
+				*
 				* <b>Note:</b> If the <code>titleSnappedOnMobile</code> aggregation is set, its
 				* content overrides this aggregation when the control is viewed on a phone mobile
 				* device and the <code>SemanticPage</code> header is in its collapsed (snapped) state.
@@ -601,7 +603,9 @@ sap.ui.define([
 			},
 			dnd: { draggable: false, droppable: true },
 			designtime : "sap/f/designtime/SemanticPage.designtime"
-		}
+		},
+
+		renderer: SemanticPageRenderer
 	});
 
 	/*
@@ -619,6 +623,7 @@ sap.ui.define([
 		"sapUiResponsiveContentPadding": true
 	};
 
+	SemanticPage.ARIA_ROLE_DESCRIPTION = "SEMANTIC_PAGE_ROLE_DESCRIPTION";
 	/*
 	* LIFECYCLE METHODS
 	*/
@@ -679,7 +684,9 @@ sap.ui.define([
 		this._getPage().setShowFooter(bShowFooter);
 		return this.setProperty("showFooter", bShowFooter, true);
 	};
-
+	/**
+	 * @deprecated As of version 1.58, <code>titlePrimaryArea</code> has been deprecated
+	 */
 	SemanticPage.prototype.setTitlePrimaryArea = function (oPrimaryArea) {
 		var oDynamicPageTitle = this._getTitle();
 
@@ -719,6 +726,15 @@ sap.ui.define([
 		return Control.prototype.removeStyleClass.call(this, sClass, bSuppressRerendering);
 	};
 
+	SemanticPage.prototype.clone = function(){
+		var oClone = Control.prototype.clone.apply(this, arguments),
+			oContent = this.getAggregation('_dynamicPage').getContent();
+
+		oClone.setContent(oContent.clone());
+
+		return oClone;
+	};
+
 	/*
 	 * =================================================
 	 * AGGREGATION METHODS
@@ -756,10 +772,10 @@ sap.ui.define([
 				this._onAddAggregation(oObject, sType);
 			}
 
-			return ManagedObject.prototype.setAggregation.call(this, sAggregationName, oObject, true);
+			return Control.prototype.setAggregation.call(this, sAggregationName, oObject, true);
 		}
 
-		return ManagedObject.prototype.setAggregation.call(this, sAggregationName, oObject, bSuppressInvalidate);
+		return Control.prototype.setAggregation.call(this, sAggregationName, oObject, bSuppressInvalidate);
 	};
 
 	SemanticPage.prototype.destroyAggregation = function (sAggregationName, bSuppressInvalidate) {
@@ -772,7 +788,7 @@ sap.ui.define([
 		}
 
 		if (sType && SemanticConfiguration.isKnownSemanticType(sType)) {
-			oObject = ManagedObject.prototype.getAggregation.call(this, sAggregationName);
+			oObject = Control.prototype.getAggregation.call(this, sAggregationName);
 
 			if (oObject) {
 				sPlacement = SemanticConfiguration.getPlacement(sType);
@@ -781,9 +797,41 @@ sap.ui.define([
 			}
 		}
 
-		return ManagedObject.prototype.destroyAggregation.call(this, sAggregationName, bSuppressInvalidate);
+		return Control.prototype.destroyAggregation.call(this, sAggregationName, bSuppressInvalidate);
 	};
 
+	SemanticPage.prototype.onBeforeRendering = function () {
+		var oShareMenu = this._getShareMenu(),
+			aVisibleActions = oShareMenu._getVisibleActions(),
+			iVisibleActionsCount = aVisibleActions.length;
+
+		oShareMenu._getShareMenuButton().setVisible(iVisibleActionsCount > 1);
+
+		if (iVisibleActionsCount === 1) {
+			this._showSingleVisibleAction();
+		}
+
+		// Move back the previously only one visible action to the ShareMenu, if new ones have been added
+		if (this._iVisibleShareMenuAction === 1 & iVisibleActionsCount > 1) {
+			this._hideSingleVisibleAction();
+			this._iVisibleShareMenuAction = iVisibleActionsCount;
+
+		}
+	};
+
+	SemanticPage.prototype._addShareMenuSingleAction = function (oVisibleAction) {
+		if (oVisibleAction) {
+			var bIsKnownSemanticType = SemanticConfiguration.isKnownSemanticType(oVisibleAction.getMetadata().getName());
+
+			oVisibleAction._bIsSingleAction = true;
+
+			this._getSemanticTitle().addContent(oVisibleAction,
+				bIsKnownSemanticType ? SemanticConfiguration._Placement.titleIcon : SemanticConfiguration._Placement.titleText);
+
+			this._iVisibleShareMenuAction = 1;
+			this._oSingleVisibleAction = oVisibleAction;
+		}
+	};
 
 	/**
 	* Proxies the <code>sap.f.semantic.SemanticPage</code> <code>content</code>
@@ -912,7 +960,7 @@ sap.ui.define([
 	* Process the given control,
 	* before setting it to one of the <code>sap.f.semantic.SemanticPage</code> aggregations.
 	* @param {sap.ui.core.Control} oControl
-	* @param {String} sType
+	* @param {string} sType
 	* @private
 	*/
 	SemanticPage.prototype._onAddAggregation = function (oControl, sType) {
@@ -925,7 +973,7 @@ sap.ui.define([
 	* Process the given control,
 	* after removing it from one of the <code>sap.f.semantic.SemanticPage</code> aggregations.
 	* @param {sap.ui.core.Control} oControl
-	* @param {String} sType
+	* @param {string} sType
 	* @private
 	*/
 	SemanticPage.prototype._onRemoveAggregation = function (oControl, sType) {
@@ -1025,11 +1073,17 @@ sap.ui.define([
 	* @private
 	*/
 	SemanticPage.prototype._initDynamicPage = function () {
-		this.setAggregation("_dynamicPage", new DynamicPage(this.getId() + "-page", {
-			title : this._getTitle(),
-			header : this._getHeader(),
-			footer: this._getFooter()
-		}), true);
+		var oDynamicPage = new DynamicPage(this.getId() + "-page", {
+				title: this._getTitle(),
+				header: this._getHeader(),
+				footer: this._getFooter()
+			}),
+			sAriaRoleDescription = sap.ui.getCore()
+				.getLibraryResourceBundle("sap.f")
+				.getText(SemanticPage.ARIA_ROLE_DESCRIPTION);
+
+		oDynamicPage._setAriaRoleDescription(sAriaRoleDescription);
+		this.setAggregation("_dynamicPage", oDynamicPage, true);
 	};
 
 	/**
@@ -1042,6 +1096,8 @@ sap.ui.define([
 	SemanticPage.prototype._getTitle = function () {
 		if (!this._oDynamicPageTitle) {
 			this._oDynamicPageTitle = this._getSemanticTitle()._getContainer();
+
+			Shortcut.register(this._oDynamicPageTitle, "Ctrl+Shift+S", this._openShareMenu.bind(this));
 		}
 
 		return this._oDynamicPageTitle;
@@ -1077,9 +1133,9 @@ sap.ui.define([
 	};
 
 	/**
-	* Retrieves a <code>sap.f.SemanticTitle</code> instance.
+	* Retrieves a <code>sap.f.semantic.SemanticTitle</code> instance.
 	*
-	* @returns {sap.f.SemanticTitle}
+	* @returns {sap.f.semantic.SemanticTitle}
 	* @private
 	*/
 	SemanticPage.prototype._getSemanticTitle = function() {
@@ -1090,9 +1146,9 @@ sap.ui.define([
 	};
 
 	/**
-	* Retrieves a <code>sap.f.SemanticShareMenu</code> instance.
+	* Retrieves a <code>sap.f.semantic.SemanticShareMenu</code> instance.
 	*
-	* @returns {sap.f.SemanticShareMenu}
+	* @returns {sap.f.semantic.SemanticShareMenu}
 	* @private
 	*/
 	SemanticPage.prototype._getShareMenu = function() {
@@ -1100,9 +1156,89 @@ sap.ui.define([
 			this._oShareMenu = new SemanticShareMenu(this._getActionSheet(), this);
 			// Ensure bindings on top level control propagate properly
 			this.addDependent(this._oShareMenu._oContainer);
+			this._oShareMenu.attachEvent("_visibleActionsChanged", this._onShareMenuActionsChanged.bind(this));
 		}
 
 		return this._oShareMenu;
+	};
+
+	SemanticPage.prototype._onShareMenuActionsChanged = function (oEvent) {
+		var iVisibleActionsCount = oEvent.getParameter("visibleActionsCount");
+
+		if (this._iVisibleShareMenuAction !== iVisibleActionsCount) {
+			if (iVisibleActionsCount === 1) {
+				this._showSingleVisibleAction();
+			}
+
+			if (iVisibleActionsCount !== 1) {
+				this._hideSingleVisibleAction();
+			}
+		}
+
+		this._iVisibleShareMenuAction = iVisibleActionsCount;
+	};
+
+	SemanticPage.prototype._showSingleVisibleAction = function () {
+		var oShareMenu = this._getShareMenu(),
+			aVisibleActions = oShareMenu._getVisibleActions(),
+			aAllShareMenuActions = oShareMenu._aShareMenuActions.concat(oShareMenu._aCustomShareActions),
+			oActionToBeMoved;
+
+		if (aVisibleActions.length === 1) {
+			oActionToBeMoved = aAllShareMenuActions.filter(function (oAction) {
+				return (oAction._getControl && oAction._getControl() === aVisibleActions[0])
+						|| oAction === aVisibleActions[0];
+			})[0];
+
+			// Clean action sheet CSS class
+			var oActionCtrl = oActionToBeMoved._getControl && oActionToBeMoved._getControl();
+			if (oActionCtrl) {
+				var AC_CLASS_PREFIX = "sapMActionSheet";
+				oActionCtrl.aCustomStyleClasses
+					.filter(function (sStyleClass) {
+						return sStyleClass.indexOf(AC_CLASS_PREFIX) > -1;
+					})
+					.forEach(function (sACStyleClass) {
+						oActionCtrl.removeStyleClass(sACStyleClass);
+					});
+			}
+
+
+			this._addShareMenuSingleAction(oActionToBeMoved);
+		}
+	};
+
+	SemanticPage.prototype._hideSingleVisibleAction = function () {
+		var sPlacement = SemanticConfiguration._Placement.shareMenu,
+			oSemanticContainer = this._getSemanticContainer(sPlacement),
+			bIsKnownSemanticType;
+
+		if (this._oSingleVisibleAction) {
+			bIsKnownSemanticType = SemanticConfiguration.isKnownSemanticType(this._oSingleVisibleAction.getMetadata().getName());
+			this._oSingleVisibleAction._bIsSingleAction = false;
+			this._getSemanticTitle().removeContent(this._oSingleVisibleAction,
+				bIsKnownSemanticType ? SemanticConfiguration._Placement.titleIcon : SemanticConfiguration._Placement.titleText);
+
+			bIsKnownSemanticType ? oSemanticContainer.addContent(this._oSingleVisibleAction)
+				: oSemanticContainer.insertCustomAction(this._oSingleVisibleAction, 0);
+
+			this._onAddAggregation(this._oSingleVisibleAction, sPlacement);
+			this._oSingleVisibleAction = null;
+		}
+	};
+
+	/**
+	* Opens the <code>sap.m.ActionSheet</code> container of <code>sap.m.SemanticShareMenu</code>.
+	*
+	* @private
+	*/
+	SemanticPage.prototype._openShareMenu = function () {
+		var oShareMenuButton = this._getShareMenu()._getShareMenuButton(),
+			oOverflowButton = this._getTitle().getAggregation("_actionsToolbar")._getOverflowButton();
+
+		if (oShareMenuButton.getVisible()) {
+			this._getActionSheet().openBy(!oShareMenuButton._bInOverflow ? oShareMenuButton : oOverflowButton);
+		}
 	};
 
 	/**
@@ -1119,9 +1255,9 @@ sap.ui.define([
 	};
 
 	/**
-	* Retrieves a <code>sap.f.SemanticFooter</code> instance.
+	* Retrieves a <code>sap.f.semantic.SemanticFooter</code> instance.
 	*
-	* @returns {sap.f.SemanticFooter}
+	* @returns {sap.f.semantic.SemanticFooter}
 	* @private
 	*/
 	SemanticPage.prototype._getSemanticFooter = function() {
@@ -1149,7 +1285,7 @@ sap.ui.define([
 	* Retrieves a <code>sap.f.semantic.SemanticContainer</code> instance
 	* for the given placement - TITLE_TEXT, TITLE_ICON, FOOTER_LEFT, FOOTER_RIGHT or SHARE_MENU.
 	*
-	* @param {String} sPlacement
+	* @param {string} sPlacement
 	* @returns {sap.f.semantic.SemanticContainer | null}
 	* @private
 	*/

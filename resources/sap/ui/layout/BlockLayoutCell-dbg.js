@@ -1,19 +1,17 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2024 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 sap.ui.define([
 	'sap/ui/core/Control',
-	'sap/ui/Device',
 	'./library',
 	"./BlockLayoutCellRenderer",
 	"sap/base/Log",
-	"./BlockLayoutCellData",
 	"sap/ui/thirdparty/jquery"
 ],
-	function(Control, Device, library, BlockLayoutCellRenderer, Log, BlockLayoutCellData, jQuery) {
+	function(Control, library, BlockLayoutCellRenderer, Log, jQuery) {
 		"use strict";
 
 		/**
@@ -28,13 +26,12 @@ sap.ui.define([
 		 * @extends sap.ui.core.Control
 		 *
 		 * @author SAP SE
-		 * @version 1.79.0
+		 * @version 1.120.6
 		 *
 		 * @constructor
 		 * @public
 		 * @since 1.34
 		 * @alias sap.ui.layout.BlockLayoutCell
-		 * @ui5-metamodel This control/element also will be described in the UI5 (legacy) designtime metamodel
 		 */
 		var BlockLayoutCell = Control.extend("sap.ui.layout.BlockLayoutCell", {
 			metadata: {
@@ -75,14 +72,12 @@ sap.ui.define([
 					width: {type: "int", group: "Appearance", defaultValue: 0},
 					/**
 					 * The Background color set from which the background color will be selected.
-					 * By using background colors from the predefined sets your colors could later be customized from the Theme Designer.
 					 * <b>Note:</b> backgroundColorSet should be used only in combination with backgroundColorShade.
 					 * @since 1.48
 					 */
 					backgroundColorSet: {type: "sap.ui.layout.BlockLayoutCellColorSet", group: "Appearance"},
 					/**
 					 * The index of the background color in the color set from which the color will be selected.
-					 * By using background colors from the predefined sets your colors could later be customized from the Theme Designer.
 					 * <b>Note:</b> backgroundColorShade should be used only in combination with backgroundColorSet.
 					 * @since 1.48
 					 */
@@ -102,7 +97,9 @@ sap.ui.define([
 					titleLink: {type: "sap.ui.core.Control", multiple : false}
 				},
 				designtime: "sap/ui/layout/designtime/BlockLayoutCell.designtime"
-			}
+			},
+
+			renderer: BlockLayoutCellRenderer
 		});
 
 		BlockLayoutCell.prototype.setLayoutData = function (oLayoutData) {
@@ -126,7 +123,7 @@ sap.ui.define([
 		 *
 		 * @public
 		 * @param {number} iWidth value.
-		 * @returns {sap.ui.layout.BlockLayoutCell} this BlockLayoutCell reference for chaining.
+		 * @returns {this} this BlockLayoutCell reference for chaining.
 		 */
 		BlockLayoutCell.prototype.setWidth = function (iWidth) {
 			this.setProperty("width", iWidth);
@@ -151,24 +148,6 @@ sap.ui.define([
 
 		BlockLayoutCell.prototype._setParentRowScrollable = function (scrollable) {
 			this._parentRowScrollable = scrollable;
-		};
-
-		BlockLayoutCell.prototype.onAfterRendering = function (oEvent) {
-
-			// fixes the issue in IE when the block layout size is auto
-			// like BlockLayout in a Dialog
-			if (Device.browser.internet_explorer) {
-
-				 var bHasParentDialog = this.$().parents().toArray().some(function (element) {
-					if (element.className.indexOf("sapMDialogScroll") !== -1) {
-						return true;
-					}
-				});
-
-				if (bHasParentDialog) {
-					this.$()[0].style.flex = this._flexWidth + " 1 auto";
-				}
-			}
 		};
 
 		BlockLayoutCell.prototype._getParentRowScrollable = function () {

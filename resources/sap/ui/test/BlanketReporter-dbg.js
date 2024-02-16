@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2024 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -11,9 +11,8 @@ sap.ui.define([
 	"sap/ui/model/Filter",
 	"sap/ui/model/FilterType",
 	"sap/ui/model/json/JSONModel",
-	"sap/base/util/UriParameters",
 	"sap/base/security/encodeXML"
-], function (jQuery, Controller, XMLView, Filter, FilterType, JSONModel, UriParameters, encodeXML) {
+], function (jQuery, Controller, XMLView, Filter, FilterType, JSONModel, encodeXML) {
 	"use strict";
 
 	// lower case package names, UpperCamelCase class name, optional lowerCamelCase method name
@@ -462,7 +461,8 @@ sap.ui.define([
 	}
 
 	return function (iLinesOfContext, iThreshold, fnGetTestedModules, oCoverageData) {
-		var oDiv, oModel, aTestedModules;
+		var oDiv, oModel, aTestedModules,
+			oUriParameters = new URLSearchParams(window.location.search);
 
 		/*
 		 * Tells whether the given module corresponds 1:1 to a single class.
@@ -483,7 +483,8 @@ sap.ui.define([
 				aTestedModules && aTestedModules.map(convertToFile));
 			oDiv = getDiv();
 
-			if (UriParameters.fromQuery(window.location.search).get("testId")
+			if (oCoverageData.stats.failures
+				|| oUriParameters.get("filter") || oUriParameters.get("testId")
 				|| aTestedModules && !aTestedModules.every(isSingleClass)) {
 				// do not fail due to coverage
 				createViewAndPlaceAt(oModel, oDiv);
@@ -512,4 +513,4 @@ sap.ui.define([
 			});
 		}
 	};
-}, /* bExport= */ false);
+});

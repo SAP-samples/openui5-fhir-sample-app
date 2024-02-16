@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2024 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -8,11 +8,9 @@
 sap.ui.define([
 	"sap/m/Select",
 	"sap/ui/Device",
-	"sap/ui/thirdparty/jquery",
-	"./library",
-	"./HierarchicalSelectRenderer",
-	"sap/ui/thirdparty/jqueryui/jquery-ui-position"
-], function(Select, Device, jQuery, library, HierarchicalSelectRenderer /*jqueryUiPosition,*/) {
+	"sap/ui/thirdparty/jqueryui/jquery-ui-position",
+	"./HierarchicalSelectRenderer"
+], function(Select, Device, jQuery, HierarchicalSelectRenderer) {
 	"use strict";
 
 	/**
@@ -34,7 +32,6 @@ sap.ui.define([
 	 * @public
 	 * @since 1.26
 	 * @alias sap.uxap.HierarchicalSelect
-	 * @ui5-metamodel This control/element also will be described in the UI5 (legacy) designtime metamodel
 	 */
 	var HierarchicalSelect = Select.extend("sap.uxap.HierarchicalSelect", /** @lends sap.uxap.HierarchicalSelect.prototype */ {
 		metadata: {
@@ -47,7 +44,9 @@ sap.ui.define([
 				 */
 				upperCase: {type: "boolean", group: "Appearance", defaultValue: false}
 			}
-		}
+		},
+
+		renderer: HierarchicalSelectRenderer
 	});
 
 	HierarchicalSelect.POPOVER_MIN_WIDTH_REM = 11;
@@ -60,6 +59,17 @@ sap.ui.define([
 
 		Select.prototype.onAfterRenderingPicker.call(this);
 
+		this._applyHierarchyLevelClasses();
+	};
+
+	HierarchicalSelect.prototype.onAfterRenderingList = function() {
+
+		Select.prototype.onAfterRenderingList.call(this);
+
+		this._applyHierarchyLevelClasses();
+	};
+
+	HierarchicalSelect.prototype._applyHierarchyLevelClasses = function () {
 		var aItems = this.getItems() || [];
 
 		aItems.forEach(function (oItem) {
@@ -68,7 +78,6 @@ sap.ui.define([
 			oItem.$().addClass(sClass);
 		}, this);
 	};
-
 
 	HierarchicalSelect.prototype.setUpperCase = function (bValue, bSuppressInvalidate) {
 
@@ -88,7 +97,7 @@ sap.ui.define([
 	 * Keyboard handling requirement to have the same behavior on [ENTER] key
 	 * as on [SPACE] key (namely, to toggle the open state the select dropdown)
 	 */
-	HierarchicalSelect.prototype.onsapenter = Select.prototype.onsapspace;
+	HierarchicalSelect.prototype.onsapenter = Select.prototype.ontap;
 
 	/**
 	 * Keyboard handling of [UP], [PAGE-UP], [PAGE-DOWN], [HOME], [END] keys

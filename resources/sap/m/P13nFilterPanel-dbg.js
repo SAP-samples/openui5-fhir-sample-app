@@ -1,13 +1,13 @@
-/*
- * ! OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+/*!
+ * OpenUI5
+ * (c) Copyright 2009-2024 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 // Provides control sap.m.P13nFilterPanel.
 sap.ui.define([
-	'./P13nConditionPanel', './P13nPanel', './library', 'sap/m/Panel', './P13nFilterItem', './P13nOperationsHelper'
-], function(P13nConditionPanel, P13nPanel, library, Panel, P13nFilterItem, P13nOperationsHelper) {
+	'./P13nConditionPanel', './P13nPanel', './library', 'sap/m/Panel', './P13nFilterItem', './P13nOperationsHelper', 'sap/m/P13nFilterPanelRenderer'
+], function(P13nConditionPanel, P13nPanel, library, Panel, P13nFilterItem, P13nOperationsHelper, P13nFilterPanelRenderer) {
 	"use strict";
 
 	// shortcut for sap.m.P13nPanelType
@@ -23,12 +23,11 @@ sap.ui.define([
 	 * @param {object} [mSettings] initial settings for the new control
 	 * @class The P13nFilterPanel control is used to define filter-specific settings for table personalization.
 	 * @extends sap.m.P13nPanel
-	 * @version 1.79.0
+	 * @version 1.120.6
 	 * @constructor
 	 * @public
 	 * @since 1.26.0
 	 * @alias sap.m.P13nFilterPanel
-	 * @ui5-metamodel This control/element also will be described in the UI5 (legacy) designtime metamodel
 	 */
 	var P13nFilterPanel = P13nPanel.extend("sap.m.P13nFilterPanel", /** @lends sap.m.P13nFilterPanel.prototype */ {
 		metadata: {
@@ -103,6 +102,14 @@ sap.ui.define([
 					multiple: true,
 					singularName: "filterItem",
 					bindable: "bindable"
+				},
+
+				/**
+				 * Defines an optional message strip to be displayed in the content area
+				 */
+				messageStrip: {
+					type: "sap.m.MessageStrip",
+					multiple: false
 				}
 			},
 			events: {
@@ -150,26 +157,7 @@ sap.ui.define([
 				}
 			}
 		},
-		renderer: {
-			apiVersion: 2,
-			render: function(oRm, oControl){
-				oRm.openStart("section", oControl);
-				oRm.class("sapMFilterPanel");
-				oRm.openEnd();
-
-				oRm.openStart("div");
-				oRm.class("sapMFilterPanelContent");
-				oRm.class("sapMFilterPanelBG");
-				oRm.openEnd();
-
-				oControl.getAggregation("content").forEach(function(oChildren){
-					oRm.renderControl(oChildren);
-				});
-
-				oRm.close("div");
-				oRm.close("section");
-			}
-		}
+		renderer: P13nFilterPanelRenderer.renderer
 	});
 
 	// EXC_ALL_CLOSURE_003
@@ -179,7 +167,7 @@ sap.ui.define([
 	 *
 	 * @public
 	 * @param {object[]} aConditions the complete list of conditions
-	 * @returns {sap.m.P13nFilterPanel} this for chaining
+	 * @returns {this} this for chaining
 	 */
 	P13nFilterPanel.prototype.setConditions = function(aConditions) {
 		var aIConditions = [];
@@ -338,7 +326,6 @@ sap.ui.define([
 	 * Setter for a KeyFields array.
 	 *
 	 * @private
-	 * @deprecated Since 1.34. This method does not work anymore - you should use the Items aggregation
 	 * @param {array} aKeyFields - array of KeyFields [{key: "CompanyCode", text: "ID"}, {key:"CompanyName", text : "Name"}]
 	 * @param {array} aKeyFieldsExclude - array of exclude KeyFields
 	 */
@@ -410,8 +397,6 @@ sap.ui.define([
 	P13nFilterPanel.prototype.init = function() {
 		this.setType(P13nPanelType.filter);
 		this.setTitle(sap.ui.getCore().getLibraryResourceBundle("sap.m").getText("FILTERPANEL_TITLE"));
-
-		sap.ui.getCore().loadLibrary("sap.ui.layout");
 
 		this._aKeyFields = [];
 
@@ -503,44 +488,40 @@ sap.ui.define([
 		if (this._bUpdateRequired) {
 			this._bUpdateRequired = false;
 
+			var oMessageStrip = this.getMessageStrip();
+			if (oMessageStrip) {
+				oMessageStrip.addStyleClass("sapUiResponsiveMargin");
+				this.insertAggregation("content", oMessageStrip, 0);
+			}
 			aKeyFields = [];
 			sModelName = (this.getBindingInfo("items") || {}).model;
-			var fGetValueOfProperty = function(sName, oContext, oItem) {
-				var oBinding = oItem.getBinding(sName),
-					oMetadata;
 
-				if (oBinding && oContext) {
-					return oContext.getObject()[oBinding.getPath()];
-				}
-				oMetadata = oItem.getMetadata();
-				return oMetadata.hasProperty(sName) ? oMetadata.getProperty(sName).get(oItem) : oMetadata.getAggregation(sName).get(oItem);
-			};
-			this.getItems().forEach(function(oItem_) {
-				var oContext = oItem_.getBindingContext(sModelName),
+            this.getItems().forEach(function(oItem) {
+				var oContext = oItem.getBindingContext(sModelName),
 					oField,
 					bNullable,
 					oFieldExclude;
 
 				// Update key of model (in case of 'restore' the key in model gets lost because it is overwritten by Restore Snapshot)
-				if (oItem_.getBinding("key")) {
-					oContext.getObject()[oItem_.getBinding("key").getPath()] = oItem_.getKey();
+				if (oItem.getBinding("key")) {
+					oContext.getObject()[oItem.getBinding("key").getPath()] = oItem.getKey();
 				}
 				aKeyFields.push(oField = {
-					key: oItem_.getColumnKey(),
-					text: fGetValueOfProperty("text", oContext, oItem_),
-					tooltip: fGetValueOfProperty("tooltip", oContext, oItem_),
-					maxLength: fGetValueOfProperty("maxLength", oContext, oItem_),
-					type: fGetValueOfProperty("type", oContext, oItem_),
-					typeInstance: fGetValueOfProperty("typeInstance", oContext, oItem_),
-					formatSettings: fGetValueOfProperty("formatSettings", oContext, oItem_),
-					precision: fGetValueOfProperty("precision", oContext, oItem_),
-					scale: fGetValueOfProperty("scale", oContext, oItem_),
-					isDefault: fGetValueOfProperty("isDefault", oContext, oItem_),
-					values: fGetValueOfProperty("values", oContext, oItem_)
+					key: oItem.getColumnKey(),
+					text: oItem.getText(),
+					tooltip: oItem.getTooltip(),
+					maxLength: oItem.getMaxLength(),
+					type: oItem.getType(),
+					typeInstance: oItem.getTypeInstance(),
+					formatSettings: oItem.getFormatSettings(),
+					precision: oItem.getPrecision(),
+					scale: oItem.getScale(),
+					isDefault: oItem.getIsDefault(),
+					values: oItem.getValues()
 				});
 
 				if (bEnableEmptyOperations) {
-					bNullable = oItem_.getNullable();
+					bNullable = oItem.getNullable();
 
 					// Copy the oField object and add it to the exclude array - we need this only when exclude
 					// operations are enabled
@@ -560,25 +541,25 @@ sap.ui.define([
 				this._modifyFieldOperationsBasedOnMaxLength(oField);
 			}, this);
 
-			this.setKeyFields(aKeyFields, aKeyFieldsExclude);
+            this.setKeyFields && this.setKeyFields(aKeyFields, aKeyFieldsExclude);
 
 			var aConditions = [];
 			sModelName = (this.getBindingInfo("filterItems") || {}).model;
-			this.getFilterItems().forEach(function(oFilterItem_) {
+			this.getFilterItems().forEach(function(oFilterItem) {
 
 				// the "filterItems" aggregation data - obtained via getFilterItems() - has the old state !
-				var oContext = oFilterItem_.getBindingContext(sModelName);
+				var oContext = oFilterItem.getBindingContext(sModelName);
 				// Update key of model (in case of 'restore' the key in model gets lost because it is overwritten by Restore Snapshot)
-				if (oFilterItem_.getBinding("key") && oContext) {
-					oContext.getObject()[oFilterItem_.getBinding("key").getPath()] = oFilterItem_.getKey();
+				if (oFilterItem.getBinding("key") && oContext) {
+					oContext.getObject()[oFilterItem.getBinding("key").getPath()] = oFilterItem.getKey();
 				}
 				aConditions.push({
-					key: oFilterItem_.getKey(),
-					keyField: fGetValueOfProperty("columnKey", oContext, oFilterItem_),
-					operation: fGetValueOfProperty("operation", oContext, oFilterItem_),
-					value1: fGetValueOfProperty("value1", oContext, oFilterItem_),
-					value2: fGetValueOfProperty("value2", oContext, oFilterItem_),
-					exclude: fGetValueOfProperty("exclude", oContext, oFilterItem_)
+					key: oFilterItem.getKey(),
+					keyField: oFilterItem.getColumnKey(),
+					operation: oFilterItem.getOperation(),
+					value1: oFilterItem.getValue1(),
+					value2: oFilterItem.getValue2(),
+					exclude: oFilterItem.getExclude()
 				});
 			});
 			this.setConditions(aConditions);
@@ -737,6 +718,24 @@ sap.ui.define([
 		if (sReason === "change" && !this._bIgnoreBindCalls) {
 			this._bUpdateRequired = true;
 			this.invalidate();
+		}
+	};
+
+	P13nFilterPanel.prototype.setMessageStrip = function(oMessageStrip) {
+		this.setAggregation("messageStrip", oMessageStrip, true);
+
+		if (!this._bIgnoreBindCalls) {
+			this._bUpdateRequired = true;
+		}
+
+		return this;
+	};
+
+	P13nFilterPanel.prototype.updateMessageStrip = function(sReason) {
+		this.updateAggregation("messageStrip");
+
+		if (sReason === "change" && !this._bIgnoreBindCalls) {
+			this._bUpdateRequired = true;
 		}
 	};
 

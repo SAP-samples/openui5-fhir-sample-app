@@ -12,6 +12,7 @@
 	text-align: left;
 	padding-right: 2rem;
 	position: relative;
+	padding-left: 0.625rem;
 }
 
 .sapMMenuBtn.sapMMenuBtnRegular .sapMBtnInner:not(.sapMBtnText) {
@@ -27,11 +28,15 @@
 	content: '\e1ef';
 	display: inline-block;
 	font-size: 0.75rem;
-	height: 38px; //ie does not accept rem for height in pseudo elements, but it works with px when you zoom
-	line-height: 38px;
+	height: 2.125rem;
+	line-height: 2.125rem;
 	padding-right: 0.75rem;
 	padding-left: 0.5625rem;
 	color: @sapUiButtonIconColor;
+}
+
+.sapMMenuBtn.sapMMenuBtnRegular:hover .sapMBtnInner::after {
+	color: @sapUiButtonHoverTextColor;
 }
 
 .sapMMenuBtn.sapMMenuBtnSplit .sapMSBActive:not(.sapMBtnDisabled) > .sapMBtnInner {
@@ -44,6 +49,7 @@
 .sapUiSizeCompact {
 	.sapMMenuBtn.sapMMenuBtnRegular .sapMBtnInner {
 		padding-right: 1.625rem;
+		padding-left: 0.5rem;
 	}
 
 	.sapMMenuBtn.sapMMenuBtnRegular .sapMBtnInner:not(.sapMBtnText) {
@@ -51,8 +57,8 @@
 	}
 
 	.sapMMenuBtn.sapMMenuBtnRegular .sapMBtnInner::after {
-		height: 24px; //ie does not accept rem for height in pseudo elements, but it works with px when you zoom
-		line-height: 24px;
+		height: 1.5rem;
+		line-height: 1.5rem;
 		padding-right: 0.5rem;
 		padding-left: 0.375rem;
 	}
@@ -64,6 +70,9 @@
 	text-shadow: @sapUiButtonEmphasizedTextShadow;
 }
 
+.sapMMenuBtn.sapMMenuBtnRegular:hover .sapMBtnInner.sapMBtnEmphasized::after {
+	color: @sapUiButtonEmphasizedHoverTextColor;
+}
 
 .sapMMenuBtn.sapMMenuBtnRegular .sapMBtnInner.sapMBtnEmphasized.sapMBtnActive::after {
 	text-shadow: none;
@@ -74,9 +83,17 @@
 	color: @sapUiButtonAcceptTextColor;
 }
 
+.sapMMenuBtn.sapMMenuBtnRegular:hover .sapMBtnInner.sapMBtnAccept::after {
+	color: @sapUiButtonAcceptHoverTextColor;
+}
+
 //type Attention
 .sapMMenuBtn.sapMMenuBtnRegular .sapMBtnInner.sapMBtnAttention::after {
 	color: @sapUiButtonAttentionTextColor;
+}
+
+.sapMMenuBtn.sapMMenuBtnRegular:hover .sapMBtnInner.sapMBtnAttention::after {
+	color: @sapUiButtonAttentionHoverTextColor;
 }
 
 //type Reject
@@ -84,14 +101,17 @@
 	color: @sapUiButtonRejectTextColor;
 }
 
+.sapMMenuBtn.sapMMenuBtnRegular:hover .sapMBtnInner.sapMBtnReject::after {
+	color: @sapUiButtonRejectHoverTextColor;
+}
+
 //type Default, Transparent(header)
-.sapMMenuBtn.sapMMenuBtnRegular .sapMBtn:not(.sapMBtnDisabled) .sapMBtnInner.sapMBtnActive::after {
+.sapMMenuBtn.sapMMenuBtnRegular .sapMBtn:not(.sapMBtnDisabled) .sapMBtnInner:not(.sapMBtnAccept).sapMBtnActive::after {
   color: @sapUiButtonActiveTextColor;
 }
 
 //Transparent(footer)
 .sapMIBar-CTX.sapMFooter-CTX .sapMMenuBtn.sapMMenuBtnRegular .sapMBtnInner::after {
-	color: @sapUiContentContrastIconColor;
 	text-shadow: @sapUiButtonEmphasizedTextShadow;
 }
 
@@ -128,5 +148,45 @@
 }
 
 .sapMMenuBtn .sapMBtn .sapMBtnInner {
-	display: block;
+	display: flex;
+}
+
+.sapMMenuBtn .sapMBtn:not(.sapMSBArrow) .sapMBtnInner.sapMBtnIconFirst .sapMBtnIcon {
+	padding-right: 0.375rem;
+}
+
+.sapMMenuBtn .sapMBtn .sapMBtnInner.sapMBtnText:not(.sapMBtnIconFirst) .sapMBtnContent{
+	width: 100%;
+}
+
+.sapMMenuBtn.sapMMenuBtnRegular .sapMBtnInner.sapMBtnCritical::after {
+	color: @sapUiButtonCriticalTextColor;
+}
+
+.sapMMenuBtn.sapMMenuBtnRegular:hover .sapMBtnInner.sapMBtnCritical::after {
+	color: @sapUiButtonCriticalHoverTextColor;
+}
+
+.sapMMenuBtn.sapMMenuBtnRegular .sapMBtnInner.sapMBtnNegative::after {
+	color: @sapUiButtonNegativeTextColor;
+}
+
+.sapMMenuBtn.sapMMenuBtnRegular:hover .sapMBtnInner.sapMBtnNegative::after {
+	color: @sapUiButtonNegativeHoverTextColor;
+}
+
+.sapMMenuBtn.sapMMenuBtnRegular .sapMBtnInner.sapMBtnSuccess::after {
+	color: @sapUiButtonSuccessTextColor;
+}
+
+.sapMMenuBtn.sapMMenuBtnRegular:hover .sapMBtnInner.sapMBtnSuccess::after {
+	color: @sapUiButtonSuccessHoverTextColor;
+}
+
+.sapMMenuBtn.sapMMenuBtnRegular .sapMBtnInner.sapMBtnNeutral::after {
+	color: @sapUiButtonNeutralTextColor;
+}
+
+.sapMMenuBtn.sapMMenuBtnRegular:hover .sapMBtnInner.sapMBtnNeutral::after {
+	color: @sapUiButtonNeutralHoverTextColor;
 }

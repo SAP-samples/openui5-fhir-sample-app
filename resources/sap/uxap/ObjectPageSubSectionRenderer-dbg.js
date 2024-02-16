@@ -1,15 +1,15 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2024 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
-sap.ui.define(function () {
+sap.ui.define(["sap/ui/core/Configuration"], function (Configuration) {
 	"use strict";
 
 	/**
-	 * @class Section renderer.
-	 * @static
+	 * SubSection renderer.
+	 * @namespace
 	 */
 	var ObjectPageSubSectionRenderer = {
 		apiVersion: 2
@@ -17,7 +17,8 @@ sap.ui.define(function () {
 
 	ObjectPageSubSectionRenderer.render = function (oRm, oControl) {
 		var aActions, bHasTitle, bShowTitle, bHasTitleLine, bHasActions, bUseTitleOnTheLeft, bHasVisibleActions,
-			bAccessibilityOn = sap.ui.getCore().getConfiguration().getAccessibility();
+			bAccessibilityOn = Configuration.getAccessibility(),
+			oLabelledBy = oControl.getAggregation("ariaLabelledBy");
 
 		if (!oControl.getVisible() || !oControl._getInternalVisible()) {
 			return;
@@ -38,16 +39,16 @@ sap.ui.define(function () {
 			oRm.class("sapUxAPObjectPageSubSectionWithSeeMore");
 		}
 
+		if (oControl._bMultiLine) {
+			oRm.class("sapUxAPObjectPageSectionMultilineContent");
+		}
+
 		oRm.class("sapUxAPObjectPageSubSection")
 			.class("ui-helper-clearfix");
 
 
-		if (bAccessibilityOn) {
-			if (bHasTitle) {
-				oRm.attr("aria-labelledby", oControl.getId() + "-headerTitle");
-			} else {
-				oRm.attr("aria-label", sap.uxap.ObjectPageSubSection._getLibraryResourceBundle().getText("SUBSECTION_CONTROL_NAME"));
-			}
+		if (bAccessibilityOn && oLabelledBy) {
+			oRm.attr("aria-labelledby", oLabelledBy.getId());
 		}
 
 		oRm.openEnd();

@@ -60,8 +60,7 @@ Common compact/cozy
 	}
 }
 
-.sapUxAPObjectPageNavigation,
-.sapUxAPObjectPageLayoutNoAnchorBar .sapUxAPObjectPageHeaderTitle {
+.sapUxAPObjectPageNavigation {
 	position: relative;
 }
 
@@ -83,10 +82,9 @@ Common compact/cozy
 	}
 }
 
-.sapUxAPObjectPageLayout-Std-Tablet,
-.sapUxAPObjectPageLayout-Std-Desktop {
-    .sapUxAPAnchorBar.sapMTB {
-        &>.sapMSlt:not(.sapMSltExpanded):not(.sapMSltDisabled):not(.sapMSltState):focus:before {
+.sapUxAPObjectPageLayout:not(.sapUxAPObjectPageLayout-Std-Phone) {
+    .sapUxAPAnchorBar.sapMTB > .sapMSlt.sapMSltFocused {
+        &:not(.sapMSltExpanded):not(.sapMSltDisabled):not(.sapMSltState):before {
             outline: none;
         }
     }
@@ -95,7 +93,7 @@ Common compact/cozy
 /* L fullscreen paddings */
 html .sapUxAPObjectPageLayout-Std-Desktop .sapUxAPAnchorBar.sapMTB
 {
-	padding-left: 2rem;
+	padding-left: 1rem;
 }
 
 /* visual in anchor bar */

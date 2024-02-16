@@ -1,12 +1,12 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2024 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 // Provides control sap.ui.core.VariantLayoutData.
 sap.ui.define(['./LayoutData', './library'],
-	function(LayoutData, library) {
+	function(LayoutData) {
 	"use strict";
 
 
@@ -20,12 +20,11 @@ sap.ui.define(['./LayoutData', './library'],
 	 * @class
 	 * Allows to add multiple LayoutData to one control in case that an easy switch of layouts (e.g. in a Form) is needed.
 	 * @extends sap.ui.core.LayoutData
-	 * @version 1.79.0
+	 * @version 1.120.6
 	 *
 	 * @public
 	 * @since 1.9.2
 	 * @alias sap.ui.core.VariantLayoutData
-	 * @ui5-metamodel This control/element also will be described in the UI5 (legacy) designtime metamodel
 	 */
 	var VariantLayoutData = LayoutData.extend("sap.ui.core.VariantLayoutData", /** @lends sap.ui.core.VariantLayoutData.prototype */ { metadata : {
 

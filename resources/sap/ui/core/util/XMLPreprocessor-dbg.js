@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2024 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -13,13 +13,14 @@ sap.ui.define([
 	"sap/ui/base/BindingParser",
 	"sap/ui/base/ManagedObject",
 	"sap/ui/base/SyncPromise",
+	"sap/ui/core/Component",
 	"sap/ui/core/XMLTemplateProcessor",
 	"sap/ui/model/BindingMode",
 	"sap/ui/model/CompositeBinding",
 	"sap/ui/model/Context",
 	"sap/ui/performance/Measurement"
 ], function (Log, deepExtend, JSTokenizer, ObjectPath, BindingParser, ManagedObject, SyncPromise,
-		XMLTemplateProcessor, BindingMode, CompositeBinding, Context, Measurement) {
+		Component, XMLTemplateProcessor, BindingMode, CompositeBinding, Context, Measurement) {
 	"use strict";
 
 	var sNAMESPACE = "http://schemas.sap.com/sapui5/extension/sap.ui.core.template/1",
@@ -39,6 +40,7 @@ sap.ui.define([
 		 */
 		With = ManagedObject.extend("sap.ui.core.util._with", {
 			metadata : {
+				library: "sap.ui.core",
 				properties : {
 					any : "any"
 				},
@@ -57,6 +59,7 @@ sap.ui.define([
 		 */
 		Repeat = With.extend("sap.ui.core.util._repeat", {
 			metadata : {
+				library: "sap.ui.core",
 				aggregations : {
 					list : {multiple : true, type : "n/a", _doesNotRequireFactory : true}
 				}
@@ -175,10 +178,6 @@ sap.ui.define([
 		 * The function <code>foo</code> is called with arguments such that <code>
 		 * oInterface.getModel(i).getObject(oInterface.getPath(i)) === arguments[i + 1]</code>
 		 * holds.
-		 * This use is not supported within an expression binding, that is, <code>&lt;Text
-		 * text="{= ${parts: [{path: 'Label'}, {path: 'Value'}], formatter: 'foo'} }"/></code>
-		 * does not work as expected because the property <code>requiresIContext = true</code> is
-		 * ignored.
 		 *
 		 * To distinguish those two use cases, just check whether <code>oInterface.getModel() ===
 		 * undefined</code>, in which case the formatter is called on root level of a composite
@@ -194,6 +193,22 @@ sap.ui.define([
 		 * @since 1.27.1
 		 */
 		return /** @lends sap.ui.core.util.XMLPreprocessor.IContext */ {
+			/**
+			 * @param {number} iStart - Start index of slice
+			 * @param {number} iEnd - End index of slice
+			 * @returns {sap.ui.core.util.XMLPreprocessor.IContext}
+			 *   Sliced interface or <code>this</code> in case no slice is needed
+			 *
+			 * @private
+			 */
+			_slice : function (iStart, iEnd) {
+				getBindingOrContext(0); // just to trigger lazy init of vBindingOrContext
+				return !iStart && iEnd >= vBindingOrContext.length
+					? this // no slice needed
+					: createContextInterface(null, mSettings, undefined,
+						vBindingOrContext.slice(iStart, iEnd));
+			},
+
 			/**
 			 * Returns a context interface for the indicated part in case of the root formatter of a
 			 * composite binding. The new interface provides access to the original settings, but
@@ -221,6 +236,7 @@ sap.ui.define([
 			 *   index of part in case of the root formatter of a composite binding
 			 * @param {string} [sPath]
 			 *   a path, interpreted relative to <code>this.getPath(iPart)</code>
+			 * @ui5-omissible-params iPart
 			 * @returns {sap.ui.core.util.XMLPreprocessor.IContext}
 			 *   the context interface related to the indicated part
 			 * @throws {Error}
@@ -279,7 +295,7 @@ sap.ui.define([
 			 * @param {number} [iPart]
 			 *   index of part in case of the root formatter of a composite binding
 			 *   (since 1.31.0)
-			 * @returns {sap.ui.model.Model}
+			 * @returns {sap.ui.model.Model|undefined}
 			 *   the model related to the current formatter call, or (since 1.31.0)
 			 *   <code>undefined</code> in case of a root formatter if no <code>iPart</code> is
 			 *   given or if <code>iPart</code> is out of range
@@ -295,7 +311,7 @@ sap.ui.define([
 			 *
 			 * @param {number} [iPart]
 			 *   index of part in case of the root formatter of a composite binding (since 1.31.0)
-			 * @returns {string}
+			 * @returns {string|undefined}
 			 *   the absolute path related to the current formatter call, or (since 1.31.0)
 			 *   <code>undefined</code> in case of a root formatter if no <code>iPart</code> is
 			 *   given or if <code>iPart</code> is out of range
@@ -529,6 +545,7 @@ sap.ui.define([
 		 *   If visitor or namespace is invalid
 		 *
 		 * @private
+		 * @ui5-restricted sap.fe
 		 */
 		plugIn : function (fnVisitor, sNamespace, sLocalName) {
 			var fnOldVisitor = mVisitors[sNamespace];
@@ -570,7 +587,7 @@ sap.ui.define([
 		 *   ID of the owning component (since 1.31; needed for extension point support)
 		 * @param {string} oViewInfo.name
 		 *   the view name (since 1.31; needed for extension point support)
-		 * @param {boolean} [oViewInfo.sync=false]
+		 * @param {boolean} [oViewInfo.sync]
 		 *   whether the view is synchronous (since 1.57.0; needed for asynchronous XML templating)
 		 * @param {object} [mSettings={}]
 		 *   map/JSON-object with initial property values, etc.
@@ -889,7 +906,7 @@ sap.ui.define([
 					 *
 					 * @param {object} [mVariables={}]
 					 *   Map from variable name (string) to value ({@link sap.ui.model.Context})
-					 * @param {boolean} [bReplace=false]
+					 * @param {boolean} [bReplace]
 					 *   Whether only the given variables are known in the new callback interface
 					 *   instance, no inherited ones
 					 * @returns {sap.ui.core.util.XMLPreprocessor.ICallback}
@@ -982,7 +999,7 @@ sap.ui.define([
 			 *
 			 * @param {Element} oIfElement
 			 *   the <template:if> XML DOM element
-			 * @returns {Element[]}
+			 * @returns {Element[]|null}
 			 *   the XML DOM element children (a <then>, zero or more <elseif> and possibly an
 			 *   <else>) or null if there is no <then>
 			 * @throws {Error}
@@ -1090,43 +1107,67 @@ sap.ui.define([
 			 */
 			function getResolvedBinding(sValue, oElement, oWithControl, bMandatory,
 					fnCallIfConstant) {
-				var vBindingInfo,
-					oPromise;
+				let vParseResult;
+
+				function resolveBinding (vBindingInfo) {
+					let oPromise;
+
+					if (vBindingInfo.functionsNotFound) {
+						if (bMandatory) {
+							warn(oElement, 'Function name(s)',
+								vBindingInfo.functionsNotFound.join(", "), 'not found');
+						}
+						Measurement.end(sPerformanceGetResolvedBinding);
+						return null; // treat incomplete bindings as unrelated
+					}
+
+					if (typeof vBindingInfo === "object") {
+						oPromise = getAny(oWithControl, vBindingInfo, mSettings, oScope,
+							!oViewInfo.sync);
+						if (bMandatory && !oPromise) {
+							warn(oElement, 'Binding not ready');
+						} else if (oViewInfo.sync && oPromise && oPromise.isPending()) {
+							error("Async formatter in sync view in " + sValue + " of ", oElement);
+						}
+					} else {
+						oPromise = SyncPromise.resolve(vBindingInfo);
+						if (fnCallIfConstant) { // string
+							fnCallIfConstant();
+						}
+					}
+					Measurement.end(sPerformanceGetResolvedBinding);
+
+					return oPromise;
+				}
 
 				Measurement.average(sPerformanceGetResolvedBinding, "", aPerformanceCategories);
-				try {
-					vBindingInfo
+				if (oViewInfo.sync) {
+					try {
+						vParseResult
 						= BindingParser.complexParser(sValue, oScope, bMandatory, true, true, true)
-						|| sValue; // in case there is no binding and nothing to unescape
+							|| sValue; // in case there is no binding and nothing to unescape
+					} catch (e) {
+						return SyncPromise.reject(e);
+					}
+					return resolveBinding(vParseResult);
+				}
+
+				try {
+					vParseResult
+						= BindingParser.complexParser(sValue, oScope, bMandatory, true, true, true,
+							null, true);
 				} catch (e) {
 					return SyncPromise.reject(e);
 				}
-
-				if (vBindingInfo.functionsNotFound) {
-					if (bMandatory) {
-						warn(oElement, 'Function name(s)',
-							vBindingInfo.functionsNotFound.join(", "), 'not found');
-					}
-					Measurement.end(sPerformanceGetResolvedBinding);
-					return null; // treat incomplete bindings as unrelated
+				if (!vParseResult) { // no binding and nothing to unescape
+					return resolveBinding(sValue);
 				}
-
-				if (typeof vBindingInfo === "object") {
-					oPromise = getAny(oWithControl, vBindingInfo, mSettings, oScope,
-						!oViewInfo.sync);
-					if (bMandatory && !oPromise) {
-						warn(oElement, 'Binding not ready');
-					} else if (oViewInfo.sync && oPromise && oPromise.isPending()) {
-						error("Async formatter in sync view in " + sValue + " of ", oElement);
-					}
-				} else {
-					oPromise = SyncPromise.resolve(vBindingInfo);
-					if (fnCallIfConstant) { // string
-						fnCallIfConstant();
-					}
+				if (!vParseResult.wait) { // nothing to wait for
+					return resolveBinding(vParseResult.bindingInfo);
 				}
-				Measurement.end(sPerformanceGetResolvedBinding);
-				return oPromise;
+				return vParseResult.resolved.then(function (/*no results*/) {
+					return resolveBinding(vParseResult.bindingInfo);
+				});
 			}
 
 			/**
@@ -1321,7 +1362,10 @@ sap.ui.define([
 					if (!oViewInfo.sync) {
 						return asyncRequire();
 					}
-					aURNs.forEach(sap.ui.requireSync);
+					/**
+					 * @deprecated As of version 1.120
+					 */
+					aURNs.forEach(sap.ui.requireSync); // legacy-relevant: Sync path
 				}
 				return oSyncPromiseResolved;
 			}
@@ -1440,22 +1484,20 @@ sap.ui.define([
 					return oSyncPromiseResolvedTrue;
 				}
 				return oPromise.then(function (sName) {
-					var CustomizingConfiguration
-							= sap.ui.require("sap/ui/core/CustomizingConfiguration"),
-						oViewExtension;
+					var oViewExtension;
 
 					if (sName !== sValue) {
 						// debug trace for dynamic names only
 						debug(oElement, "name =", sName);
 					}
-					if (CustomizingConfiguration) {
-						oViewExtension = CustomizingConfiguration.getViewExtension(sCurrentName,
-							sName, oViewInfo.componentId);
-						if (oViewExtension && oViewExtension.className === "sap.ui.core.Fragment"
-								&& oViewExtension.type === "XML") {
-							return insertFragment(oViewExtension.fragmentName, oElement,
-								oWithControl);
-						}
+					oViewExtension = Component.getCustomizing(oViewInfo.componentId, {
+						extensionName : sName,
+						name : sCurrentName,
+						type : "sap.ui.viewExtensions"
+					});
+					if (oViewExtension && oViewExtension.className === "sap.ui.core.Fragment"
+							&& oViewExtension.type === "XML") {
+						return insertFragment(oViewExtension.fragmentName, oElement, oWithControl);
 					}
 
 					return true;
@@ -1581,7 +1623,8 @@ sap.ui.define([
 					error("Missing model '" + sModelName + "' in ", oElement);
 				}
 				oListBinding.enableExtendedChangeDetection();
-				aContexts = oListBinding.getContexts(oBindingInfo.startIndex, oBindingInfo.length);
+				aContexts = oListBinding.getContexts(oBindingInfo.startIndex,
+					oBindingInfo.length || /*no Model#iSizeLimit*/Infinity);
 				if (!oViewInfo.sync && aContexts.dataRequested) {
 					oPromise = new SyncPromise(function (resolve) {
 						oListBinding.attachEventOnce("change", resolve);

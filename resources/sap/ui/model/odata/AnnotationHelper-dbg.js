@@ -1,9 +1,9 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2024 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
-
+/*eslint-disable max-len */
 // Provides object sap.ui.model.odata.AnnotationHelper
 sap.ui.define([
 	"./_AnnotationHelperBasics",
@@ -19,20 +19,15 @@ sap.ui.define([
 		 *
 		 * @param {function} fnAfter
 		 *   the second function, taking a single argument
-		 * @param {function} [fnBefore]
-		 *   the optional first function, taking multiple arguments
+		 * @param {function} fnBefore
+		 *   the first function, taking multiple arguments
 		 * @returns {function}
 		 *   the composition <code>fnAfter</code> after <code>fnBefore</code>
 		 */
 		function chain(fnAfter, fnBefore) {
-			if (!fnBefore) {
-				return fnAfter;
-			}
-
-			function formatter() {
+			return function () {
 				return fnAfter.call(this, fnBefore.apply(this, arguments));
-			}
-			return formatter;
+			};
 		}
 
 		/**
@@ -51,7 +46,7 @@ sap.ui.define([
 		 * instructions in XML template views, e.g. <code>&lt;template:with path="meta>Value"
 		 * helper="sap.ui.model.odata.AnnotationHelper.resolvePath" var="target"></code>.
 		 *
-		 * Since 1.31.0, you DO NOT need to {@link jQuery.sap.require} this module before use.
+		 * Since 1.31.0, you DO NOT need to {@link sap.ui.require} this module before use.
 		 *
 		 * @public
 		 * @since 1.27.0
@@ -95,7 +90,7 @@ sap.ui.define([
 			 * Example:
 			 * <pre>
 			 * function myRootFormatter(oValue1, oValue2, sFullName, sGreeting, iAnswer) {
-			 *     return ...; //TODO compute something useful from the given values
+			 *     return ...;
 			 * }
 			 *
 			 * oSupplierContext = oMetaModel.getMetaContext("/ProductSet('HT-1021')/ToSupplier");
@@ -134,33 +129,33 @@ sap.ui.define([
 				aParts = aParts.slice(); // shallow copy to avoid changes visible to caller
 				aParts.forEach(function (vPart, i) {
 					switch (typeof vPart) {
-					case "boolean":
-					case "number":
-					case "undefined":
-						bMergeNeeded = true;
-						break;
-
-					case "string":
-						vPropertySetting = BindingParser.complexParser(vPart, null, true, true);
-						if (vPropertySetting !== undefined) {
-							if (vPropertySetting.functionsNotFound) {
-								throw new Error("Function name(s) "
-									+ vPropertySetting.functionsNotFound.join(", ")
-									+  " not found");
-							}
-							aParts[i] = vPart = vPropertySetting;
-						}
-						// falls through
-					case "object":
-						// merge is needed if some parts are constants or again have parts
-						// Note: a binding info object has either "path" or "parts"
-						if (!vPart || typeof vPart !== "object" || !("path" in vPart)) {
+						case "boolean":
+						case "number":
+						case "undefined":
 							bMergeNeeded = true;
-						}
-						break;
+							break;
 
-					default:
-						throw new Error("Unsupported part: " + vPart);
+						case "string":
+							vPropertySetting = BindingParser.complexParser(vPart, null, true, true);
+							if (vPropertySetting !== undefined) {
+								if (vPropertySetting.functionsNotFound) {
+									throw new Error("Function name(s) "
+										+ vPropertySetting.functionsNotFound.join(", ")
+										+  " not found");
+								}
+								aParts[i] = vPart = vPropertySetting;
+							}
+							// falls through
+						case "object":
+							// merge is needed if some parts are constants or again have parts
+							// Note: a binding info object has either "path" or "parts"
+							if (!vPart || typeof vPart !== "object" || !("path" in vPart)) {
+								bMergeNeeded = true;
+							}
+							break;
+
+						default:
+							throw new Error("Unsupported part: " + vPart);
 					}
 				});
 
@@ -171,10 +166,11 @@ sap.ui.define([
 				if (bMergeNeeded) {
 					BindingParser.mergeParts(vPropertySetting);
 				}
+				fnRootFormatter = vPropertySetting.formatter; // may have changed due to merge
 
 				if (vPropertySetting.parts.length === 0) {
 					// special case: all parts are constant values, call formatter once
-					vPropertySetting = vPropertySetting.formatter && vPropertySetting.formatter();
+					vPropertySetting = fnRootFormatter && fnRootFormatter();
 					if (typeof vPropertySetting === "string") {
 						vPropertySetting = BindingParser.complexParser.escape(vPropertySetting);
 					}
@@ -182,12 +178,17 @@ sap.ui.define([
 					// special case: a single property setting only
 					// Note: sap.ui.base.ManagedObject#_bindProperty cannot handle the single-part
 					//       case with two formatters, unless the root formatter is marked with
-					//       "textFragments". We unpack here and chain the formatters ourselves.
-					fnRootFormatter = vPropertySetting.formatter;
-					vPropertySetting = vPropertySetting.parts[0];
-					if (fnRootFormatter) {
+					//       "textFragments". Unpacking the single part does not work in case it has
+					//       a type! We do not unpack here, but chain the formatters ourselves.
+					// Note: we prefer a root formatter because it has access to "this" and has an
+					//       influence on the binding mode (OneTime/OneWay)
+					if (fnRootFormatter && !fnRootFormatter.textFragments
+							&& vPropertySetting.parts[0].formatter) {
 						vPropertySetting.formatter
-							= chain(fnRootFormatter, vPropertySetting.formatter);
+							= chain(fnRootFormatter, vPropertySetting.parts[0].formatter);
+						// avoid changes visible to caller
+						vPropertySetting.parts[0] = Object.assign({}, vPropertySetting.parts[0]);
+						delete vPropertySetting.parts[0].formatter;
 					}
 				}
 
@@ -213,15 +214,21 @@ sap.ui.define([
 			 *   expression; this allows local annotation files to refer to a resource bundle for
 			 *   internationalization.
 			 *   <li> the dynamic "14.5.1 Comparison and Logical Operators": These are turned into
-			 *   expression bindings to perform the operations at run-time.
+			 *   expression bindings to perform the operations at run-time. It's strongly
+			 *   recommended to require the <code>sap.ui.model.odata.v4.ODataUtils</code> module in
+			 *   advance to avoid synchronous loading of this module.
 			 *   <li> the dynamic "14.5.3 Expression edm:Apply":
 			 *   <ul>
 			 *     <li> "14.5.3.1.1 Function odata.concat": This is turned into a data binding
 			 *     expression relative to an entity.
 			 *     <li> "14.5.3.1.2 Function odata.fillUriTemplate": This is turned into an
-			 *     expression binding to fill the template at run-time.
+			 *     expression binding to fill the template at run-time. It's strongly
+			 *     recommended to require the <code>sap.ui.thirdparty.URITemplate</code> module in
+			 *     advance to avoid synchronous loading of this module.
 			 *     <li> "14.5.3.1.3 Function odata.uriEncode": This is turned into an expression
-			 *     binding to encode the parameter at run-time.
+			 *     binding to encode the parameter at run-time. It's strongly recommended to require
+			 *     the <code>sap.ui.model.odata.ODataUtils</code> module in advance to avoid
+			 *     synchronous loading of this module.
 			 *     <li> Apply functions may be nested arbitrarily.
 			 *   </ul>
 			 *   <li> the dynamic "14.5.6 Expression edm:If": This is turned into an expression
@@ -363,7 +370,7 @@ sap.ui.define([
 			 *   <code>Edm.NavigationPropertyPath</code>, <code>Edm.Path</code>, or
 			 *   <code>Edm.PropertyPath</code> embedded within an entity set or entity type;
 			 *   the context's model must be an {@link sap.ui.model.odata.ODataMetaModel}
-			 * @returns {string}
+			 * @returns {string|undefined}
 			 *   the path to the entity set, or <code>undefined</code> if no such set is found. In
 			 *   this case, a warning is logged to the console.
 			 * @public
@@ -411,7 +418,7 @@ sap.ui.define([
 			 * @param {sap.ui.model.Context} oContext
 			 *   a context which must point to the qualified name of an entity type;
 			 *   the context's model must be an {@link sap.ui.model.odata.ODataMetaModel}
-			 * @returns {string}
+			 * @returns {string|undefined}
 			 *   the path to the entity type with the given qualified name,
 			 *   or <code>undefined</code> if no such type is found. In this case, a warning is
 			 *   logged to the console.
@@ -448,7 +455,7 @@ sap.ui.define([
 			 *   a context which must point to an object with a <code>String</code> property, which
 			 *   holds the qualified name of the function import;
 			 *   the context's model must be an {@link sap.ui.model.odata.ODataMetaModel}
-			 * @returns {string}
+			 * @returns {string|undefined}
 			 *   the path to the function import with the given qualified name,
 			 *   or <code>undefined</code> if no function import is found. In this case, a warning
 			 *   is logged to the console.
@@ -549,7 +556,7 @@ sap.ui.define([
 			 *   <code>Edm.Path</code> or <code>Edm.PropertyPath</code>, embedded within an entity
 			 *   set or entity type;
 			 *   the context's model must be an {@link sap.ui.model.odata.ODataMetaModel}
-			 * @returns {string}
+			 * @returns {string|undefined}
 			 *   the path to the target, or <code>undefined</code> in case the path cannot be
 			 *   resolved. In this case, a warning is logged to the console.
 			 * @public

@@ -1,21 +1,12 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2024 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
-
-sap.ui.define(['./Filter', 'sap/base/Log', 'sap/ui/Device'],
-	function(Filter, Log, Device) {
+/*eslint-disable max-len */
+sap.ui.define(['./Filter', 'sap/base/Log'],
+	function(Filter, Log) {
 	"use strict";
-
-	// only use unorm and apply polyfill if needed and when not in a mobile browser
-	// String.prototype.normalize is not available in IE nor in Android webview
-	// As this functionality is used for filtering user input:
-	//  Special characters which require normalization are a rare case for a mobile device keyboard, hence the mobile check
-	if (!String.prototype.normalize && Device.system.desktop) {
-		var NormalizePolyfill = sap.ui.requireSync('sap/base/strings/NormalizePolyfill');
-		NormalizePolyfill.apply();
-	}
 
 	/**
 	 * Helper class for processing of filter objects
@@ -32,8 +23,11 @@ sap.ui.define(['./Filter', 'sap/base/Log', 'sap/ui/Device'],
 	 * Groups filters according to their path and combines filters on the same path using "OR" and filters on
 	 * different paths using "AND", all multi-filters contained are ANDed.
 	 *
-	 * @param {sap.ui.model.Filter[]} aFilters the filters to be grouped
-	 * @return {sap.ui.model.Filter} Single Filter containing all filters of the array combined or undefined
+	 * @param {sap.ui.model.Filter[]} [aFilters] The filters to be grouped
+	 * @return {sap.ui.model.Filter|undefined} A single filter containing all filters of the array combined or
+	 *   <code>undefined</code> if no filters are given
+	 * @throws {Error} If the {@link sap.ui.model.Filter.NONE} is contained in <code>aFilters</code> together
+	 *   with other filters
 	 * @public
 	 * @since 1.71
 	 * @static
@@ -58,6 +52,7 @@ sap.ui.define(['./Filter', 'sap/base/Log', 'sap/ui/Device'],
 		if (aFilters.length === 1) {
 			return aFilters[0];
 		}
+		Filter.checkFilterNone(aFilters);
 		// Collect filters on same path, make sure to keep order as before for compatibility with tests
 		aFilters.forEach(function(oFilter) {
 			if (oFilter.aFilters || oFilter.sVariable) { // multi/lambda filter
@@ -81,9 +76,12 @@ sap.ui.define(['./Filter', 'sap/base/Log', 'sap/ui/Device'],
 	/**
 	 * Combines control filters and application filters using AND and returns the resulting filter
 	 *
-	 * @param {sap.ui.model.Filter[]} aFilters control filters
-	 * @param {sap.ui.model.Filter[]} aApplicationFilters application filters
-	 * @return {sap.ui.model.Filter} Single Filter containing all filters of the array combined or undefined
+	 * @param {sap.ui.model.Filter[]} [aFilters] The control filters
+	 * @param {sap.ui.model.Filter[]} [aApplicationFilters] The application filters
+	 * @return {sap.ui.model.Filter|undefined} A single filter containing all filters of the arrays combined or
+	 *   <code>undefined</code> if no filters are given
+	 * @throws {Error} If the {@link sap.ui.model.Filter.NONE} is contained in <code>aFilters</code> or
+	 *   <code>aApplicationFilters</code> together with other filters
 	 * @private
 	 * @since 1.58
 	 * @static
@@ -91,8 +89,12 @@ sap.ui.define(['./Filter', 'sap/base/Log', 'sap/ui/Device'],
 	FilterProcessor.combineFilters = function(aFilters, aApplicationFilters) {
 		var oGroupedFilter, oGroupedApplicationFilter, oFilter, aCombinedFilters = [];
 
-		oGroupedFilter = this.groupFilters(aFilters);
-		oGroupedApplicationFilter = this.groupFilters(aApplicationFilters);
+		oGroupedFilter = FilterProcessor.groupFilters(aFilters);
+		oGroupedApplicationFilter = FilterProcessor.groupFilters(aApplicationFilters);
+
+		if (oGroupedFilter === Filter.NONE || oGroupedApplicationFilter === Filter.NONE) {
+			return Filter.NONE;
+		}
 
 		if (oGroupedFilter) {
 			aCombinedFilters.push(oGroupedFilter);
@@ -118,6 +120,8 @@ sap.ui.define(['./Filter', 'sap/base/Log', 'sap/ui/Device'],
 	 * @param {function} fnGetValue the method to get the actual value to filter on
 	 * @param {object} [mNormalizeCache] cache for normalized filter values
 	 * @return {array} a new array instance containing the filtered data set
+	 * @throws {Error} If the {@link sap.ui.model.Filter.NONE} is contained in <code>vFilters</code> together
+	 *   with other filters
 	 * @private
 	 * @static
 	 */
@@ -207,58 +211,63 @@ sap.ui.define(['./Filter', 'sap/base/Log', 'sap/ui/Device'],
 					bResult = false;
 					break;
 				}
-			} else {
+			} else if (bMatch) {
 				// if operator is OR, first matching filter breaks
-				if (bMatch) {
-					bResult = true;
-					break;
-				}
+				bResult = true;
+				break;
 			}
 		}
 		return bResult;
 	};
 
 	/**
-	 * Normalize filter value
+	 * Normalize filter value.
+	 *
+	 * @param {any} vValue
+	 *   The value to normalize
+	 * @param {boolean} [bCaseSensitive=false]
+	 *   Whether the case should be considered when normalizing; only relevant when
+	 *   <code>oValue</code> is a string
+	 *
+	 * @returns {any} The normalized value
 	 *
 	 * @private
 	 * @static
 	 */
-	FilterProcessor.normalizeFilterValue = function(oValue, bCaseSensitive){
-		if (typeof oValue == "string") {
-			var sResult;
+	FilterProcessor.normalizeFilterValue = function(vValue, bCaseSensitive){
+		var sResult;
+
+		if (typeof vValue == "string") {
 			if (bCaseSensitive === undefined) {
 				bCaseSensitive = false;
 			}
-			sResult = this._normalizeCache[bCaseSensitive][oValue];
-			if (sResult !== undefined) {
-				return sResult;
+			if (this._normalizeCache[bCaseSensitive].hasOwnProperty(vValue)) {
+				return this._normalizeCache[bCaseSensitive][vValue];
 			}
-			sResult = oValue;
+			sResult = vValue;
 			if (!bCaseSensitive) {
-				// Internet Explorer and Edge cannot uppercase properly on composed characters
-				if (String.prototype.normalize && (Device.browser.msie || Device.browser.edge)) {
-					sResult = sResult.normalize("NFKD");
-				}
 				sResult = sResult.toUpperCase();
 			}
 
 			// use canonical composition as recommended by W3C
 			// http://www.w3.org/TR/2012/WD-charmod-norm-20120501/#sec-ChoiceNFC
-			if (String.prototype.normalize) {
-				sResult = sResult.normalize("NFC");
-			}
-			this._normalizeCache[bCaseSensitive][oValue] = sResult;
+			sResult = sResult.normalize("NFC");
+
+			this._normalizeCache[bCaseSensitive][vValue] = sResult;
 			return sResult;
 		}
-		if (oValue instanceof Date) {
-			return oValue.getTime();
+		if (vValue instanceof Date) {
+			return vValue.getTime();
 		}
-		return oValue;
+		return vValue;
 	};
 
 	/**
-	 * Provides a JS filter function for the given filter
+	 * Provides a JS filter function for the given filter.
+	 *
+	 * @param {sap.ui.model.Filter} oFilter The filter to provide the function for
+	 *
+	 * @returns {function} The filter function
 	 * @private
 	 * @static
 	 */

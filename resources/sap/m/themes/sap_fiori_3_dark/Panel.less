@@ -8,7 +8,7 @@
 }
 
 .sapMPanelBGSolid {
-	background-color: @sapUiGroupTitleBackground;
+	background-color: @sapUiGroupContentBackground;
 }
 
 .sapMPanelBGTranslucent {
@@ -22,7 +22,7 @@
 }
 
 /* if Panel is not expandable, we do wish header to come with own border */
-.sapMPanel > .sapMPanelHdr,
+.sapMPanel .sapMPanelHeadingDiv > .sapMPanelHdr,
 /* notice: sapMPanelWrappingDiv is available if Panel is expandable */
 .sapMPanelWrappingDiv,
 /* do not want border if expanded and if only header text */
@@ -37,16 +37,6 @@
 .sapMPanel .sapMPanelHdr {
 	line-height: 2.75rem;
 	height: 2.75rem;
-	font-family: @sapUiFontHeaderFamily;
-	font-size: @sapMFontHeader5Size;
-	font-weight: @sapUiFontHeaderWeight;
-	color: @sapUiGroupTitleTextColor;
-}
-
-.sapMPanel .sapMPanelWrappingDiv .sapMPanelHdr,
-.sapMPanel .sapMPanelWrappingDivTb .sapMIBar.sapMTB {
-	padding-left: 0;
-	margin-left: 2.75rem;
 }
 
 .sapMPanelWrappingDiv .sapUiIcon {

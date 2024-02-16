@@ -1,0 +1,1 @@
+{"version":3,"file":"BiologicalBlock.js","names":["sap","ui","define","BlockBase","BiologicalBlock","extend"],"sources":["BiologicalBlock-dbg.js"],"mappings":"AAAAA,IAAIC,GAAGC,OAAO,CAAC,sBAAuB,SAAUC,GAC/C,aACA,IAAIC,EAAkBD,EAAUE,OAAO,sDAAuD,CAAC,GAC/F,OAAOD,CACR,EAAG"}

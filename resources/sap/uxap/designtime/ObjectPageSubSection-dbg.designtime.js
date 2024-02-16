@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2024 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -18,7 +18,21 @@ sap.ui.define([],
 			},
 			actions: {
 				remove: {
-					changeType: "hideControl"
+					changeType: "hideControl",
+					isEnabled: function (oElement) {
+						var oSection = oElement.getParent(),
+							aVisibleSubSections;
+
+						if (oSection) {
+							aVisibleSubSections = oSection.getSubSections().filter(function (oSubSection) {
+								return oSubSection.getVisible();
+							});
+
+							return aVisibleSubSections.length > 1;
+						}
+
+						return false;
+					}
 				},
 				reveal: {
 					changeType: "unhideControl"

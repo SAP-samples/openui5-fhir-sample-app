@@ -1,6 +1,168 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2024 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
-sap.ui.define(["sap/ui/support/library","./CoreHelper.support","sap/ui/thirdparty/jquery","sap/ui/dom/jquery/control"],function(e,t,s){"use strict";var o=sap.ui.require("sap/base/Log");if(!o){o=s.sap.log}var r=e.Categories;var i=e.Severity;var n=e.Audiences;var a={id:"errorLogs",audiences:[n.Control,n.Internal],categories:[r.Performance],enabled:true,minversion:"1.32",title:"Error logs",description:"Checks for the amount of error logs in the console",resolution:"Error logs should be fixed",resolutionurls:[],check:function(e,t){var s=0,r="";var n=o.getLogEntries();n.forEach(function(e){if(e.level===o.Level.ERROR){s++;if(s<=20){r+="- "+e.message+"\n"}}});if(s>0){e.addIssue({severity:i.Low,details:"Total error logs: "+s+"\n"+r,context:{id:"WEBPAGE"}})}}};var l={id:"cssCheckCustomStyles",audiences:[n.Application],categories:[r.Consistency],enabled:true,minversion:"1.38",title:"CSS modifications - List of custom styles",description:"Checks and report for custom CSS files/styles that overwrite standard UI5 control's CSS values ",resolution:"Avoid CSS manipulations with custom CSS values as this could lead to rendering issues ",resolutionurls:[{text:"CSS Styling Issues",href:"https://openui5.hana.ondemand.com/#docs/guide/9d87f925dfbb4e99b9e2963693aa00ef.html"},{text:"General Guidelines",href:"https://openui5.hana.ondemand.com/#docs/guide/5e08ff90b7434990bcb459513d8c52c4.html"}],check:function(e,s,o){var r="Following stylesheet file(s) contain 'custom' CSS that could affects (overwrites) UI5 controls' own styles: \n",n=t.getExternalStyleSheets(),a=0;n.forEach(function(e){var s=false;Array.from(e.rules).forEach(function(e){var r=e.selectorText,i=document.querySelectorAll(r);i.forEach(function(e){var r=t.nodeHasUI5ParentControl(e,o);if(r){s=true}})});if(s){r+="- "+t.getStyleSheetName(e)+"\n";a++}});if(a>0){e.addIssue({severity:i.Medium,details:r,context:{id:"WEBPAGE"}})}}};var c={id:"cssCheckCustomStylesThatAffectControls",audiences:[n.Application],categories:[r.Consistency],enabled:true,minversion:"1.38",title:"CSS modifications - List of affected controls",description:"Checks and report all overwritten standard control's CSS values ",resolution:"Avoid CSS manipulations with custom CSS values as this could lead to rendering issues ",resolutionurls:[{text:"CSS Styling Issues",href:"https://openui5.hana.ondemand.com/#docs/guide/9d87f925dfbb4e99b9e2963693aa00ef.html"},{text:"General Guidelines",href:"https://openui5.hana.ondemand.com/#docs/guide/5e08ff90b7434990bcb459513d8c52c4.html"}],check:function(e,o,r){var n={},a=t.getExternalStyleSheets();a.forEach(function(e){Array.from(e.rules).forEach(function(o){var i=o.selectorText,a=document.querySelectorAll(i);a.forEach(function(o){var a=t.nodeHasUI5ParentControl(o,r);if(a){var l=s(o).control()[0];if(!n.hasOwnProperty(l.getId())){n[l.getId()]=""}var c=t.getStyleSource(e);n[l.getId()]+="'"+i+"'"+" from "+c+",\n"}})})});Object.keys(n).forEach(function(t){e.addIssue({severity:i.Low,details:"The following selector(s) "+n[t]+" affects standard style setting for control",context:{id:t}})})}};var u={id:"eventBusSilentPublish",audiences:[n.Internal],categories:[r.Functionality],enabled:true,minversion:"1.32",title:"EventBus publish",description:"Checks the EventBus publications for missing listeners",resolution:"Calls to EventBus#publish should be removed or adapted such that associated listeners are found",resolutionurls:[],check:function(e,t){var s=o.getLogEntries();var r=[];s.forEach(function(e){if(e.component==="sap.ui.core.EventBus"){if(e.details&&e.details.indexOf("sap.")!==0){if(r.indexOf(e.message)===-1){r.push(e.message)}}}});r.forEach(function(t){e.addIssue({severity:i.Low,details:"EventBus publish without listeners "+t,context:{id:"WEBPAGE"}})})}};return[u,a,l,c]},true);
+/**
+ * Defines miscellaneous support rules.
+ */
+sap.ui.define([
+	"sap/ui/core/ComponentRegistry",
+	"sap/ui/support/library",
+	"./CoreHelper.support",
+	"sap/ui/thirdparty/jquery",
+	"sap/ui/dom/jquery/control" // jQuery Plugin "control"
+], function(ComponentRegistry, SupportLib, CoreHelper, jQuery) {
+	"use strict";
+
+	// support rules can get loaded within a ui5 version which does not have module "sap/base/Log" yet
+	// therefore load the jQuery.sap.log fallback if not available
+	var Log = sap.ui.require("sap/base/Log");
+	if (!Log) {
+		Log = jQuery.sap.log;
+	}
+
+	// shortcuts
+	var Categories = SupportLib.Categories; // Accessibility, Performance, Memory, ...
+	var Severity = SupportLib.Severity; // Hint, Warning, Error
+	var Audiences = SupportLib.Audiences; // Control, Internal, Application
+
+	//**********************************************************
+	// Rule Definitions
+	//**********************************************************
+
+	/**
+	 * checks the error logs
+	 */
+	var oErrorLogs = {
+		id: "errorLogs",
+		audiences: [Audiences.Control, Audiences.Internal],
+		categories: [Categories.Performance],
+		enabled: true,
+		minversion: "1.32",
+		title: "Error logs",
+		description: "Checks for the amount of error logs in the console",
+		resolution: "Error logs should be fixed",
+		resolutionurls: [],
+		check: function(oIssueManager, oCoreFacade) {
+			var count = 0,
+				message = "";
+
+			var log = Log.getLogEntries();
+			log.forEach(function(logEntry) {
+				if (logEntry.level === Log.Level.ERROR) {
+					count++;
+					if (count <= 20) {
+						message += "- " + logEntry.message + "\n";
+					}
+				}
+			});
+
+			if (count > 0) {
+				oIssueManager.addIssue({
+					severity: Severity.Low,
+					details: "Total error logs: " + count + "\n" + message,
+					context: {
+						id: "WEBPAGE"
+					}
+				});
+			}
+		}
+	};
+
+	/**
+	 * checks the EventBus for logs
+	 *
+	 * Excluded are events which are published to the channel "sap." as these are internal
+	 */
+	var oEventBusLogs = {
+		id: "eventBusSilentPublish",
+		audiences: [Audiences.Internal],
+		categories: [Categories.Functionality],
+		enabled: true,
+		minversion: "1.32",
+		title: "EventBus publish",
+		description: "Checks the EventBus publications for missing listeners",
+		resolution: "Calls to EventBus#publish should be removed or adapted such that associated listeners are found",
+		resolutionurls: [],
+		check: function(oIssueManager, oCoreFacade) {
+
+			var aLogEntries = Log.getLogEntries();
+			var aMessages = [];
+			aLogEntries.forEach(function(oLogEntry) {
+				if (oLogEntry.component === "sap.ui.core.EventBus") {
+					if (oLogEntry.details && oLogEntry.details.indexOf("sap.") !== 0) {
+						if (aMessages.indexOf(oLogEntry.message) === -1) {
+							aMessages.push(oLogEntry.message);
+						}
+					}
+
+				}
+			});
+			aMessages.forEach(function(sMessage) {
+				oIssueManager.addIssue({
+					severity: Severity.Low,
+					details: "EventBus publish without listeners " + sMessage,
+					context: {
+						id: "WEBPAGE"
+					}
+				});
+			});
+		}
+	};
+
+	/**
+	 * Checks if the corresponding Component or Library of a Component is already loaded in case the Component is embeddedBy a resource.
+	 */
+	var oMissingEmbeddedByLibrary = {
+		id: "embeddedByLibNotLoaded",
+		audiences: [Audiences.Application],
+		categories: [Categories.Performance],
+		enabled: true,
+		minversion: "1.97",
+		title: "Embedding Component or Library not loaded",
+		description: "Checks if the corresponding Component or Library of a Component is already loaded in case the Component is embedded by a resource.",
+		resolution: "Before using a Component embedded by a Library or another Component, it's necessary to load the embedding Library or Component in advance. " +
+			"The 'sap.app/embeddedBy' property must be relative path inside the deployment unit (library or component).",
+		resolutionurls: [],
+		check: function(oIssueManager) {
+			var oRegisteredComponents = {}, sComponentName;
+			var filterComponents = function (sComponentName) {
+				return function (oComponent) {
+					return oComponent.getManifestObject().getEntry("/sap.app/id") === sComponentName;
+				};
+			};
+			var createIssue = function (oComponentWithMissingEmbeddedBy) {
+				return function (oComponent) {
+					oIssueManager.addIssue({
+						severity: Severity.High,
+						details: oComponentWithMissingEmbeddedBy.message,
+						context: {
+							id: oComponent.getId()
+						}
+					});
+				};
+			};
+
+			Log.getLogEntries().forEach(function(oLogEntry) {
+				var oRegexGetComponentName = /^Component '([a-zA-Z0-9\.]*)'.*$/;
+				if (oLogEntry.component === "sap.ui.core.Component#embeddedBy") {
+					oRegisteredComponents[oRegexGetComponentName.exec(oLogEntry.message)[1]] = oLogEntry;
+				}
+			});
+
+			for (sComponentName in oRegisteredComponents) {
+				if (Object.hasOwn(oRegisteredComponents, sComponentName)) {
+					var aComponents = ComponentRegistry.filter(filterComponents(sComponentName));
+					aComponents.forEach(createIssue(oRegisteredComponents[sComponentName]));
+				}
+			}
+		}
+	};
+
+	return [
+		oEventBusLogs,
+		oErrorLogs,
+		oMissingEmbeddedByLibrary
+	];
+}, true);

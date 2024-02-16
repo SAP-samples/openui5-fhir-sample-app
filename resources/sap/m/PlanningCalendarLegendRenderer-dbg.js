@@ -1,13 +1,8 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2024 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
-
-// Ensure that sap.ui.unified is loaded before the module dependencies will be required.
-// Loading it synchronously is the only compatible option and doesn't harm when sap.ui.unified
-// already has been loaded asynchronously (e.g. via a dependency declared in the manifest)
-sap.ui.getCore().loadLibrary("sap.ui.unified");
 
 sap.ui.define(['sap/ui/unified/CalendarLegendRenderer', 'sap/ui/core/Renderer'],
 	function(CalendarLegendRenderer, Renderer) {
@@ -28,7 +23,7 @@ sap.ui.define(['sap/ui/unified/CalendarLegendRenderer', 'sap/ui/core/Renderer'],
 		 * @override
 		 */
 		PlanningCalendarLegendRenderer.renderItemsHeader = function(oRm, oLeg) {
-			var sItemsHeader = oLeg.getItemsHeader();
+			var sItemsHeader = oLeg._getItemsHeader();
 
 			if (sItemsHeader && (oLeg.getItems().length || oLeg.getStandardItems().length)) {
 				this._renderItemsHeader(oRm, sItemsHeader);
@@ -41,7 +36,7 @@ sap.ui.define(['sap/ui/unified/CalendarLegendRenderer', 'sap/ui/core/Renderer'],
 		 * @param {sap.ui.unified.CalendarLegend} oLeg an object representation of the legend that should be rendered
 		 */
 		PlanningCalendarLegendRenderer.renderAppointmentsItemsHeader = function(oRm, oLeg) {
-			var sAppointmentItemsHeader = oLeg.getAppointmentItemsHeader();
+			var sAppointmentItemsHeader = oLeg._getAppointmentItemsHeader();
 			if (sAppointmentItemsHeader && oLeg.getAppointmentItems().length) {
 				this._renderItemsHeader(oRm, sAppointmentItemsHeader);
 			} else if (oLeg.getAppointmentItems().length && (oLeg.getItems().length || oLeg.getStandardItems().length)) {
@@ -61,6 +56,8 @@ sap.ui.define(['sap/ui/unified/CalendarLegendRenderer', 'sap/ui/core/Renderer'],
 		PlanningCalendarLegendRenderer._renderItemsHeader = function(oRm, sHeaderText) {
 			oRm.openStart("div");
 			oRm.class("sapMPlanCalLegendHeader");
+			oRm.attr("role", "heading");
+			oRm.attr("aria-level", "3");
 			oRm.openEnd();
 			oRm.text(sHeaderText);
 			oRm.close("div");
@@ -77,7 +74,9 @@ sap.ui.define(['sap/ui/unified/CalendarLegendRenderer', 'sap/ui/core/Renderer'],
 		PlanningCalendarLegendRenderer.renderAdditionalContent = function(oRm, oLeg) {
 			var aAppointmentItems = oLeg.getAppointmentItems(),
 				i,
-				sColumnWidth;
+				sColumnWidth,
+				sTypeClass,
+				aColorClasses = ["sapUiUnifiedLegendSquareColor", "sapMPlanCalLegendAppCircle"];
 
 			this.renderAppointmentsItemsHeader(oRm, oLeg);
 
@@ -91,7 +90,8 @@ sap.ui.define(['sap/ui/unified/CalendarLegendRenderer', 'sap/ui/core/Renderer'],
 
 			// rendering special day and colors
 			for (i = 0; i < aAppointmentItems.length; i++) {
-				this.renderLegendItem(oRm, "sapUiCalLegDayType" + oLeg._getItemType(aAppointmentItems[i], aAppointmentItems).slice(4), aAppointmentItems[i], ["sapUiUnifiedLegendSquareColor", "sapMPlanCalLegendAppCircle"]);
+				sTypeClass = "sapUiCalLegDayType" + oLeg._getItemType(aAppointmentItems[i], aAppointmentItems).slice(4);
+				this.renderLegendItem(oRm, sTypeClass, aAppointmentItems[i], aColorClasses, i + 1 ,aAppointmentItems.length);
 			}
 
 			oRm.close("div");

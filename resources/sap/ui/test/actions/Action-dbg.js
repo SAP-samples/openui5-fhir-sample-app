@@ -1,19 +1,20 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2024 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
-/*global FocusEvent, DragEvent, FileList, DataTransfer, DataTransferItemList, MouseEvent, document */
+/*global FocusEvent, DragEvent, DataTransfer, MouseEvent, document */
 sap.ui.define([
 	'sap/ui/base/ManagedObject',
 	'sap/ui/qunit/QUnitUtils',
 	'sap/ui/test/Opa5',
 	'sap/ui/Device',
 	"sap/ui/thirdparty/jquery",
-	"sap/ui/test/_OpaLogger"
+	"sap/ui/test/_OpaLogger",
+	"sap/ui/test/_FocusListener"
 ],
-function (ManagedObject, QUnitUtils, Opa5, Device, jQueryDOM, _OpaLogger) {
+function (ManagedObject, QUnitUtils, Opa5, Device, jQuery, _OpaLogger, _FocusListener) {
 	"use strict";
 
 	/**
@@ -64,7 +65,7 @@ function (ManagedObject, QUnitUtils, Opa5, Device, jQueryDOM, _OpaLogger) {
 		 * A control may have many elements in its DOM representation. The most suitable one is chosen by priority:
 		 * <ol>
 		 *     <li>If the user provided an idSuffix, return the element that matches it, or null</li>
-		 *     <li>If there is a control adapter for the action - return the element that matches it. See {@link sap.ui.test.Press.controlAdapters} for an example</li>
+		 *     <li>If there is a control adapter for the action - return the element that matches it. See <code>controlAdapters</code> at {@link sap.ui.test.Press} for an example</li>
 		 *     <li>If there is no control adapter, or it matches no elements, return the focusDomRef of the control. Note that some controls may not have a focusDomRef.</li>
 		 * </ol>
 		 * @param {object} oControl the control to execute an action on
@@ -90,7 +91,7 @@ function (ManagedObject, QUnitUtils, Opa5, Device, jQueryDOM, _OpaLogger) {
 
 				if (!$ActionDomRef || !$ActionDomRef.length) {
 					// if no adapter is set or no element is found for it -- fallback to control focus dom ref
-					$ActionDomRef = jQueryDOM(oControl.getFocusDomRef());
+					$ActionDomRef = jQuery(oControl.getFocusDomRef());
 					if (!$ActionDomRef.length) {
 						$ActionDomRef = oControl.$();
 						if (!$ActionDomRef.length) {
@@ -144,7 +145,7 @@ function (ManagedObject, QUnitUtils, Opa5, Device, jQueryDOM, _OpaLogger) {
 				var vAdapter = this.controlAdapters[oMetadata.getName()];
 
 				if (vAdapter) {
-					if (jQueryDOM.isFunction(vAdapter)) {
+					if (typeof vAdapter === "function") {
 						return vAdapter(oControl);
 					}
 					if (typeof vAdapter === "string") {
@@ -166,11 +167,12 @@ function (ManagedObject, QUnitUtils, Opa5, Device, jQueryDOM, _OpaLogger) {
 		_tryOrSimulateFocusin: function ($DomRef, oControl) {
 			var oDomRef = $DomRef[0];
 			var bFireArtificialEvents = false;
+			var bSimulateFocusout = false;
 			var isAlreadyFocused = this._isFocused(oDomRef);
-			var bIsIE11 = Device.browser.msie && Device.browser.version < 12;
 			var bIsNewFF = Device.browser.firefox && Device.browser.version >= 60;
+			var oLastFocusedElement;
 
-			if (isAlreadyFocused || bIsIE11 || bIsNewFF) {
+			if (isAlreadyFocused || bIsNewFF) {
 				// 1. If the event is already focused, make sure onfocusin event of the control will be properly fired when executing this action,
 				// otherwise the next blur will not be able to safely remove the focus.
 				// 2. In IE11 (and often in Firefox v61.0/v60.0 ESR), if the focus action fails and focusin is dispatched, onfocusin will be called twice.
@@ -187,6 +189,17 @@ function (ManagedObject, QUnitUtils, Opa5, Device, jQueryDOM, _OpaLogger) {
 			if (bFireArtificialEvents) {
 				this.oLogger.debug("Control " + oControl + " could not be focused - maybe you are debugging?");
 
+				// since we are simulating a focus shift a *new* element
+				// ensure we need to simulate the focusout/blur of the *old* focused as well
+				// unless the *old* was already blurred in a previous step, so we check that as well:
+				oLastFocusedElement = _FocusListener.getLastFocusedElement();
+				bSimulateFocusout = oLastFocusedElement
+					&& oLastFocusedElement !== oDomRef
+					&& oLastFocusedElement !== _FocusListener.getLastBlurredElement();
+
+				if (bSimulateFocusout) {
+					this._simulateFocusout(oLastFocusedElement);
+				}
 				this._createAndDispatchFocusEvent("focusin", oDomRef);
 				this._createAndDispatchFocusEvent("focus", oDomRef);
 				this._createAndDispatchFocusEvent("activate", oDomRef);
@@ -208,103 +221,111 @@ function (ManagedObject, QUnitUtils, Opa5, Device, jQueryDOM, _OpaLogger) {
 		 *
 		 * @param {string} sName Name of the mouse event
 		 * @param {Element} oDomRef DOM element on which the event is going to be triggered
+		 * @param {boolean} bShiftKey Indicates whether the shift key is down in addition
+	 	 * @param {boolean} bAltKey Indicates whether the alt key is down in addition
+	 	 * @param {boolean} bCtrlKey Indicates whether the ctrl key is down in addition
 		 * @private
 		 */
-		_createAndDispatchMouseEvent: function (sName, oDomRef) {
+		_createAndDispatchMouseEvent: function (sName, oDomRef, bShiftKey, bAltKey, bCtrlKey, iClientX, iClientY) {
 			// ignore scrolled down stuff (client X, Y not set)
 			// and assume stuff is over the whole screen (screen X, Y not set)
 			// See file jquery.sap.events.js for some insights to the magic
 			var iLeftMouseButtonIndex = 0;
 			var oMouseEvent;
-			if (Device.browser.msie && Device.browser.version < 12) {
-				oMouseEvent = document.createEvent("MouseEvent");
-				oMouseEvent.initMouseEvent(sName, true, true, window, 0, 0, 0, 0, 0,
-					false, false, false, false, iLeftMouseButtonIndex, oDomRef);
-			} else {
-				oMouseEvent = new MouseEvent(sName, {
-					bubbles: true,
-					cancelable: true,
-					identifier: 1,
-					target: oDomRef,
-					radiusX: 1,
-					radiusY: 1,
-					rotationAngle: 0,
-					button: iLeftMouseButtonIndex,
-					type: sName // include the type so jQuery.event.fixHooks can copy properties properly
-				});
-			}
+			oMouseEvent = new MouseEvent(sName, {
+				bubbles: true,
+				cancelable: true,
+				identifier: 1,
+				target: oDomRef,
+				radiusX: 1,
+				radiusY: 1,
+				rotationAngle: 0,
+				button: iLeftMouseButtonIndex,
+				type: sName, // include the type so jQuery.event.fixHooks can copy properties properly
+				shiftKey: bShiftKey,
+				altKey: bAltKey,
+				ctrlKey: bCtrlKey,
+				clientX: iClientX,
+				clientY: iClientY
+			});
+
 			oDomRef.dispatchEvent(oMouseEvent);
 		},
 
 		_createAndDispatchFocusEvent: function (sName, oDomRef) {
-			var oFocusEvent;
+			var oFocusEvent,
+				bBubbles = ["focusin", "focusout", "activate", "deactivate"].indexOf(sName) !== -1;
 
-			if (Device.browser.msie && (Device.browser.version < 12)) {
-				oFocusEvent = document.createEvent("FocusEvent");
-				oFocusEvent.initFocusEvent(sName, true, false, window, 0, oDomRef);
-			} else {
-				oFocusEvent = new FocusEvent(sName, {
-					type: sName,
-					target: oDomRef,
-					curentTarget: oDomRef
-				});
-			}
+			oFocusEvent = new FocusEvent(sName, {
+				type: sName,
+				target: oDomRef,
+				curentTarget: oDomRef,
+				bubbles: bBubbles
+			});
 
 			oDomRef.dispatchEvent(oFocusEvent);
 			this.oLogger.info("Dispatched focus event: '" + sName + "'");
 		},
 
 		_createAndDispatchDragEvent: function (sName, oDomRef, oOptions) {
-			// calculate drop position based on user input
-			// determines where the source will be dropped: before, after or in place of the target
-			if (Device.browser.msie && Device.browser.version < 12) {
-				// drag and drop is not supported in IE11.
-				// IE11's support for HTML5 drag and drop is questionable..
-				// when an event is initialized, dataTransfer is nullified. later this causes a null reference error in sap/ui/core/dnd/DragDropInfo
-				// (Unable to set property 'effectAllowed' of undefined or null reference).
-				// Another difference is that DataTransfer is an object in IE11, and would be instantiate like: oDataTransfer = new DataTransfer.constructor()
-				return;
-			}
 			var mCoordinates = this._getEventCoordinates(oDomRef, oOptions);
 			var oDataTransfer = new DataTransfer();
 			var oDragEvent;
 
-			if (Device.browser.edge) {
-				oDragEvent = document.createEvent("DragEvent");
-				oDragEvent.initDragEvent(sName, true, true, window, 0, mCoordinates.x, mCoordinates.y, mCoordinates.x, mCoordinates.y,
-					false, false, false, false, 1, oDomRef, oDataTransfer);
-			} else {
-				oDragEvent = new DragEvent(sName, {
-					type: sName, // include the type so jQuery.event.fixHooks can copy properties properly
-					eventPhase: 3,
-					bubbles: true,
-					cancelable: true,
-					defaultPrevented: false,
-					composed: true,
-					returnValue: true,
-					cancelBubble: false,
-					target: oDomRef,
-					toElement: oDomRef,
-					srcElement: oDomRef,
-					radiusX: 1,
-					radiusY: 1,
-					rotationAngle: 0,
-					// coordinates are needed to infer drop elem. e.g. in the control handlers, the drop target can be recalculated using document.elementfromPoint.
-					// even if set, pageXY and screenXY are zeroed. if clientXY is set, then xy and pageXY will be = clientXY, and offsetXY will be calculated correctly.
-					// this may cause problems for controls outside the client area
-					// in this case, users should scroll before the drag event
-					clientX: mCoordinates.x,
-					clientY: mCoordinates.y,
-					// dataTransfer should be at least an empty object, to avoid undefined error
-					dataTransfer: oDataTransfer
-				});
-			}
+			oDragEvent = new DragEvent(sName, {
+				type: sName, // include the type so jQuery.event.fixHooks can copy properties properly
+				eventPhase: 3,
+				bubbles: true,
+				cancelable: true,
+				defaultPrevented: false,
+				composed: true,
+				returnValue: true,
+				cancelBubble: false,
+				target: oDomRef,
+				toElement: oDomRef,
+				srcElement: oDomRef,
+				radiusX: 1,
+				radiusY: 1,
+				rotationAngle: 0,
+				// coordinates are needed to infer drop elem. e.g. in the control handlers, the drop target can be recalculated using document.elementfromPoint.
+				// even if set, pageXY and screenXY are zeroed. if clientXY is set, then xy and pageXY will be = clientXY, and offsetXY will be calculated correctly.
+				// this may cause problems for controls outside the client area
+				// in this case, users should scroll before the drag event
+				clientX: mCoordinates.x,
+				clientY: mCoordinates.y,
+				// dataTransfer should be at least an empty object, to avoid undefined error
+				dataTransfer: oDataTransfer
+			});
 
 			oDomRef.dispatchEvent(oDragEvent);
 		},
 
+		_createAndDispatchScrollEvent: function (oDomRef, oOptions) {
+			if (oOptions.x != null) {
+				oDomRef.scrollLeft = oOptions.x;
+			}
+			if (oOptions.y != null) {
+				oDomRef.scrollTop = oOptions.y;
+			}
+			var oScrollEvent = new Event("scroll", {
+				bubbles: false,
+				cancelBubble: false,
+				cancelable: false,
+				composed: false,
+				currentTarget: null,
+				defaultPrevented: false,
+				eventPhase: 0,
+				isTrusted: true,
+				returnValue: true,
+				target: oDomRef,
+				srcElement: oDomRef,
+				type: "scroll"
+			});
+			oDomRef.dispatchEvent(oScrollEvent);
+		},
+
 		_getEventCoordinates: function (oDomRef, oOptions) {
-			var $domRef = jQueryDOM(oDomRef);
+			var $domRef = jQuery(oDomRef);
 			var offset = $domRef.offset();
 			var mCenterCoordinates = {
 				x: offset.left + $domRef.outerWidth() / 2,
