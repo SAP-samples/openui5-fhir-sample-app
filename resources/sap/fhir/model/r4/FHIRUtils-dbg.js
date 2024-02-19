@@ -29,7 +29,7 @@ sap.ui.define([
 	 * @classdesc Implementation of functions which can be reused in context of the FHIR standard
 	 * @public
 	 * @since 1.0.0
-	 * @version 2.3.6
+	 * @version 2.3.7
 	 */
 	var FHIRUtils = {};
 

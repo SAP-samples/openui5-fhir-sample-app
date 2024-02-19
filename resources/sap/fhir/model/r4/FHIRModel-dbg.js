@@ -72,7 +72,7 @@ sap.ui.define([
 	 * @author SAP SE
 	 * @public
 	 * @since 1.0.0
-	 * @version 2.3.6
+	 * @version 2.3.7
 	 */
 	var FHIRModel = Model.extend("sap.fhir.model.r4.FHIRModel", {
 
@@ -500,6 +500,9 @@ sap.ui.define([
 				oResponse.meta.lastUpdated = mResponseHeaders["last-modified"];
 				this.oData[oResponse.resourceType][oResponse.id] = oResponse;
 			} else {
+				if (oBinding && oBinding.sGroupId) {
+					sGroupId = oBinding.sGroupId;
+				}
 				this._mapFHIRResponse(oResponse, mResponseHeaders, oBundleEntry, oBinding, sGroupId);
 			}
 

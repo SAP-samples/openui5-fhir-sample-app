@@ -20,7 +20,7 @@ sap.ui.define([], function() {
 	 * @author SAP SE
 	 * @protected
 	 * @since 1.0.0
-	 * @version 2.3.6
+	 * @version 2.3.7
 	 */
 	var FHIRBundleEntry = function(sFullUrl, oResource, oRequest) {
 		this._sFullUrl = sFullUrl;
