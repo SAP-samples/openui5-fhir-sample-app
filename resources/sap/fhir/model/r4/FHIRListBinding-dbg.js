@@ -45,7 +45,7 @@ sap.ui.define([
 	 * @extends sap.ui.model.ListBinding
 	 * @public
 	 * @since 1.0.0
-	 * @version 2.3.7
+	 * @version 2.4.0
 	 */
 	var FHIRListBinding = ListBinding.extend("sap.fhir.model.r4.FHIRListBinding", {
 

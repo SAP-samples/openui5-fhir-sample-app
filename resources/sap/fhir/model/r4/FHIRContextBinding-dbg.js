@@ -33,7 +33,7 @@ sap.ui.define([
 	 * @extends sap.ui.model.ContextBinding
 	 * @public
 	 * @since 1.0.0
-	 * @version 2.3.7
+	 * @version 2.4.0
 	 */
 	var FHIRContextBinding = ContextBinding.extend("sap.fhir.model.r4.FHIRContextBinding", {
 

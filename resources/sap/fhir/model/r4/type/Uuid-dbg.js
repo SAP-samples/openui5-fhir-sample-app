@@ -12,7 +12,7 @@
  * @author SAP SE
  * @protected
  * @since 1.1.0
- * @version 2.3.7
+ * @version 2.4.0
  */
 
 sap.ui.define(["sap/fhir/model/r4/type/Uri", "sap/fhir/model/r4/FHIRUtils"], function (Uri, FHIRUtils) {

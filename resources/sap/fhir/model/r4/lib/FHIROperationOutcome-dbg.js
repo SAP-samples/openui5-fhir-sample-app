@@ -18,7 +18,7 @@ sap.ui.define([], function () {
 	 * @author SAP SE
 	 * @public
 	 * @since 2.0.0
-	 * @version 2.3.7
+	 * @version 2.4.0
 	 */
 	var FHIROperationOutcome = function (oResource) {
 		this._sResourceType = oResource.resourceType;
