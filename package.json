@@ -17,7 +17,7 @@
 		"node": ">=10.0.0"
 	},
 	"devDependencies": {
-		"@ui5/cli": "^3.10.1",
+		"@ui5/cli": "^3.10.2",
 		"local-web-server": "^5.3.3"
 	},
 	"dependencies": {
