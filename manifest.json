@@ -24,12 +24,10 @@
 			}
 		}
 	},
-	
 	"sap.ui": {
 		"supportedThemes": [
 			"sap_hcb",
 			"sap_fiori_3"
-
 		],
 		"technology": "UI5",
 		"deviceTypes": {
@@ -38,7 +36,6 @@
 			"phone": true
 		}
 	},
-
 	"sap.ui5": {
 		"rootView": {
 			"viewName": "myhealthapp.view.App",
@@ -65,14 +62,16 @@
 				"type": "sap.ui.model.resource.ResourceModel",
 				"settings": {
 					"bundleName": "myhealthapp.i18n.i18n",
-					"supportedLocales": ["en"],
-                    "fallbackLocale": "en"
+					"supportedLocales": [
+						"en"
+					],
+					"fallbackLocale": "en"
 				}
 			},
 			"": {
 				"type": "sap.fhir.model.r4.FHIRModel",
 				"dataSource": "fhir",
-				"settings" : {
+				"settings": {
 					"groupProperties": {
 						"patientDetails": {
 							"submit": "Batch"
@@ -89,9 +88,11 @@
 			}
 		},
 		"resources": {
-			"css": [{
-				"uri": "css/style.css"
-			}]
+			"css": [
+				{
+					"uri": "css/style.css"
+				}
+			]
 		},
 		"routing": {
 			"config": {
@@ -131,22 +132,23 @@
 					"viewId": "home",
 					"viewLevel": 1
 				},
-				"patientsTarget" :{
+				"patientsTarget": {
 					"viewName": "Patients",
 					"viewId": "patients",
 					"viewLevel": 2
 				},
-				"patientTarget" :{
+				"patientTarget": {
 					"viewName": "Patient",
 					"viewId": "patient",
 					"viewLevel": 3
 				},
-				"organizationsTarget" :{
+				"organizationsTarget": {
 					"viewName": "Organizations",
 					"viewId": "organizations",
 					"viewLevel": 2
 				}
 			}
-		}
+		},
+		"flexBundle": false
 	}
 }
